@@ -5,7 +5,7 @@ import { CAT_OF, KEYP, S, SEASONS, tkey } from './state.js';
 import { dbWrite, localPut, stamp } from './core.js';
 import { ledger, shHead } from './characters.js';
 import { vdEffects, vdLabel } from '../creation/rules.js';
-import { vdInfo } from '../info.js';
+import { spellCat, vdInfo } from '../info.js';
 import { route } from '../main.js';
 
 /* ---------- small helpers */
@@ -142,16 +142,19 @@ function formaBlock(pj, c, f) {
   if (f.fuente) sec.appendChild(h('p', { class: 'sh-aside', text: 'Fuente: ' + f.fuente }));
   return sec;
 }
-/* a formulaic spell's casting total: Technique + Form (with Puissant Arts) + Stamina + aura modifier + mastery */
+/* a formulaic spell's casting total: Technique + Form (with Puissant Arts) + Stamina (of the shape the character is in) + aura modifier + mastery */
 function spellTotal(pj, c, s, aura, cer) {
   const t = artOf(s.tec), f = artOf(s.forma);
   if (!t || !f) return null;
   const ac = isRitual(s) || (cer && canCeremony(c)) ? academic(c).sum : 0;
-  return artLvl(c.arts[t]) + manaArt(c, t) + artLvl(c.arts[f]) + manaArt(c, f) + numv(pj.car && pj.car['Vitalidad']) + aura + Math.max(0, Math.round(numv(s.maestria))) + ac + malusOf(pj);
+  return artLvl(c.arts[t]) + manaArt(c, t) + artLvl(c.arts[f]) + manaArt(c, f) + numv(pjCar(pj, formaActiva(pj))['Vitalidad']) + aura + Math.max(0, Math.round(numv(s.maestria))) + ac + malusOf(pj);
 }
 /* Ceremonial casting and Ritual spells (ArM5, Hermetic Magic): + Artes Liberales + Filosofía, fifteen minutes per magnitude.
    Ceremony needs some experience in at least one of the two; a Ritual always adds them. */
-function isRitual(s) { return !!s && (s.ritual === true || /\britual\b/i.test(String(s.nota || ''))); }
+// ritual if the sheet says so, or the catalogue entry it is linked to does (as its description popup shows)
+function isRitual(s) { return !!s && (s.ritual === true || /\britual\b/i.test(String(s.nota || '')) || !!(spellCat(s) || {}).rit); }
+/* age in the current year from the birth year; '' when it is not a plain year («c. 1190») */
+function edadTxt(ca, nac) { const n = parseInt(nac, 10); return n ? (ca - n) + ' años' : ''; }
 function academic(c) {
   const one = n => { const x = (c.hab || []).find(a => tkey(a.n) === tkey(n)); return { lv: x ? abLvl(x.xp) + manaHab(c, n) : 0, xp: x ? x.xp : 0 }; };
   const al = one('Artes Liberales'), fi = one('Filosofía');
@@ -175,7 +178,8 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
 function canWrite() { return !!S.db && S.canWrite !== false; }
 function slugify(s) { return tkey(s).slice(0, 40); }
 function newId(prefix) { return (slugify(prefix) || 'pj') + '-' + Math.random().toString(36).slice(2, 7); }
-function currentRaw() { return decodeURIComponent(location.hash.replace(/^#/, '')); }
+// a malformed % sequence in the address (#100%) must not stop the page: keep the hash as it is
+function currentRaw() { const r = location.hash.replace(/^#/, ''); try { return decodeURIComponent(r); } catch (e) { return r; } }
 
 /* ---------- experience (ArM5): an Art at level L costs L(L+1)/2 px; an Ability or Warping 5·L(L+1)/2 */
 const artCost = l => l * (l + 1) / 2;
@@ -230,4 +234,4 @@ function traitLevel(c, name) {
   return hb ? { lv: abLvl(hb.xp), xp: hb.xp } : { lv: 0, xp: 0, nuevo: true };
 }
 
-export { abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards };
+export { edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards };

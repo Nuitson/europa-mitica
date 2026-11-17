@@ -320,7 +320,7 @@ function creationCheck(d) {
       else errors.push('Los hechizos suman ' + spSpent + ' niveles y el presupuesto es de ' + spBudget + (shared ? ' (+' + shared + ' tras el Guantelete)' : '') + '.');
     }
     if (!native && !(preset && !preset.nativa) && !hasD('feral')) avisos.push('Falta la lengua materna, a nivel 5 (sus 75 px ya están en el presupuesto).');
-    lines.push({ k: 'px', l: 'Experiencia', s: 'PX', short: xpSpent + '/' + xpBudget, txt: xpSpent + ' de ' + xpBudget + ' px', st: overXp > shared ? 'over' : xpSpent < xpBudget ? 'under' : 'ok' });
+    lines.push({ k: 'px', l: 'Experiencia', s: 'PX', short: xpSpent + '/' + xpBudget, txt: xpSpent + ' de ' + xpBudget + ' px', st: usedShared > shared && overXp ? 'over' : xpSpent < xpBudget ? 'under' : 'ok' });
     if (isMagic(cls)) lines.push({ k: 'hz', l: 'Hechizos', s: 'Hechizos', short: spSpent + '/' + spBudget, txt: spSpent + ' de ' + spBudget + ' niveles', st: usedShared > shared && overSp ? 'over' : spSpent < spBudget ? 'under' : 'ok' });
     if (shared) lines.push({ k: 'post', l: 'Tras el Guantelete', s: 'Post', short: usedShared + '/' + shared, txt: usedShared + ' de ' + shared + ' puntos (PX o niveles)', st: usedShared > shared ? 'over' : usedShared < shared ? 'under' : 'ok' });
     if (msBonus) lines.push({ k: 'ms', l: 'Maestría de hechizos', s: 'Maest.', short: Math.min(msXp, msBonus) + '/' + msBonus,

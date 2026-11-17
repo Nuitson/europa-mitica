@@ -67,14 +67,16 @@ function applySagaChange() {
   const raw = currentRaw();
   const parts = raw.split('--');
   const doc = DOCS[parts[0]];
+  // someone is typing in the page (wounds, fatigue, a filter): redraw when they leave the field, not under their fingers
+  const a = document.activeElement;
+  const typing = () => a && page.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) ? (a.addEventListener('blur', () => sagaChanged(), { once: true }), true) : false;
   if (doc) {
     const sh = doc.sheets.find(s => s.id === parts[1]) || doc.sheets[0];
-    if (hasLive(sh.blocks)) route(true);
+    if (hasLive(sh.blocks) && !typing()) route(true);
     return;
   }
   if (raw === 'pj-nuevo' || /--editar$/.test(raw)) { if (!page.querySelector('form.pj-form')) route(true); return; } // never clobber a form being filled in
-  if (raw === 'master') { const a = document.activeElement; if (!(a && page.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName))) route(true); return; }
-  if (/^(estaciones|personajes|pj--)/.test(raw)) { route(true); return; }
+  if (raw === 'master' || /^(estaciones|personajes|pj--)/.test(raw)) { if (!typing()) route(true); return; }
   const box = document.getElementById('home-saga');
   if (box) box.replaceWith(homeSaga());
   document.querySelectorAll('.glance').forEach(el => { if (el._g) el.replaceWith(glanceNode(el._g)); });
@@ -85,10 +87,9 @@ async function dbWrite(fn, okMsg) {
   if (!S.db) { toast('La saga en curso no está disponible en esta vista.'); return false; }
   const fail = e => {
     const code = e && e.code;
-    if (code === 'invalid_argument' || code === 'transform_error') {
-      if (S.canWrite !== true) { S.canWrite = false; sagaChanged(); toast('No tienes permiso para guardar cambios. Pide al máster que te dé acceso.'); }
-      else toast('No se ha podido guardar: los datos no son válidos.');
-    } else if (code === 'quota_exceeded') toast('La base de datos de la página está llena. Borra entradas antiguas para seguir guardando.');
+    if (code === 'permission_denied') toast('No tienes permiso para guardar este cambio: pídeselo al máster.');
+    else if (code === 'invalid_argument' || code === 'transform_error') toast('No se ha podido guardar: los datos no son válidos.');
+    else if (code === 'quota_exceeded') toast('La base de datos de la página está llena. Borra entradas antiguas para seguir guardando.');
     else if (code === 'resource_exhausted') toast('Demasiados cambios seguidos. Espera un momento y vuelve a intentarlo.');
     else if (code === 'revoked' || code === 'not_granted' || code === 'capability_disabled' || code === 'capability_removed') { S.db = null; S.status = 'revoked'; sagaChanged(); toast('La saga en curso ya no está disponible en esta vista.'); }
     else toast('No se ha podido guardar. Inténtalo de nuevo.');

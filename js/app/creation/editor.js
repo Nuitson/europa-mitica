@@ -36,7 +36,7 @@ function viewEditor(id, override) {
   let d = override ? clone(override) : null;
   if (!d && !orig) { d = loadDraft(); restored = !!(d && draftHasContent(d)); if (!restored) d = null; }
   if (!d) d = orig ? clone(orig) : blankPj();
-  ['virtudes', 'defectos', 'hab', 'hechizos', 'personalidad'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+  ['virtudes', 'defectos', 'hab', 'hechizos', 'personalidad'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(x => x && typeof x === 'object') : []; });
   d.virtudes = d.virtudes.map(vdNormalize);
   // one row per ability (older forms allowed the same name twice): their px add up
   d.hab = d.hab.filter(x => x && typeof x === 'object').reduce((acc, x) => {
@@ -74,10 +74,10 @@ function viewEditor(id, override) {
   f.appendChild(sec('Datos', [h('div', { class: 'fgrid' }, [
     field('Nombre', inp(d.nombre, v => { d.nombre = v; }, { required: true, placeholder: 'Nombre ex Casa', id: 'pj-nombre', autocomplete: 'off' }), null, 'w2'),
     field('Epíteto o apodo', inp(d.sub, v => { d.sub = v; }, { placeholder: 'fili de…' })),
-    field('Tipo', sel(TIPOS, d.tipo, v => { d.tipo = v; ensureGift(d); drawVd(); if (artSec) artSec.hidden = !showArts(); if (eaField) eaField.hidden = !isMagic(CLASE[d.tipo]); }, { id: 'pj-tipo' })),
+    field('Tipo', sel(TIPOS, d.tipo, v => { d.tipo = v; ensureGift(d); drawVd(); drawHab(); if (artSec) artSec.hidden = !showArts(); if (eaField) eaField.hidden = !isMagic(CLASE[d.tipo]); }, { id: 'pj-tipo' })),
     field('Casa', inp(d.casa, v => { d.casa = v; }, { list: casaDl, autocomplete: 'off' })),
     field('Jugador', inp(d.jugador, v => { d.jugador = v; })),
-    h('label', { class: 'fld' }, [h('span', { class: 'fl', text: 'Año de nacimiento' }), inp(d.nacimiento, v => { d.nacimiento = parseInt(v, 10) || ''; drawAge(); }, { type: 'number', inputmode: 'numeric', id: 'pj-nac' }), ageNote]),
+    h('label', { class: 'fld' }, [h('span', { class: 'fl', text: 'Año de nacimiento' }), inp(d.nacimiento, v => { d.nacimiento = parseInt(v, 10) || ''; drawAge(); drawHab(); }, { type: 'number', inputmode: 'numeric', id: 'pj-nac' }), ageNote]),
     field('En juego', h('span', { class: 'chk' }, [h('input', { type: 'checkbox', checked: d.activo !== false ? true : null, onchange: ev => { d.activo = ev.target.checked; } }), h('span', { text: 'Activo en la saga' })])),
     field('Concepto', h('textarea', { rows: 2, oninput: ev => { d.concepto = ev.target.value; } }, d.concepto || ''), null, 'w3')])]));
   // creation rules
@@ -498,6 +498,8 @@ function viewEditor(id, override) {
   f.addEventListener('input', refresh);
   f.addEventListener('change', refresh);
   drawVd(); drawHab(); drawArts(); drawSp();
+  // the sheet as this form opened it: on save, what the form did not change is taken from the latest copy instead
+  const start = orig ? clone(d) : null;
   save.addEventListener('click', async () => {
     const name = String(d.nombre || '').trim();
     if (!name) { toast('El personaje necesita un nombre.'); const n = document.getElementById('pj-nombre'); if (n) n.focus(); return; }
@@ -514,6 +516,16 @@ function viewEditor(id, override) {
     ARTS.forEach(a => { out.artes[a] = numv(out.artes[a]); });
     CHARS.forEach(n => { out.car[n] = numv(out.car[n]); });
     const pid = id || newId(name);
+    // others may have written to this sheet while the form was open (wounds and fatigue, the shape, a spell from the
+    // catalogue): keep their changes in every field this form left as it found it
+    const live = orig && S.pj[pid];
+    if (live) {
+      const same = k => JSON.stringify(d[k]) === JSON.stringify(start[k]);
+      Object.keys(Object.assign({}, live, start)).forEach(k => {
+        if (k === 'actualizado' || k === 'por' || !same(k)) return;
+        if (k in live) out[k] = clone(live[k]); else delete out[k];
+      });
+    }
     save.disabled = true;
     const ok = await dbWrite(() => S.db.doc('personajes/' + pid).set(stamp(out, !orig)), orig ? 'Ficha guardada' : 'Personaje creado');
     save.disabled = false;
@@ -576,8 +588,10 @@ function renameSlot(d, slot, oldVal, newVal) {
   const def = slot === 'lengua' ? 'Lengua materna' : 'Tierra natal';
   const from = oldVal || def, to = newVal || def;
   if (tkey(from) !== tkey(to)) {
-    const row = d.hab.find(x => tkey(x.n) === tkey(from));
-    if (row && !d.hab.some(x => tkey(x.n) === tkey(to))) row.n = to;
+    const row = d.hab.find(x => tkey(x.n) === tkey(from)), dest = d.hab.find(x => tkey(x.n) === tkey(to));
+    // the new name is already on the sheet: its row takes this one's px, so the package's px stay where it will look for them
+    if (row && dest && row !== dest) { dest.base = numv(dest.base) + numv(row.base); if (!dest.esp && row.esp) dest.esp = row.esp; d.hab.splice(d.hab.indexOf(row), 1); }
+    else if (row) row.n = to;
     (cr.infAplicada || []).forEach(it => { if (it.slot === slot) it.n = to; });
   }
   if (slot === 'lengua' && newVal && !cr.infancia && !cr.nativaAuto && !d.hab.some(x => tkey(x.n) === tkey(newVal))) { addXp(d, newVal, 'Idiomas vivos', 75); cr.nativaAuto = true; }

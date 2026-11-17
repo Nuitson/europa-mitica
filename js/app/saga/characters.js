@@ -3,7 +3,7 @@ import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, signed,
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
-import { abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
+import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { vdLabel } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
@@ -33,7 +33,7 @@ function viewCharacters() {
       grid.appendChild(h('a', { class: 'dcard pj-card' + (p.activo === false ? ' inactive' : ''), href: '#pj--' + p._id }, [monogram(p, 'mono big'), h('div', { class: 'in' }, [
         h('div', { class: 'dp', text: [p.casa, p.jugador ? 'juega ' + p.jugador : ''].filter(Boolean).join(' · ') }),
         h('div', { class: 'dt1', text: p.nombre }),
-        p.sub || p.nacimiento ? h('div', { class: 'db', text: [p.sub, p.nacimiento ? (ca - Number(p.nacimiento)) + ' años' : ''].filter(Boolean).join(' · ') }) : null,
+        p.sub || p.nacimiento ? h('div', { class: 'db', text: [p.sub, edadTxt(ca, p.nacimiento)].filter(Boolean).join(' · ') }) : null,
         h('div', { class: 'dm', text: (ent.length === 1 ? '1 estación' : ent.length + ' estaciones') + (p.activo === false ? ' · fuera de juego' : '') })])]));
     });
     content.appendChild(grid);
@@ -61,7 +61,7 @@ function viewPj(id, tab) {
   hi.appendChild(h('h1', { class: 'doc-title', text: pj.nombre }));
   if (pj.sub) hi.appendChild(h('div', { class: 'pj-sub', text: pj.sub }));
   const role = pj.casa ? (/^(Magus|Maga|Aprendiz)$/.test(pj.tipo || '') ? pj.tipo + ' de la casa ' + pj.casa : [pj.tipo, pj.casa].filter(Boolean).join(', ')) : pj.tipo;
-  const meta = h('div', { class: 'doc-meta pj-meta' }, [role, pj.nacimiento ? (ca - Number(pj.nacimiento)) + ' años (n. ' + pj.nacimiento + ')' : '', pj.aparenta ? String(pj.aparenta) : '',
+  const meta = h('div', { class: 'doc-meta pj-meta' }, [role, pj.nacimiento ? (edadTxt(ca, pj.nacimiento) ? edadTxt(ca, pj.nacimiento) + ' (n. ' + pj.nacimiento + ')' : 'n. ' + pj.nacimiento) : '', pj.aparenta ? String(pj.aparenta) : '',
     pj.jugador ? 'Juega ' + pj.jugador : '', pj.activo === false ? 'Fuera de juego' : ''].filter(Boolean).map(t => h('span', { text: t })));
   if (pj.excel && DOCS[pj.excel]) meta.appendChild(h('a', { href: '#' + pj.excel, text: 'Hoja de Excel original' }));
   const fa = formaActiva(pj);
@@ -266,7 +266,8 @@ function sheetArts(pj, c, id) {
   if (!MODES.includes(mode)) mode = 'Lanzamiento';
   const tm = c.hab.find(x => tkey(x.n) === 'teoria-magica');
   const mt = (tm ? abLvl(tm.xp) : 0) + manaHab(c, 'Teoría Mágica');
-  const vit = numv(pj.car && pj.car['Vitalidad']), int = numv(pj.car && pj.car['Inteligencia']);
+  const car = pjCar(pj, formaActiva(pj)); // in another shape, its Characteristics
+  const vit = numv(car['Vitalidad']), int = numv(car['Inteligencia']);
   const lv = a => artLvl(c.arts[a]) + manaArt(c, a);
   const est = estadoFisico(pj), mal = est.total;
   const ac = academic(c), canCer = ac.xp > 0;

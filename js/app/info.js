@@ -48,7 +48,7 @@ function rdtTxt(o) { return [o.alc, o.dur, o.obj].filter(Boolean).join(' · '); 
 function catSource(x) {
   const C = hechCat();
   const p = h('p', { class: 'info-src' });
-  p.appendChild(document.createTextNode((x.libro || 'Ars Magica, edición definitiva') + ': «' + x.en + '»' + (x.pag ? ', pág. ' + x.pag : '') + '. '));
+  p.appendChild(document.createTextNode((x.libro || 'Ars Magica, edición definitiva') + ': «' + (x.en || x.n) + '»' + (x.pag ? ', pág. ' + x.pag : '') + '. '));
   if (C.src) {
     p.appendChild(document.createTextNode(C.src.t + ' '));
     (C.src.links || []).forEach(([t, u], i) => { if (i) p.appendChild(document.createTextNode(' · ')); p.appendChild(h('a', { href: u, target: '_blank', rel: 'noopener', text: t })); });

@@ -3,7 +3,7 @@ import { ABBR, artOf, esc, h, load, R, store, toNum } from './base.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
 import { field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
-import { AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards } from './saga/rules.js';
+import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards } from './saga/rules.js';
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 
@@ -146,7 +146,7 @@ function masterCard(p, compact) {
   const card = h('article', { class: 'm-card', 'aria-label': p.nombre });
   card.appendChild(h('div', { class: 'm-card-h' }, [monogram(p, 'mono'), h('div', { class: 'm-id' }, [
     h('a', { class: 'm-name', href: '#pj--' + id, text: p.nombre }),
-    h('div', { class: 'xt', text: [p.tipo, p.casa, p.nacimiento ? (ca - Number(p.nacimiento)) + ' años' : '', p.jugador ? 'juega ' + p.jugador : ''].filter(Boolean).join(' · ') })])]));
+    h('div', { class: 'xt', text: [p.tipo, p.casa, edadTxt(ca, p.nacimiento), p.jugador ? 'juega ' + p.jugador : ''].filter(Boolean).join(' · ') })])]));
   // wounds and fatigue marked on the sheet: the master sees the malus at a glance
   const et = estadoTxt(p);
   if (et) card.appendChild(h('p', { class: 'm-her' + (estadoFisico(p).fuera ? ' out' : ''), text: et }));
@@ -174,7 +174,10 @@ function masterCard(p, compact) {
       const tot = spellTotal(p, c, x, m, cer), lv = toNum(x.nivel);
       return { x: x, r: [x.n, [x.tec, x.forma].filter(Boolean).map(a => ABBR[artOf(a)] || a).join(''), x.nivel != null ? String(x.nivel) : '', tot == null ? '' : String(tot),
         tot == null || !isFinite(lv) ? '' : sgn(tot - lv)] };
-    }).sort((a, b) => toNum(b.r[3]) - toNum(a.r[3]));
+    }).sort((a, b) => { // highest total first; spells without a total (unknown Art) last
+      const x = toNum(a.r[3]), y = toNum(b.r[3]), fx = isFinite(x), fy = isFinite(y);
+      return fx && fy ? y - x : fx ? -1 : fy ? 1 : 0;
+    });
     const body = rows.map(o => o.r);
     const wrap = h('details', { class: 'm-spells', open: compact ? null : true });
     wrap.appendChild(h('summary', null, [h('span', { class: 'm-sub', text: 'Hechizos con el aura elegida · ' + sp.length }), h('small', { text: auraTxt(MST.tipo, MST.nivel) + ': ' + sgn(m) })]));

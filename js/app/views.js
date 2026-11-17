@@ -53,9 +53,10 @@ function viewDoc(doc, sheetId, anchor, keepY) {
   requestAnimationFrame(() => {
     if (keepY != null) { window.scrollTo(0, keepY); return; } // live data re-render: stay put
     let target = null;
-    if (pendingFocus) { target = page.querySelector('[data-k="' + pendingFocus + '"]'); pendingFocus = null; }
+    if (pendingFocus) { target = page.querySelector('[data-k="' + CSS.escape(pendingFocus) + '"]'); pendingFocus = null; }
     else if (anchor) target = document.getElementById('a-' + anchor);
     if (target) {
+      openDetails(target);
       target.scrollIntoView({ block: anchor ? 'start' : 'center' });
       if (!anchor) { target.classList.add('flash'); setTimeout(() => target.classList.remove('flash'), 2400); }
     } else window.scrollTo(0, 0);
@@ -157,12 +158,14 @@ function viewHome(q) {
   return input;
 }
 
+/* a search hit inside a closed «details» (the English original…): open it, or there is nothing to scroll to */
+function openDetails(el) { for (let d = el.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) d.open = true; }
 function focusPending() {
   requestAnimationFrame(() => {
     if (!pendingFocus) return;
-    const t = page.querySelector('[data-k="' + pendingFocus + '"]');
+    const t = page.querySelector('[data-k="' + CSS.escape(pendingFocus) + '"]');
     pendingFocus = null;
-    if (t) { t.scrollIntoView({ block: 'center' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 2400); }
+    if (t) { openDetails(t); t.scrollIntoView({ block: 'center' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 2400); }
   });
 }
 

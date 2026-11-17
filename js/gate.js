@@ -229,7 +229,8 @@ function gateCreate(sagas) {
       const r = await api('crear', datos);
       created(r, datos);
     } catch (e) {
-      gateCreateAgain(sagas, datos, e.message);
+      // the connection failed while the server was working: it may have finished, and a second «Crear» would make another saga
+      gateCreateAgain(sagas, datos, e.code === 'unavailable' ? e.message + ' Puede que la saga se haya creado igualmente: recarga la página y mira si aparece en la lista antes de volver a crearla.' : e.message);
     }
   });
   showGate([form]);
@@ -370,7 +371,8 @@ function makeDb(ses) {
     connSubs.forEach(cb => { try { cb(v); } catch (e) { /* a listener's own problem */ } });
   }
   const colOf = p => p.slice(0, p.lastIndexOf('/'));
-  const call = (a, d) => api(a, Object.assign({ token: ses.token }, d)).catch(e => { if (e.code === 'sesion') sessionLost(e.message); throw e; });
+  // the session expired or the saga is gone (as when opening it): back to the entry gate
+  const call = (a, d) => api(a, Object.assign({ token: ses.token }, d)).catch(e => { if (e.code === 'sesion' || e.code === 'saga') sessionLost(e.message); throw e; });
   function deliver(s) {
     if (s.kind === 'doc') {
       const d = docs.get(s.path);
@@ -384,14 +386,20 @@ function makeDb(ses) {
   function notify(paths) {
     subs.forEach(s => { if (!paths || paths.some(p => (s.kind === 'doc' ? p === s.path : colOf(p) === s.path))) deliver(s); });
   }
+  // bumped when a write starts and when it ends: a read that was in flight meanwhile may predate the write
+  let wseq = 0;
   function poll(force) {
     if (busyPoll) return busyPoll;
     clearTimeout(timer);
+    let stale = false;
     busyPoll = (async () => {
       try {
+        const seq = wseq;
         const r = await call('leer', { rev: force ? null : rev, desde: loaded ? desde : 0 });
         fails = 0;
         setOnline(true);
+        // a write overlapped this read: its answer could undo that write here, so drop it and read again
+        if (seq !== wseq && loaded) { stale = true; return; }
         if (!r.igual) {
           const changed = [];
           if (!loaded || !r.rutas) {
@@ -413,28 +421,29 @@ function makeDb(ses) {
         // one failed refresh can be a blip; two in a row (or the very first load failing) means the page is out of date
         if (fails >= (loaded ? 2 : 1)) setOnline(false);
       }
-      finally { busyPoll = null; schedule(); }
+      finally { busyPoll = null; schedule(stale ? 1000 : null); }
     })();
     return busyPoll;
   }
-  function schedule() {
+  function schedule(ms) {
     clearTimeout(timer);
     if (document.visibilityState === 'hidden') return;
-    timer = setTimeout(() => poll(), fails ? Math.min(120000, POLL_MS * Math.pow(2, Math.min(fails, 3))) : POLL_MS);
+    timer = setTimeout(() => poll(), ms != null ? ms : fails ? Math.min(120000, POLL_MS * Math.pow(2, Math.min(fails, 3))) : POLL_MS);
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') poll(); else clearTimeout(timer); });
   window.addEventListener('online', () => poll());
   window.addEventListener('offline', () => setOnline(false));
   const mapErr = e => {
-    const code = { unavailable: 'unavailable', sesion: 'revoked', permiso: 'invalid_argument', ruta: 'invalid_argument', peticion: 'invalid_argument', grande: 'invalid_argument', no_encontrado: 'not_found' }[e.code] || 'internal';
+    const code = { unavailable: 'unavailable', sesion: 'revoked', permiso: 'permission_denied', ruta: 'invalid_argument', peticion: 'invalid_argument', grande: 'invalid_argument', no_encontrado: 'not_found' }[e.code] || 'internal';
     return Object.assign(new Error(e.message), { code: code });
   };
   async function write(ops) {
     let r;
+    wseq++;
     try { r = await call('escribir', { ops: ops }); } catch (e) {
       if (e.code === 'unavailable') setOnline(false);
       throw mapErr(e);
-    }
+    } finally { wseq++; }
     setOnline(true);
     const changed = [];
     ops.forEach(op => {
@@ -467,6 +476,8 @@ function makeDb(ses) {
       onSnapshot: (cb, err) => { const s = { kind: 'col', path: path, cb: cb, err: err }; subs.add(s); if (loaded) setTimeout(() => deliver(s), 0); else poll(); return () => subs.delete(s); }
     }),
     onConnection: cb => { connSubs.add(cb); return () => connSubs.delete(cb); },
+    // several changes in one request, so a retry never repeats only half of them
+    batch: () => { const ops = []; return { set: (p, d) => { ops.push({ op: 'set', ruta: p, datos: clean(d) }); }, delete: p => { ops.push({ op: 'delete', ruta: p }); }, commit: () => write(ops) }; },
     _poll: poll,
     _blob: id => { const d = docs.get(id); return d && d.data ? d.data : null; },
     _upload: async (blob, opts) => {

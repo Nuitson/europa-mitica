@@ -113,6 +113,8 @@ function viewSeasons(slug) {
   document.title = sname(a, e) + ' — Europa Mítica';
 }
 async function writeEstado(patch, msg) {
+  // the saga's state has not arrived yet: writing now would rebuild it from defaults and lose the scene aura
+  if (!S.seen.estado) { toast('Espera a que lleguen los datos de la saga y vuelve a intentarlo.'); return false; }
   const doc = Object.assign({ aura: sagaAura() }, S.estado || {}, patch);
   if (!doc.anio || !doc.est) { const [ca, ce] = curSeason(); doc.anio = doc.anio || ca; doc.est = doc.est || ce; }
   const ok = await dbWrite(() => S.db.doc('saga/estado').set(stamp(doc)), msg);
@@ -236,9 +238,12 @@ function openXpEditor(pjId, anio, est) {
     const id = pjId + '--' + out.anio + '-' + out.est;
     if (id !== origId && S.av[id]) { toast(pj.nombre + ' ya tiene un reparto en ' + sname(out.anio, out.est) + '.'); return; }
     save.disabled = true;
-    const ok = await dbWrite(async () => {
-      await S.db.doc('avance/' + id).set(stamp(out, !existing));
-      if (existing && id !== origId) await S.db.doc('avance/' + origId).delete();
+    // moved to another season: the new entry and the removal of the old one go in one request, never half of it
+    const ok = await dbWrite(() => {
+      const b = S.db.batch();
+      b.set('avance/' + id, stamp(out, !existing));
+      if (existing && id !== origId) b.delete('avance/' + origId);
+      return b.commit();
     }, 'Reparto guardado: ' + sname(out.anio, out.est));
     save.disabled = false;
     if (ok) { if (existing && id !== origId) localDel('av', origId); localPut('av', id, out); close(); }

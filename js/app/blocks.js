@@ -34,7 +34,8 @@ R.base = b => {
   let rest = b.x.replace(/^individuo base\s*[,:]?\s*(de\s+)?/i, '');
   rest = rest.charAt(0).toUpperCase() + rest.slice(1);
   const n = h('div', { class: 'base', html: ICON.cube + '<div><b>' + esc(label) + '</b>' + br(rest || '') + '</div>' });
-  if (b.imgs && b.imgs.length) n.lastChild.appendChild(R.gallery({ items: b.imgs, small: true }));
+  const gal = b.imgs && b.imgs.length ? R.gallery({ items: b.imgs, small: true }) : null; // null when none of the images exist
+  if (gal) n.lastChild.appendChild(gal);
   return n;
 };
 R.h3 = b => h('h3', { id: b.id ? 'a-' + b.id : null, text: b.x });
@@ -462,7 +463,7 @@ R.chart = b => {
   const colors = ['var(--blood)', 'var(--aq)', 'var(--he)'];
   let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(b.cap || '') + '">';
   for (let v = lo; v <= hi + 1e-9; v += step) {
-    svg += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--rule)" stroke-width="1"' + (Math.abs(v) < 1e-9 && lo < 0 ? ' stroke="var(--rule-2)"' : '') + '/>';
+    svg += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + (Math.abs(v) < 1e-9 && lo < 0 ? 'var(--rule-2)' : 'var(--rule)') + '" stroke-width="1"/>';
     svg += '<text x="' + (m.l - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + fmt(v) + '</text>';
   }
   const bandW = iw / n;
@@ -471,7 +472,7 @@ R.chart = b => {
   const x0v = numericX ? toNum(xs[0]) : 0, x1v = numericX ? toNum(xs[n - 1]) : 1;
   const xc = numericX ? (i => m.l + 10 + (toNum(xs[i]) - x0v) / (x1v - x0v || 1) * (iw - 20)) : (i => m.l + bandW * (i + .5));
   if (numericX) {
-    const span = x1v - x0v, stepX = niceStep(span / 8);
+    const span = x1v - x0v, stepX = Math.max(1, niceStep(span / 8)); // whole years: no «1220.5» ticks
     for (let v = Math.ceil(x0v / stepX) * stepX; v <= x1v; v += stepX) {
       const px = m.l + 10 + (v - x0v) / (span || 1) * (iw - 20);
       svg += '<text x="' + px + '" y="' + (H - m.b + 18) + '" text-anchor="middle">' + v + '</text>';

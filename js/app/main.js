@@ -1,5 +1,6 @@
 /* Punto de entrada: rutas y arranque. js/gate.js lo importa cuando los datos están listos. */
 import { DOCS } from './base.js';
+import { currentRaw } from './saga/rules.js';
 import { renderTree } from './tree.js';
 import { focusPending, pendingFocus, viewDoc, viewHome } from './views.js';
 import { sagaInit } from './saga/core.js';
@@ -16,7 +17,7 @@ import './master.js';
 import './info.js';
 
 function route(keep) {
-  const raw = decodeURIComponent(location.hash.replace(/^#/, ''));
+  const raw = currentRaw();
   const y = window.scrollY;
   document.body.classList.remove('nav-open');
   document.getElementById('navbtn').setAttribute('aria-expanded', 'false');
