@@ -1,5 +1,5 @@
 /* Los bloques de las ayudas de juego: texto, tablas, registro de vis y gráficos (R). */
-import { ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum } from './base.js';
+import { ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, esc, fmt, h, ICON, IMG, inertOthers, load, norm, opify, R, signed, store, toNum } from './base.js';
 import { cell, sel } from './saga/core.js';
 import { canWrite } from './saga/rules.js';
 import { liveStats, liveStock, visDbRows } from './saga/home.js';
@@ -161,12 +161,20 @@ R.gallery = b => {
   return h('div', { class: 'content', style: 'gap:8px' }, [h('h4', { text: b.cap }), g]);
 };
 function lightbox(src) {
-  const lb = h('div', { class: 'lightbox', role: 'dialog', 'aria-label': 'Imagen ampliada', tabindex: '-1' }, h('img', { src: src, alt: '' }));
-  const close = () => { lb.remove(); document.removeEventListener('keydown', onkey); };
+  const opener = document.activeElement;
+  const lb = h('div', { class: 'lightbox', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Imagen ampliada (pulsa para cerrar)', tabindex: '-1' }, h('img', { src: src, alt: '' }));
+  let release = () => {};
+  const close = () => {
+    if (!lb.isConnected) return;
+    release(); lb.remove(); document.removeEventListener('keydown', onkey); window.removeEventListener('hashchange', close);
+    if (opener && opener.isConnected) opener.focus();
+  };
   const onkey = e => { if (e.key === 'Escape') close(); };
   lb.addEventListener('click', close);
   document.addEventListener('keydown', onkey);
+  window.addEventListener('hashchange', close); // Back: the image belongs to the page it was opened on
   document.body.appendChild(lb);
+  release = inertOthers(lb);
   lb.focus();
 }
 R.hero = b => {

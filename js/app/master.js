@@ -28,6 +28,7 @@ function viewMaster() {
     return;
   }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
+  content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   content.appendChild(masterAura());
   content.appendChild(masterWeb());
   content.appendChild(masterPjs());

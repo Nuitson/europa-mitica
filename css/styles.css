@@ -7,7 +7,7 @@
   --card: #fffdf7;
   --ink: #2a1d17;
   --ink-2: #5a4639;
-  --ink-3: #85725f;
+  --ink-3: #776655; /* 4.6:1 on --paper-2, the WCAG AA minimum for text */
   --rule: #e6dbc6;
   --rule-2: #d3c3a4;
   --blood: #85200c;
@@ -16,7 +16,7 @@
   --lav: #e8e7fc;
   --lav-ink: #36346c;
   --sage: #eaf3dd;
-  --gold: #9a7726;
+  --gold: #81631f; /* warnings: 4.7:1 on --paper-2 */
   --pos: #2d6a37;
   --neg: #9b2a1c;
   --focus: #2f55a4;
@@ -1164,4 +1164,38 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim { display: 
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+
+/* casting a spell from its description (js/app/info.js): the roll and the last few results */
+.roll { border: 1px solid var(--rule); border-radius: 10px; background: var(--paper-2); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.roll-tot { margin: 0; font-size: 15.5px; color: var(--ink-2); }
+.roll-tot b { color: var(--ink); font-weight: 600; }
+.roll-act { display: flex; gap: 8px; }
+.roll-log { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.roll-log li:first-child { font-weight: 600; }
+.roll-log li.ok { color: var(--pos); }
+.roll-log li.fail, .roll-log li.botch { color: var(--neg); }
+
+/* on paper (or PDF): the page alone, in the light theme, without the index, the tabs, the filters or the buttons */
+@media print {
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --paper: #fff; --paper-2: #f6f1e6; --card: #fff; --ink: #1a120d; --ink-2: #3f3128; --ink-3: #5e4f42;
+    --rule: #d9ccb4; --rule-2: #b9a785; --blood: #85200c; --blood-ink: #85200c; --blood-soft: #f5e4da;
+    --lav: #ecebfb; --lav-ink: #36346c; --sage: #eef4e5; --gold: #6f5418; --pos: #2d6a37; --neg: #9b2a1c; --shadow: none;
+    --cr: #8c6209; --in: #3f6584; --mu: #6e4592; --pe: #5a3b3b; --re: #765a24; --an: #8e4524; --aq: #255f8c;
+    --au: #2f7499; --co: #9a463d; --he: #3f6a2b; --ig: #a93a14; --im: #7a4f93; --me: #3f4c94; --te: #65512f; --vi: #7f2f74;
+    color-scheme: light;
+  }
+  body { background: #fff; color: var(--ink); }
+  .topbar, .side, .scrim, #gate, .toast, .modal, .lightbox, .tabs-wrap, .actions, .btn, .lnk, button.x,
+  .dt-tools, .info-hint, .saga-note, .chk.cer, .draft-note, .m-web { display: none !important; }
+  .shell { display: block; }
+  .main { padding: 0 !important; }
+  .page { max-width: none; }
+  a { color: inherit; text-decoration: none; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  table, figure, .stats, .sh-ledger, .m-card, .dcard { break-inside: avoid; }
+  .tw, .dt { overflow: visible !important; }
+  input, select, textarea { border: 0 !important; background: none !important; color: inherit; -webkit-appearance: none; appearance: none; }
+  .info-btn { all: unset; }
 }

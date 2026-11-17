@@ -37,6 +37,11 @@ Al añadir un módulo, enlázalo también con `<link rel="modulepreload">` en `i
 
 Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar un módulo (fuera de las funciones) solo puede usar lo que ya está cargado. Por eso las tablas fijas y el estado viven en módulos sin dependencias circulares (`base.js`, `saga/state.js`). Una variable `let` solo se puede reasignar en su propio módulo: desde fuera, usa una función (por ejemplo, `resetIndex()` en `search.js`).
 
+## En la mesa
+
+- **Imprimir:** la ficha (la pestaña que está abierta) y la pantalla del máster tienen un botón «Imprimir». Sale en el tema claro, sin el índice, las pestañas ni los botones; también sirve para guardarla en PDF.
+- **Tiradas:** la descripción de cada hechizo de una ficha tiene «Tirar dado de estrés». Suma el dado de estrés de ArM5 al total de lanzamiento (con el aura de la escena) y dice si sale, si cuesta fatiga o si falla. Con un 0 tira los dados de pifia: uno, más uno por punto de aura de otro reino y menos uno por punto de maestría.
+
 ## Sin conexión
 
 `sw.js` guarda en el navegador una copia de la página, de los datos y de las imágenes. Con conexión, todo llega siempre del servidor (y la copia se renueva); sin conexión, o si la red tarda más de 4 segundos, responde la copia. El servidor de la saga nunca se guarda en la copia: sus datos siempre llegan en vivo.

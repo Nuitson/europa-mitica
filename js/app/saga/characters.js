@@ -68,11 +68,15 @@ function viewPj(id, tab) {
   if (fa) meta.appendChild(h('span', { class: 'badge-cur forma-on', text: 'En forma de ' + fa.n.toLowerCase() }));
   hi.appendChild(meta);
   if (pj.concepto) hi.appendChild(h('p', { class: 'doc-blurb', text: pj.concepto }));
+  const acts = [];
   if (canWrite()) {
     const has = S.av[id + '--' + ca + '-' + ce];
-    hi.appendChild(h('div', { class: 'actions' }, [h('button', { type: 'button', class: 'btn', onclick: () => openXpEditor(id, ca, ce) }, (has ? 'Editar PX de ' : 'Repartir PX de ') + sname(ca, ce)),
-      h('a', { class: 'btn ghost', href: '#pj--' + id + '--editar', text: 'Editar ficha' })].concat(formaButtons(id, pj))));
+    acts.push(h('button', { type: 'button', class: 'btn', onclick: () => openXpEditor(id, ca, ce) }, (has ? 'Editar PX de ' : 'Repartir PX de ') + sname(ca, ce)),
+      h('a', { class: 'btn ghost', href: '#pj--' + id + '--editar', text: 'Editar ficha' }), ...formaButtons(id, pj));
   }
+  // the tab on screen, on paper (or PDF): the print style drops the index, the buttons and the dark theme
+  acts.push(h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir'));
+  hi.appendChild(h('div', { class: 'actions' }, acts));
   head.appendChild(hi);
   page.appendChild(head);
   const TABS = [['ficha', 'Ficha'], ['avance', 'Avance'], ['hechizos', 'Hechizos'], ['virtudes', 'Virtudes y defectos'], ['notas', 'Notas']]

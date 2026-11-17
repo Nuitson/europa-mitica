@@ -2,7 +2,7 @@
 import { artChip, artOf, h, toNum } from './base.js';
 import { S, tkey } from './saga/state.js';
 import { dbWrite, field, localPut, openModal, stamp, toast } from './saga/core.js';
-import { canWrite, isRitual } from './saga/rules.js';
+import { auraNow, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, entriesOf, isRitual, spellTotal } from './saga/rules.js';
 import { vdEntry, vdLabel } from './creation/rules.js';
 
 /* ================================================================== DESCRIPCIONES AL PULSAR
@@ -58,6 +58,58 @@ function catSource(x) {
 function paras(txt, cls) { return String(txt || '').split(/\n+/).filter(s => s.trim()).map(s => h('p', { class: cls || null, text: s.trim() })); }
 
 /* a spell of a character: catalogue text, the player's own description, notes; writers can add or change theirs */
+/* ---------- casting a formulaic spell at the table (ArM5): casting total + stress die against the spell's level */
+const d10 = () => { const r = new Uint32Array(1); crypto.getRandomValues(r); return r[0] % 10; }; // faces 0–9
+// a 1 means roll again and double (×4 on a second 1…), and then a 0 counts as 10; a 0 on the first roll may botch
+function stressDie() {
+  let r = d10();
+  if (r === 0) return { v: 0, zero: true, caras: [0], x: 1 };
+  const caras = [r];
+  let x = 1;
+  while (r === 1) { x *= 2; r = d10(); caras.push(r); }
+  return { v: x * (r === 0 ? 10 : r), zero: false, caras: caras, x: x };
+}
+const sg = n => (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n);
+// formulaic: at or over the level it works; up to 10 short it works but costs a Fatigue level; more, it fails (and costs it)
+function castOutcome(total, lv, rit) {
+  if (!isFinite(lv)) return 'total ' + total + '.';
+  const m = total - lv;
+  if (rit) return 'total ' + total + ' (' + sg(m) + ' respecto al nivel). Un ritual cansa siempre: mira la fatiga en las reglas.';
+  if (m >= 0) return 'total ' + total + ': sale (' + sg(m) + ').';
+  if (m >= -10) return 'total ' + total + ': sale, pero cuesta un nivel de fatiga (' + sg(m) + ').';
+  return 'total ' + total + ': falla y cuesta un nivel de fatiga (' + sg(m) + ').';
+}
+function castBox(pj, pjId, s) {
+  const c = calc(pj, entriesOf(pjId));
+  const cer = ceremonialOn() && canCeremony(c);
+  const tot = spellTotal(pj, c, s, castAura(), cer);
+  if (tot == null) return null;
+  const lv = toNum(s.nivel), rit = isRitual(s);
+  const an = auraNow();
+  // one botch die, plus one per point of an aura of another realm; each point of mastery takes one away
+  const bd = Math.max(0, 1 + botchDice(an.tipo, an.nivel, 'magica') - Math.max(0, Math.round(Number(s.maestria) || 0)));
+  const log = h('ol', { class: 'roll-log', 'aria-live': 'polite' });
+  const roll = () => {
+    const d = stressDie();
+    let txt = 'Dado ' + d.caras.join(' → ') + (d.x > 1 ? ' (×' + d.x + ' = ' + d.v + ')' : '');
+    let cls = '';
+    if (d.zero && bd) {
+      const dice = Array.from({ length: bd }, d10), zeros = dice.filter(x => x === 0).length;
+      txt += ' · pifia: ' + dice.join(', ');
+      if (zeros) { txt += ' → ¡pifia' + (zeros > 1 ? ' de ' + zeros + ' ceros' : '') + '!'; cls = 'botch'; }
+      else txt += ' → sin pifia, ' + castOutcome(tot, lv, rit);
+    } else txt += ' → ' + castOutcome(tot + d.v, lv, rit);
+    if (!cls) cls = isFinite(lv) && tot + d.v >= lv ? 'ok' : isFinite(lv) && !rit && tot + d.v < lv - 10 ? 'fail' : '';
+    log.prepend(h('li', { class: cls || null, text: txt }));
+    while (log.children.length > 6) log.lastChild.remove();
+  };
+  return h('section', { class: 'roll' }, [
+    h('div', { class: 'info-lab', text: 'Lanzarlo' }),
+    h('p', { class: 'roll-tot' }, [h('b', { text: 'Lanzamiento ' + tot }), isFinite(lv) ? ' contra nivel ' + lv : '', ' · ' + castAuraTxt() + (cer ? ' · ceremonial' : '') + ' · ' + (bd ? bd + (bd === 1 ? ' dado' : ' dados') + ' de pifia' : 'sin dados de pifia')]),
+    h('div', { class: 'roll-act' }, [h('button', { type: 'button', class: 'btn', onclick: roll }, 'Tirar dado de estrés')]),
+    log]);
+}
+
 function spellInfo(pjId, i) {
   const pj = S.pj[pjId];
   const s = pj && (pj.hechizos || [])[i];
@@ -74,6 +126,8 @@ function spellInfo(pjId, i) {
   if (rdt) head.appendChild(h('span', { class: 'info-rdt', text: rdt }));
   if (isRitual(s) || (cat && cat.rit)) head.appendChild(h('span', { class: 'info-rdt', text: 'ritual' }));
   body.push(head);
+  const cast = castBox(pj, pjId, s);
+  if (cast) body.push(cast);
   if (cat && cat.req) body.push(h('p', { class: 'info-req', text: 'Requisito: ' + cat.req }));
   const own = String(s.desc || '').trim();
   if (own) body.push(h('div', { class: 'info-own' }, [h('div', { class: 'info-lab', text: cat ? 'Descripción de la ficha' : 'Descripción' })].concat(paras(own))));

@@ -1,5 +1,5 @@
 /* La saga en curso: carga, suscripciones, escrituras, avisos y controles de formulario. */
-import { artOf, artVar, DATA, DOCS, h, IMG, signed } from '../base.js';
+import { artOf, artVar, DATA, DOCS, h, IMG, inertOthers, signed } from '../base.js';
 import { resetIndex } from '../search.js';
 import { page } from '../views.js';
 import { S, SEASONS, SUBS, TIPOS, tkey } from './state.js';
@@ -128,18 +128,24 @@ function openModal(title, body, actions) {
   card.appendChild(h('div', { class: 'modal-f' }, actions));
   box.appendChild(card);
   const onkey = e => { if (e.key === 'Escape') close(); };
+  let release = () => {};
   function close() {
     if (!box.isConnected) return;
+    release(); window.removeEventListener('hashchange', close);
     box.remove(); document.removeEventListener('keydown', onkey); document.body.classList.remove('modal-on'); modalOpen = false;
     if (opener && opener.isConnected) opener.focus();
     if (pendingRerender) { pendingRerender = false; sagaChanged(); }
   }
   box.addEventListener('mousedown', e => { if (e.target === box) close(); });
   document.addEventListener('keydown', onkey);
+  window.addEventListener('hashchange', close); // Back, or a link inside: the dialog belongs to the page it was opened on
   document.body.appendChild(box);
   document.body.classList.add('modal-on');
+  release = inertOthers(box); // the keyboard stays in the dialog
+  // focus goes into the dialog: its first field, or the dialog itself so screen readers read it
   const first = card.querySelector('.modal-b input, .modal-b select, .modal-b textarea');
-  if (first) setTimeout(() => first.focus(), 30);
+  card.setAttribute('tabindex', '-1');
+  setTimeout(() => (first || card).focus(), 30);
   return close;
 }
 function confirmButton(label, confirmLabel, fn) {

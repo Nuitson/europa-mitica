@@ -85,7 +85,15 @@ function scrollHint(el, current) {
   return el;
 }
 
+/* a dialog on top of the page: everything else is inert (no focus, hidden from screen readers) until it closes,
+   except the status messages (#toast), which must still be announced; returns the function that undoes it */
+function inertOthers(top) {
+  const set = [...document.body.children].filter(el => el !== top && el.id !== 'toast' && !el.inert);
+  set.forEach(el => { el.inert = true; });
+  return () => set.forEach(el => { el.inert = false; });
+}
+
 /* block renderers by type (R.p, R.table, …): js/app/blocks.js fills most, saga/home.js the live ones */
 const R = {};
 
-export { scrollHint, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, DATA, DOCS, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum };
+export { inertOthers, scrollHint, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, DATA, DOCS, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum };
