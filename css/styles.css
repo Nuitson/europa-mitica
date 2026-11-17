@@ -815,36 +815,6 @@ table.mini .note { font-size: 14.5px; }
 .pick .pdsc { grid-column: 2; font-size: 14.5px; color: var(--ink-2); line-height: 1.35; }
 .draft-note { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 12px; }
 
-/* Crear con Claude */
-.ai-card { margin-top: 18px; border: 1px solid color-mix(in srgb, var(--blood) 35%, var(--rule)); border-radius: 12px; background: linear-gradient(180deg, var(--blood-soft), var(--card) 160px); padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
-.ai-h h2 { margin: 0; font: 400 30px/1.1 var(--f-head); color: var(--blood-ink); }
-.ai-h p { margin: 4px 0 0; }
-.ai-b { display: flex; flex-direction: column; gap: 12px; }
-.ai-form .fgrid { grid-template-columns: minmax(0, 220px) minmax(0, 120px) minmax(0, 1fr); }
-.ai-form .fgrid .w3 { grid-column: 1 / -1; }
-.ai-form .actions { margin-top: 10px; }
-.ai-busy { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.ai-busy b { font-weight: 500; }
-.ai-secs { font: 400 13px/1 var(--f-ui); color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 34px; }
-.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rule-2); border-top-color: var(--blood); animation: spin .9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.ai-log { margin: 6px 0 0; padding-left: 20px; font-size: 15px; color: var(--ink-2); }
-.ai-log li { margin: 2px 0; }
-.ai-err { margin: 0; color: var(--neg); }
-.ai-res { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--rule-2); padding-top: 12px; }
-.ai-res-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
-.ai-res-h h3 { margin: 0; font: 400 30px/1.1 var(--f-head); color: var(--ink); }
-.ai-res .doc-blurb { margin: 0; }
-.ai-vd { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-.ai-vd .fl { margin: 0 4px 0 6px; }
-.ai-vd .fl:first-child { margin-left: 0; }
-.rep.v { background: color-mix(in srgb, var(--pos) 13%, var(--card)); color: var(--pos); }
-.rep.d { background: color-mix(in srgb, var(--neg) 11%, var(--card)); color: var(--neg); }
-.ai-line { margin: 0; font-size: 16px; }
-.ai-line .fl { margin-right: 6px; }
-.ai-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.ai-change { display: flex; gap: 8px; flex: 1 1 320px; }
-.ai-change input { flex: 1; }
 @media (max-width: 900px) {
   /* a card per row: type and value, then the name, then what it applies to and the note */
   .lrow.vd { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 8px; }
@@ -863,7 +833,6 @@ table.mini .note { font-size: 14.5px; }
   .lrow.pers { grid-template-columns: minmax(0, 1fr) 90px; }
 }
 @media (max-width: 560px) {
-  .ai-form .fgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .lrow.vd, .lrow.sp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .arow { grid-template-columns: minmax(0, 1fr) 60px 74px 40px; }
   .pick { grid-template-columns: 1fr; }

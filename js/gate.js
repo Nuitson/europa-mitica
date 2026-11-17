@@ -1,7 +1,7 @@
 /* ================================================================== EUROPA MÍTICA · VERSIÓN WEB
    Runs before the page: asks which saga and role, checks the code with the server (Google Apps Script, see
-   backend/Code.gs), loads that saga's own documents and hands the page a database that talks to the server
-   instead of claude.ai's. Only the chosen saga's data ever reach this browser. */
+   backend/Code.gs), loads that saga's own documents and hands the page (window.EM_WEB) a database that talks to
+   the server. Only the chosen saga's data ever reach this browser. */
 (function () {
 'use strict';
 const CFG = window.EM_CONFIG || {};
@@ -278,11 +278,8 @@ async function openSaga(ses) {
   }
   window.EM_DATA = merge(ses, arc, st);
   const db = makeDb(ses);
-  const user = makeUser(ses);
   const assets = { upload: (blob, opts) => db._upload(blob, opts) };
-  const caps = { db: db, user: user, assets: assets };
-  window.claude = { use: name => Promise.resolve(caps[name] || null) };
-  window.EM_WEB = { saga: ses.saga, rol: ses.rol, api: (a, d) => api(a, Object.assign({ token: ses.token }, d || {})), blobUrl: id => db._blob(id),
+  window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: browserId(), db: db, assets: assets, api: (a, d) => api(a, Object.assign({ token: ses.token }, d || {})), blobUrl: id => db._blob(id),
     salir: salir, session: () => ses, setToken: t => { ses.token = t; putSession(ses, !!lsGet(K_SES)); }, refresh: () => db._poll(true) };
   gate.remove();
   document.body.classList.remove('gate-on');
@@ -351,7 +348,7 @@ function sessionStrip(ses) {
 }
 
 /* ================================================================== the database the page sees
-   The same calls as claude.ai's db capability (doc, collection, onSnapshot, set, update, delete), kept in memory and
+   Firestore-like calls (doc, collection, onSnapshot, set, update, delete), kept in memory and
    refreshed from the server every few seconds while the page is visible; only what changed travels. */
 function makeDb(ses) {
   const docs = new Map();
@@ -456,18 +453,11 @@ function makeDb(ses) {
   return db;
 }
 
-function makeUser(ses) {
+/* who wrote what (the «por» field): an id kept in this browser */
+function browserId() {
   let uid = lsGet(K_UID);
   if (!uid) { uid = 'u' + rid(12); lsSet(K_UID, uid); }
-  const master = ses.rol === 'master';
-  return {
-    id: async () => uid,
-    me: async () => ({ id: uid, name: '' }),
-    isOwner: async () => master,
-    canEdit: async () => master,
-    can: async k => (k === 'data.write' ? true : null),
-    profiles: async () => ({})
-  };
+  return uid;
 }
 
 /* ---------- start */

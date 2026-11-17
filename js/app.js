@@ -859,10 +859,8 @@ function viewHome(q) {
   return input;
 }
 
-const SRC_PRE = '';
-const SRC_SHELL = '';
 /* ================================================================== SAGA EN CURSO
-   Live data kept in the page's shared database (db capability):
+   Live data kept in the saga's database on the server (window.EM_WEB.db, see js/gate.js):
      personajes/{id}      one document per character (sheet + starting experience)
      avance/{pj}--{y}-{s} one document per character and season: activity + XP split
      vis/{id}             vis movements recorded from the web
@@ -902,35 +900,10 @@ const tkey = s => norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const CAT_OF = {};
 Object.keys(ABIL_STD).forEach(c => ABIL_STD[c].forEach(n => { CAT_OF[tkey(n)] = c; }));
 
-/* the web version (GitHub Pages + Apps Script) sets window.EM_WEB before starting the page; keys in this browser carry the saga */
-const WEB = !!window.EM_WEB;
-const KEYP = ((WEB && window.EM_WEB.saga && window.EM_WEB.saga.id) || 'arazas') + ':';
-const S = { db: null, assets: null, sample: null, sampleTools: false, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, estado: null, seen: {}, fresh: {}, timer: null };
+/* js/gate.js sets window.EM_WEB (saga, role, database) before starting the page; keys in this browser carry the saga */
+const KEYP = window.EM_WEB.saga.id + ':';
+const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, estado: null, seen: {}, fresh: {}, timer: null };
 const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['saga/estado', 'estado']];
-/* ---------- the public copy: what a viewer without a session sees
-   The database only answers signed-in viewers, so the published page carries a read-only copy of the saga (#saga-snap).
-   The master refreshes it from the master screen, which republishes the page with a fresh copy inside (master.js). */
-const SNAP = (() => {
-  try {
-    const el = document.getElementById('saga-snap');
-    const o = el ? JSON.parse(el.textContent) : null;
-    return o && typeof o === 'object' && o.pj && typeof o.pj === 'object' ? o : null;
-  } catch (e) { return null; }
-})();
-function useSnap() {
-  S.db = null; S.owner = false;
-  if (!SNAP) { S.status = 'off'; return; }
-  S.pj = Object.assign({}, SNAP.pj); S.av = Object.assign({}, SNAP.av || {});
-  S.vis = Object.assign({}, SNAP.vis || {}); S.tes = Object.assign({}, SNAP.tes || {});
-  S.estado = SNAP.estado || null;
-  SUBS.forEach(([, k]) => { S.seen[k] = true; S.fresh[k] = true; });
-  S.status = 'snap';
-}
-function snapDate(ms) {
-  const d = new Date(Number(ms));
-  if (!isFinite(d.getTime())) return '';
-  try { return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return d.toISOString().slice(0, 10); }
-}
 let modalOpen = false, pendingRerender = false;
 
 /* ---------- small helpers */
@@ -1156,26 +1129,12 @@ function traitLevel(c, name) {
 }
 
 /* ---------- loading: subscribe once per collection, time-limit the wait */
-async function sagaInit() {
-  const C = window.claude;
-  if (!C || typeof C.use !== 'function') { useSnap(); sagaChanged(); return; }
-  let db = null, user = null;
-  try { [db, user] = await Promise.all([C.use('db'), C.use('user')]); } catch (e) { db = null; }
-  if (!db) { useSnap(); sagaChanged(); return; }
-  S.db = db;
-  if (user) {
-    try { S.uid = await user.id(); } catch (e) { S.uid = null; }
-    try { S.canWrite = await user.can('data.write'); } catch (e) { S.canWrite = null; }
-    try { S.owner = !!(await user.isOwner()); } catch (e) { S.owner = false; }
-  } else S.owner = false;
-  Promise.resolve(C.use('assets')).then(a => { S.assets = a || null; }).catch(() => {});
-  Promise.resolve(C.use('sample')).then(async sm => {
-    if (!sm) return;
-    let lim = null;
-    try { lim = await sm.limits(); } catch (e) { lim = null; }
-    S.sample = sm; S.sampleTools = !!(lim && lim.tools);
-    aiShow();
-  }).catch(() => {});
+function sagaInit() {
+  const W = window.EM_WEB;
+  if (!W.db) { S.status = 'off'; sagaChanged(); return; }
+  S.db = W.db; S.assets = W.assets; S.uid = W.uid;
+  S.canWrite = true; // the server decides what each role may write
+  S.owner = W.rol === 'master';
   S.timer = setTimeout(() => { if (S.status === 'loading') { S.status = 'slow'; sagaChanged(); } }, 10000);
   SUBS.forEach(sub => subscribe(sub, 0));
 }
@@ -1186,19 +1145,16 @@ function subscribe(sub, attempt) {
     const code = e && e.code;
     if (code === 'revoked' || code === 'not_granted' || code === 'capability_disabled' || code === 'capability_removed') {
       clearTimeout(S.timer);
-      if (S.status === 'snap') return;
-      // nothing live arrived yet: the public copy is better than an empty page
-      if (SNAP && !allSeen()) useSnap(); else { S.db = null; S.status = 'revoked'; }
+      S.db = null; S.status = 'revoked';
       sagaChanged(); return;
     }
     if ((code === 'unavailable' || !code) && attempt < 3) { setTimeout(() => subscribe(sub, attempt + 1), 2500 * (attempt + 1)); return; }
     clearTimeout(S.timer); S.status = 'error'; sagaChanged();
   };
   if (path.split('/').length % 2 === 0) {
-    S.db.doc(path).onSnapshot(s => { if (S.status === 'snap') return; S[key] = s.exists ? s.data() : null; gotSnap(key, s.metadata); }, onErr);
+    S.db.doc(path).onSnapshot(s => { S[key] = s.exists ? s.data() : null; gotSnap(key, s.metadata); }, onErr);
   } else {
     S.db.collection(path).onSnapshot(snap => {
-      if (S.status === 'snap') return;
       const o = {};
       snap.docs.forEach(d => { o[d.id] = d.data(); });
       S[key] = o;
@@ -1244,7 +1200,7 @@ async function dbWrite(fn, okMsg) {
   const fail = e => {
     const code = e && e.code;
     if (code === 'invalid_argument' || code === 'transform_error') {
-      if (S.canWrite !== true) { S.canWrite = false; sagaChanged(); toast('No tienes permiso para guardar cambios. Pide al dueño de la página acceso de edición.'); }
+      if (S.canWrite !== true) { S.canWrite = false; sagaChanged(); toast('No tienes permiso para guardar cambios. Pide al máster que te dé acceso.'); }
       else toast('No se ha podido guardar: los datos no son válidos.');
     } else if (code === 'quota_exceeded') toast('La base de datos de la página está llena. Borra entradas antiguas para seguir guardando.');
     else if (code === 'resource_exhausted') toast('Demasiados cambios seguidos. Espera un momento y vuelve a intentarlo.');
@@ -1341,7 +1297,7 @@ function seasonPicker(d) {
 function portraitSrc(pj) {
   if (!pj) return null;
   if (pj._retUrl) return pj._retUrl;
-  if (pj.retrato && pj.retrato.id) return (WEB ? window.EM_WEB.blobUrl(pj.retrato.id) : null) || (WEB ? null : '/_blob/' + pj.retrato.id);
+  if (pj.retrato && pj.retrato.id) return window.EM_WEB.blobUrl(pj.retrato.id) || null;
   if (pj.retratoStatic && DATA.portraits && IMG[DATA.portraits[pj.retratoStatic]]) return IMG[DATA.portraits[pj.retratoStatic]];
   return null;
 }
@@ -1385,10 +1341,9 @@ function repChips(rep) {
   }));
 }
 function statusNote() {
-  if (S.status === 'snap') return h('p', { class: 'note saga-note snap-note', text: 'Copia de solo lectura' + (snapDate(SNAP.fecha) ? ' del ' + snapDate(SNAP.fecha) : '') + '. Para verla al día y repartir experiencia, abre la página en claude.ai con tu sesión iniciada.' });
-  if (S.status === 'off') return h('p', { class: 'note saga-note', text: WEB ? 'No se puede conectar con el servidor de la saga. Comprueba la conexión y recarga la página.' : 'Los personajes y las estaciones se guardan en la página publicada en claude.ai: ábrela allí con tu sesión iniciada para verlos y editarlos.' });
+  if (S.status === 'off') return h('p', { class: 'note saga-note', text: 'No se puede conectar con el servidor de la saga. Comprueba la conexión y recarga la página.' });
   if (S.status === 'revoked') return h('p', { class: 'note saga-note', text: 'La saga en curso no está disponible en esta vista.' });
-  if (S.status === 'error') return h('p', { class: 'note saga-note', text: WEB ? 'Se ha perdido la conexión con el servidor de la saga; lo que ves puede estar desactualizado. Se reintenta solo.' : 'Se ha perdido la conexión con la base de datos de la página; lo que ves puede estar desactualizado.' });
+  if (S.status === 'error') return h('p', { class: 'note saga-note', text: 'Se ha perdido la conexión con el servidor de la saga; lo que ves puede estar desactualizado. Se reintenta solo.' });
   if (S.status === 'slow') return h('p', { class: 'note saga-note', text: allSeen() ? 'Los datos todavía no han llegado del todo; puede que lo que ves esté desactualizado.' : 'Los datos de la saga todavía no llegan.' });
   if (S.status === 'loading' && !allSeen()) return h('p', { class: 'note saga-note', text: 'Cargando los datos de la saga…' });
   if (S.db && S.canWrite === false) return h('p', { class: 'note saga-note', text: 'Puedes consultar la saga, pero no tienes permiso para guardar cambios.' });
@@ -2230,8 +2185,6 @@ function pjAvance(content, id, entries, c) {
   content.appendChild(tl);
 }
 
-/* (character editor, creation rules and the Claude assistant live in creacion.js) */
-
 /* ---------- search + routing */
 function sagaIndex(push) {
   Object.keys(S.pj).forEach(id => {
@@ -2255,9 +2208,7 @@ function sagaRoute(raw) {
 }
 
 /* ================================================================== CREACIÓN DE PERSONAJES
-   Rules of ArM5 character creation, checked live in the editor, and the "Crear con Claude" assistant
-   (sample capability: Claude proposes a full sheet using the page's compendium and checks it with the
-   same rules before the player applies it). Sources: ArM5 core, chapters 3 and 4 (Project Redcap's open
+   Rules of ArM5 character creation, checked live in the editor. Sources: ArM5 core, chapters 3 and 4 (Project Redcap's open
    text); Apprentices, chapter 2, for characters still in apprenticeship; the saga's own Excel template
    for the childhood packages. Virtues and flaws are picked from the compendium in drop-downs; the ones
    whose rule the page knows (Puissant, Affinity, Great/Poor Characteristic, and the statuses and virtues
@@ -2673,7 +2624,6 @@ function vdEffTxt(x, clase, f) {
 }
 
 /* ---------- editor */
-const AI = { concept: '', tipo: 'Magus', edad: 25, busy: false, ctl: null, log: [], last: null, draft: null, error: '', off: false, t0: 0 };
 let EDITOR = null; // {d, isNew} of the form on screen
 function blankPj() {
   const car = {}; CHARS.forEach(n => { car[n] = 0; });
@@ -2725,7 +2675,6 @@ function viewEditor(id, override) {
   page.appendChild(h('h1', { class: 'doc-title', text: orig ? 'Editar ' + orig.nombre : 'Nuevo personaje' }));
   page.appendChild(h('p', { class: 'doc-blurb', text: entries.length ? 'Los PX de este formulario son los iniciales, anteriores a las ' + entries.length + ' estaciones registradas; lo que se gane después se reparte en Estaciones. La columna «Actual» ya incluye esas estaciones.'
     : 'Rellena la ficha con las reglas de creación de Ars Magica: la página va comprobando los puntos mientras escribes. Lo que se gane después se reparte en cada estación.' }));
-  if (!orig) page.appendChild(aiCard());
   if (restored) page.appendChild(h('p', { class: 'note draft-note' }, ['Se ha recuperado el personaje que dejaste a medias. ',
     h('button', { type: 'button', class: 'lnk', onclick: () => { store(DRAFT_KEY, null); viewEditor(null, blankPj()); } }, 'Empezar de cero')]));
   const f = h('form', { class: 'pj-form fx', id: 'pj-form', novalidate: true });
@@ -3185,7 +3134,7 @@ function viewEditor(id, override) {
     const ok = await dbWrite(() => S.db.doc('personajes/' + pid).set(stamp(out, !orig)), orig ? 'Ficha guardada' : 'Personaje creado');
     save.disabled = false;
     if (ok) {
-      if (!orig) { store(DRAFT_KEY, null); AI.last = null; AI.draft = null; AI.concept = ''; }
+      if (!orig) store(DRAFT_KEY, null);
       localPut('pj', pid, out);
       location.hash = '#pj--' + pid;
     }
@@ -3288,306 +3237,8 @@ function vdPicker(onAdd) {
   return box;
 }
 
-/* ---------- Crear con Claude */
-function aiCard() {
-  const box = h('section', { class: 'ai-card', id: 'ai-card', hidden: S.sample && !AI.off ? null : true });
-  box.appendChild(h('div', { class: 'ai-h' }, [h('h2', { text: 'Crear con Claude' }), h('p', { class: 'fh', text: 'Describe el personaje y Claude propone la ficha completa con las reglas de creación y el compendio de la saga. Tú la revisas antes de guardarla.' })]));
-  const body = h('div', { class: 'ai-b' });
-  box.appendChild(body);
-  drawAI(body);
-  return box;
-}
-function aiShow() { const c = document.getElementById('ai-card'); if (c) c.hidden = !(S.sample && !AI.off); }
-let aiTick = null;
-function drawAI(body) {
-  body = body || document.querySelector('#ai-card .ai-b');
-  if (!body) return;
-  body.innerHTML = '';
-  const form = h('div', { class: 'ai-form fx' });
-  const ta = h('textarea', { rows: 3, id: 'ai-concept', placeholder: 'Una aprendiz de Merinita criada en un valle del Sobrarbe, hija de un cazador, que habla con los animales y desconfía de los nobles…', oninput: ev => { AI.concept = ev.target.value; } }, AI.concept);
-  form.appendChild(h('div', { class: 'fgrid' }, [
-    field('Tipo', sel(TIPOS.filter(t => t !== 'Otro'), AI.tipo, v => { AI.tipo = v; }, { id: 'ai-tipo' })),
-    field('Edad', inp(AI.edad, v => { AI.edad = parseInt(v, 10) || AI.edad; }, { type: 'number', min: '8', max: '120', inputmode: 'numeric', id: 'ai-edad' })),
-    field('Concepto', ta, null, 'w3')]));
-  const go = h('button', { type: 'button', class: 'btn', id: 'ai-go', disabled: AI.busy ? true : null, onclick: () => aiRun() }, AI.last ? 'Proponer otra ficha' : 'Proponer ficha');
-  form.appendChild(h('div', { class: 'actions' }, [go, h('span', { class: 'fh', text: 'Usa tu cuenta de Claude: la primera vez te pide permiso y cada propuesta gasta algo de tu uso.' })]));
-  body.appendChild(form);
-  const status = h('div', { class: 'ai-status', 'aria-live': 'polite' });
-  if (AI.busy) {
-    const secs = h('span', { class: 'ai-secs' });
-    const upd = () => { secs.textContent = Math.round((Date.now() - AI.t0) / 1000) + ' s'; };
-    upd();
-    clearInterval(aiTick);
-    aiTick = setInterval(() => { if (!secs.isConnected || !AI.busy) { clearInterval(aiTick); return; } upd(); }, 1000);
-    status.appendChild(h('div', { class: 'ai-busy' }, [h('span', { class: 'spin', 'aria-hidden': 'true' }), h('b', { text: 'Claude está preparando la ficha… ' }), secs,
-      h('button', { type: 'button', class: 'btn ghost', onclick: () => { if (AI.ctl) AI.ctl.abort(); } }, 'Parar')]));
-    status.appendChild(h('ul', { class: 'ai-log', id: 'ai-log' }, AI.log.map(t => h('li', { text: t }))));
-    status.appendChild(h('p', { class: 'fh', text: 'Suele tardar entre medio minuto y un par de minutos.' }));
-  } else if (AI.error) status.appendChild(h('p', { class: 'ai-err', text: AI.error }));
-  body.appendChild(status);
-  if (AI.draft && !AI.busy) body.appendChild(aiResult(AI.draft));
-}
-function aiLog(t) {
-  AI.log.push(t);
-  const ul = document.getElementById('ai-log');
-  if (ul) ul.appendChild(h('li', { text: t }));
-}
-function aiResult(dr) {
-  const r = creationCheck(dr);
-  const box = h('div', { class: 'ai-res' });
-  box.appendChild(h('div', { class: 'ai-res-h' }, [h('h3', { text: dr.nombre || 'Sin nombre' }), dr.sub ? h('span', { class: 'pj-sub', text: dr.sub }) : null,
-    h('span', { class: 'xt', text: [dr.tipo, dr.casa, ageOf(dr) != null ? ageOf(dr) + ' años' : ''].filter(Boolean).join(' · ') })]));
-  if (dr.concepto) box.appendChild(h('p', { class: 'doc-blurb', text: dr.concepto }));
-  const panel = h('div', { class: 'cc-panel' });
-  drawPanel(panel, r);
-  box.appendChild(panel);
-  const chip = (t, cls) => h('span', { class: 'rep ' + (cls || ''), text: t });
-  const vdl = h('div', { class: 'ai-vd' }, [h('span', { class: 'fl', text: 'Virtudes' })].concat(dr.virtudes.map(x => chip(vdLabel(x) + (x.valor ? ' · ' + x.valor : ''), 'v'))).concat([h('span', { class: 'fl', text: 'Defectos' })], dr.defectos.map(x => chip(vdLabel(x) + (x.valor ? ' · ' + x.valor : ''), 'd'))));
-  box.appendChild(vdl);
-  box.appendChild(h('p', { class: 'ai-line' }, [h('span', { class: 'fl', text: 'Características ' }), document.createTextNode(CHARS.map(n => n.slice(0, 3) + ' ' + sgn(numv(dr.car[n]))).join(' · '))]));
-  // levels as the sheet will show them: Affinity ×1.5 on the px, Puissant on top
-  const F = vdEffects(dr);
-  const habLv = x => { const k = tkey(x.n); return abLvl(afXp(numv(x.base), F.af.hab.has(k))) + (F.mana.hab[k] || 0); };
-  const habs = dr.hab.filter(x => numv(x.base) > 0).sort((a, b) => numv(b.base) - numv(a.base));
-  box.appendChild(h('p', { class: 'ai-line' }, [h('span', { class: 'fl', text: 'Habilidades ' }), document.createTextNode(habs.map(x => x.n + ' ' + habLv(x)).join(' · ') || '—')]));
-  const arts = ARTS.filter(a => numv(dr.artes[a]) > 0 || F.mana.art[a]);
-  if (arts.length) box.appendChild(h('p', { class: 'ai-line' }, [h('span', { class: 'fl', text: 'Artes ' }), document.createTextNode(arts.map(a => a + ' ' + (artLvl(afXp(numv(dr.artes[a]), F.af.art.has(a))) + (F.mana.art[a] || 0))).join(' · '))]));
-  if (dr.hechizos.length) box.appendChild(h('p', { class: 'ai-line' }, [h('span', { class: 'fl', text: 'Hechizos ' }), document.createTextNode(dr.hechizos.map(s => s.n + ' (' + [ABBR[artOf(s.tec)], ABBR[artOf(s.forma)]].filter(Boolean).join('') + ' ' + s.nivel + ')').join(' · '))]));
-  const pers = dr.personalidad.filter(t => t.n);
-  if (pers.length) box.appendChild(h('p', { class: 'ai-line' }, [h('span', { class: 'fl', text: 'Personalidad ' }), document.createTextNode(pers.map(t => t.n + ' ' + (t.v > 0 ? '+' : t.v < 0 ? '−' : '') + Math.abs(t.v)).join(' · '))]));
-  if (dr.notas) box.appendChild(h('details', { class: 'cc-more' }, [h('summary', { text: 'Historia' }), h('p', { text: dr.notas })]));
-  // actions
-  const cur = EDITOR && EDITOR.d;
-  const apply = h('button', { type: 'button', class: 'btn', id: 'ai-apply' }, 'Aplicar a la ficha');
-  let armed = false;
-  apply.addEventListener('click', () => {
-    if (cur && draftHasContent(cur) && !armed) { armed = true; apply.textContent = 'Pulsa otra vez: sustituye lo que has rellenado'; setTimeout(() => { armed = false; apply.textContent = 'Aplicar a la ficha'; }, 4000); return; }
-    const d = clone(dr);
-    if (cur && cur.retrato) d.retrato = cur.retrato;
-    if (cur && cur.jugador) d.jugador = cur.jugador;
-    viewEditor(null, d);
-    toast('Propuesta aplicada: revísala y pulsa «Crear personaje».');
-    const fm = document.getElementById('pj-form');
-    if (fm) fm.scrollIntoView({ block: 'start' });
-  });
-  const ask = h('input', { type: 'text', id: 'ai-change', placeholder: 'Más combativo, sin el Don estridente, que sepa latín…', 'aria-label': 'Qué quieres cambiar' });
-  const redo = h('button', { type: 'button', class: 'btn ghost', onclick: () => { const t = ask.value.trim(); if (!t) { ask.focus(); return; } aiRun(t); } }, 'Pedir cambios');
-  box.appendChild(h('div', { class: 'ai-actions fx' }, [apply, h('div', { class: 'ai-change' }, [ask, redo]),
-    h('button', { type: 'button', class: 'lnk', onclick: () => { AI.draft = null; AI.last = null; drawAI(); } }, 'Descartar')]));
-  return box;
-}
-function aiContext(tipo, edad) {
-  const dr = blankPj();
-  dr.tipo = tipo;
-  const [ca] = curSeason();
-  dr.nacimiento = ca - edad;
-  ensureGift(dr);
-  return { r: creationCheck(dr), year: ca };
-}
-let AI_CORE = null;
-function aiCoreList() {
-  if (AI_CORE) return AI_CORE;
-  const rows = c => vdIndex().core.filter(e => e.clase === c).map(e => e.n + (e.en ? ' (' + e.en + ')' : '') + ' · ' + e.cat + ' · ' + e.valor).join('\n');
-  AI_CORE = 'VIRTUDES:\n' + rows('virtud') + '\n\nDEFECTOS:\n' + rows('defecto');
-  return AI_CORE;
-}
-function aiPrompt(concept, tipo, edad) {
-  const { r, year } = aiContext(tipo, edad);
-  const cls = CLASE[tipo] || 'otro';
-  const others = pjsSorted(true).slice(0, 10).map(p => '- ' + [p.nombre, p.tipo, p.casa].filter(Boolean).join(', ')).join('\n');
-  const presets = PRESETS().map(p => '- ' + p.n + ': ' + p.resumen).join('\n');
-  const abil = Object.keys(ABIL_STD).map(c => c + ': ' + ABIL_STD[c].join(', ')).join('\n');
-  const magicRules = isMagic(cls) ? '\n- Magos y aprendices: El Don es obligatorio y gratuito. ' + (cls === 'mago' ? 'Llevan el estatus «Magus Hermético» (gratuito), su Casa les da una virtud menor gratuita (márcala con "casa": true), como mucho una virtud hermética mayor y al menos un defecto hermético.' : 'Un aprendiz no es aún magus: su estatus social suele ser «Aprendiz».') : '';
-  const grogRules = cls === 'grog' ? '\n- Grogs: hasta 3 puntos de defectos, solo virtudes y defectos menores, sin defectos de Historia, sin el Don y como mucho un defecto de Personalidad. Todos los grogs tienen un rasgo de personalidad «Leal»; los guerreros, también «Valiente».' : '';
-  const budget = r.parts.map(p => p[0] + ': ' + p[1] + ' px').join('; ');
-  return [
-    'Eres un narrador experto en Ars Magica 5.ª edición. Ayudas a crear un personaje para la Saga de Arazas: la alianza de Arazas, en el Pirineo aragonés, al pie de las Tres Sorores. Año actual de la saga: ' + year + '. Escribe en castellano de España.',
-    '',
-    'TIPO: ' + tipo + '. EDAD: ' + edad + ' años (nacido hacia ' + (year - edad) + ').',
-    'CONCEPTO DEL JUGADOR:\n"""\n' + concept + '\n"""',
-    others ? '\nPersonajes que ya hay en la saga (por si quieres relacionarlo):\n' + others : '',
-    '',
-    'REGLAS DE CREACIÓN (la página comprueba todas las cuentas con la herramienta comprobar_ficha):',
-    '- Virtudes y defectos: se empieza con 0 puntos. Cada defecto mayor da 3 puntos y cada menor 1; cada virtud mayor cuesta 3 y cada menor 1; las gratuitas no cuestan. Máximo de defectos: ' + (r.vdCap != null ? r.vdCap : 'sin límite') + ' puntos. No hace falta gastarlo todo, pero es lo eficiente. Todos llevan un estatus social. Como mucho 5 defectos menores, 1 de Historia y 2 de Personalidad (solo 1 mayor).' + magicRules + grogRules,
-    '- Características (Inteligencia, Percepción, Fuerza, Vitalidad, Presencia, Comunicación, Destreza, Rapidez): ' + r.cBudget + ' puntos; +1 cuesta 1, +2 cuesta 3, +3 cuesta 6; −1 da 1, −2 da 3, −3 da 6. «Características mejoradas» da 3 puntos más y «Características Empobrecidas» 3 menos. «Característica Notable» sube un punto más (y gratis) una característica que ya está en +3; «Característica Mediocre» baja otra que ya está en −3. En "car" pon los valores finales.',
-    '- Experiencia: el nivel L de una habilidad cuesta 5·L·(L+1)/2 px (1=5, 2=15, 3=30, 4=50, 5=75, 6=105); el de un Arte, L·(L+1)/2 (5=15, 10=55, 15=120). Presupuesto de partida de este personaje: ' + budget + '. Total: ' + r.xpBudget + ' px' + (r.spBudget ? '; hechizos: ' + r.spBudget + ' niveles' : '') + (r.shared ? '; y ' + r.shared + ' puntos por los años tras el Guantelete, para PX o niveles de hechizo' : '') + '. Virtudes y estatus que lo cambian (comprobar_ficha da el presupuesto actualizado): Magister in Artibus +240 px (para académicas o Enseñanza); Boina Roja, 15 años de formación a 20 px en vez de 15; Guerrero +50 (marciales); Instruido +50 (Latín y Artes Liberales); Infancia Privilegiada +50; Conocimiento arcano +50 (arcanas); Trotamundos +50; Hechizos dominados, 50 px para maestría de hechizos; Maestro Experimentado +60 px y +30 niveles; Formación defectuosa −60 y −30; Rico, 20 px por año; Pobre, 10.',
-    '- Afinidad con una habilidad o un Arte multiplica por 1,5 (redondeando arriba) los px que pongas en él: tú indica los px gastados y la página aplica el ×1,5. Maña suma +2 a una habilidad o +3 a un Arte, sin gastar px.',
-    '- La lengua materna empieza a 5 (sus 75 px van en el presupuesto). Los 45 px de la infancia solo van a: conocimiento de su tierra natal, Atletismo, Atención, Pelea, Encanto, Don de gentes, Embaucar, otro idioma vivo, Sigilo, Supervivencia y Nadar. Paquetes de infancia de la saga (opcional, pon su nombre en "infancia" y reparte sus px en las habilidades):\n' + presets,
-    '- Por su edad, ninguna habilidad puede pasar de ' + r.cap + ' al crearlo (+2 con Afinidad). Las marciales, académicas y arcanas solo las aprenden los magos o quien tenga una virtud que lo permita; las sobrenaturales exigen su virtud.' + (isMagic(cls) ? ' Cada hechizo, como mucho de nivel Técnica + Forma + Inteligencia + Teoría Mágica + 3.' : ''),
-    '- Personalidad: tres rasgos con valores entre −3 y +3. Confianza 1.',
-    '',
-    'HABILIDADES (usa estos nombres; para idiomas, conocimientos de área u organización y profesiones pon el nombre concreto, p. ej. «Aragonés», «Sobrarbe»):\n' + abil + '\nOtras categorías: Idiomas vivos, Conocimientos de área, Profesiones, Reputaciones.',
-    '',
-    'VIRTUDES Y DEFECTOS: usa los nombres EXACTOS del compendio de la saga y pon siempre su "valor": hay nombres con versión mayor y menor. En Maña, Afinidad, Característica Notable y Característica Mediocre pon en "obj" la habilidad, el Arte o la característica a la que se aplican (p. ej. {"n": "Afinidad con Arte", "obj": "Vim"}). Estos son los del reglamento básico (nombre (original) · tipo · valor); con buscar_virtudes encuentras los de otros libros y sus descripciones:\n' + aiCoreList(),
-    '',
-    'CÓMO TRABAJAR: haz de una vez las búsquedas que necesites' + (isMagic(cls) ? ' (también buscar_hechizos, con los textos de laboratorio de la alianza)' : '') + ', llama a comprobar_ficha con tu propuesta completa, corrige todos los errores (los avisos, según convenga) y responde SOLO con el JSON final.',
-    '',
-    'FORMATO DE LA RESPUESTA (un único objeto JSON):',
-    '{"nombre": "", "sub": "epíteto o apodo", "casa": "' + (isMagic(cls) ? 'su Casa' : '') + '", "concepto": "una frase", "edad": ' + edad + ',',
-    ' "car": {"Inteligencia": 0, "Percepción": 0, "Fuerza": 0, "Vitalidad": 0, "Presencia": 0, "Comunicación": 0, "Destreza": 0, "Rapidez": 0},',
-    ' "virtudes": [{"n": "nombre exacto", "valor": "Mayor, Menor o Gratuita", "obj": "solo en Maña, Afinidad y Característica Notable: a qué se aplica", "nota": "detalle"' + (cls === 'mago' ? ', "casa": false' : '') + '}],',
-    ' "defectos": [{"n": "nombre exacto", "valor": "Mayor o Menor", "nota": ""}],',
-    ' "habilidades": [{"n": "Atención", "cat": "Generales", "esp": "especialidad", "px": 15}],',
-    isMagic(cls) ? ' "artes": {"Creo": 0, "Intellego": 0, "Muto": 0, "Perdo": 0, "Rego": 0, "Animal": 0, "Aquam": 0, "Auram": 0, "Corpus": 0, "Herbam": 0, "Ignem": 0, "Imaginem": 0, "Mentem": 0, "Terram": 0, "Vim": 0},' : ' "artes": {},',
-    isMagic(cls) ? ' "hechizos": [{"n": "", "tec": "Creo", "forma": "Ignem", "nivel": 10, "alc": "Voz", "dur": "Momentáneo", "obj": "Individuo", "maestria": 0}],' : ' "hechizos": [],',
-    ' "personalidad": [{"n": "Leal", "v": 2}],',
-    ' "lengua": "lengua materna", "tierra": "tierra natal", "infancia": "nombre del paquete o vacío",' + (isMagic(cls) ? ' "edad_aprendizaje": 10,' : ''),
-    ' "notas": "historia breve, 3 a 5 frases"}',
-    'Las cantidades de "habilidades" y "artes" son PX gastados en la creación (no niveles; con Afinidad, antes del ×1,5). "maestria" es la puntuación de maestría del hechizo (se paga como una habilidad: 1 = 5 px, 2 = 15).'
-  ].join('\n');
-}
-function aiTools(tipo, edad) {
-  const tools = [{
-    name: 'buscar_virtudes',
-    description: 'Busca en el compendio de virtudes y defectos de la saga (1.156 entradas de todos los libros). Devuelve hasta 15 coincidencias con el nombre exacto, el original en inglés, si es virtud o defecto, tipo, valor (Mayor/Menor/Gratuita), libro, página y una descripción breve cuando la hay.',
-    inputSchema: { type: 'object', properties: { texto: { type: 'string', description: 'palabras a buscar, en castellano o en inglés' }, clase: { type: 'string', enum: ['virtud', 'defecto'] }, tipo: { type: 'string', description: 'General, Hermética, Sobrenatural, Estatus Social, Personalidad, Historia…' }, valor: { type: 'string', enum: ['Mayor', 'Menor', 'Gratuita'] } }, required: ['texto'] },
-    execute: inp => {
-      const q = String((inp && inp.texto) || '').slice(0, 80);
-      aiLog('Busca en el compendio: «' + q + '»');
-      return vdSearch(q, { clase: inp && inp.clase ? String(inp.clase) : '', tipo: inp && inp.tipo ? String(inp.tipo) : '', valor: inp && inp.valor ? String(inp.valor) : '' }).slice(0, 15)
-        .map(e => ({ nombre: e.n, original: e.en, clase: e.clase, tipo: e.cat, valor: e.valor, libro: e.libro, pagina: e.pag, descripcion: e.desc.slice(0, 220) }));
-    }
-  }, {
-    name: 'comprobar_ficha',
-    description: 'Comprueba una propuesta con las reglas de creación de la página. Recibe {"ficha": {...}} con el mismo formato que la respuesta final y devuelve el presupuesto de cada apartado, los errores que hay que corregir, los avisos y los nombres que no están en el compendio.',
-    inputSchema: { type: 'object', properties: { ficha: { type: 'object', description: 'la ficha completa, con el formato de la respuesta final' } }, required: ['ficha'] },
-    execute: inp => {
-      const fch = inp && typeof inp.ficha === 'object' ? inp.ficha : inp;
-      const r = creationCheck(proposalToDraft(fch, tipo, edad));
-      aiLog('Comprueba la ficha: ' + (r.errors.length ? r.errors.length + (r.errors.length === 1 ? ' error' : ' errores') : 'sin errores') + (r.avisos.length ? ', ' + r.avisos.length + (r.avisos.length === 1 ? ' aviso' : ' avisos') : ''));
-      return { presupuesto: r.lines.map(l => l.l + ': ' + l.txt), desglose_px: r.parts.map(p => p[0] + ': ' + p[1]), errores: r.errors, avisos: r.avisos, fuera_del_compendio: r.unknown };
-    }
-  }];
-  if (isMagic(CLASE[tipo])) tools.push({
-    name: 'buscar_hechizos',
-    description: 'Busca hechizos en los textos de laboratorio de la biblioteca de la alianza y en los nuevos hechizos de la saga. Devuelve hasta 20 con nombre, Técnica, Forma, nivel, alcance, duración y objetivo.',
-    inputSchema: { type: 'object', properties: { texto: { type: 'string' }, tecnica: { type: 'string' }, forma: { type: 'string' }, nivel_max: { type: 'number' } } },
-    execute: inp => {
-      inp = inp || {};
-      aiLog('Busca hechizos' + (inp.texto ? ' «' + String(inp.texto).slice(0, 40) + '»' : '') + (inp.tecnica || inp.forma ? ' (' + [inp.tecnica, inp.forma].filter(Boolean).join(' ') + ')' : ''));
-      return spellSearch(inp).slice(0, 20);
-    }
-  });
-  return tools;
-}
-let SPELLS = null;
-function spellPool() {
-  if (SPELLS) return SPELLS;
-  SPELLS = [];
-  const bib = DOCS['biblioteca-duxmollis'];
-  if (bib) bib.sheets.forEach(s => s.blocks.forEach(b => {
-    if (b.t !== 'table') return;
-    const ci = n => b.cols.indexOf(n);
-    if (b.id === 'textos-lab' || b.id === 'nuevos-hechizos') b.rows.forEach(r => {
-      const nv = toNum(r[ci('Nivel')]);
-      SPELLS.push({ nombre: r[ci('Efecto')], tecnica: r[ci('Técnica')], forma: r[ci('Forma')], nivel: isFinite(nv) ? nv : null, alcance: r[ci('Alcance')], duracion: r[ci('Duración')], objetivo: r[ci('Objetivo')], origen: b.id === 'textos-lab' ? 'texto de laboratorio' : 'nuevo hechizo de la saga' });
-    });
-  }));
-  return SPELLS;
-}
-function spellSearch(inp) {
-  const terms = norm(String(inp.texto || '')).split(/\s+/).filter(t => t.length > 1);
-  const t = artOf(inp.tecnica), f = artOf(inp.forma), max = numv(inp.nivel_max);
-  return spellPool().filter(s => (!t || artOf(s.tecnica) === t) && (!f || artOf(s.forma) === f) && (!max || (s.nivel != null && s.nivel <= max)) && terms.every(x => norm(s.nombre).includes(x)));
-}
-function proposalToDraft(p, tipo, edad) {
-  p = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
-  const str = (v, max) => String(v == null ? '' : v).trim().slice(0, max || 300);
-  const d = blankPj();
-  d.virtudes = [];
-  d.tipo = TIPOS.includes(tipo) ? tipo : 'Magus';
-  const [ca] = curSeason();
-  const e = Math.round(numv(p.edad)) || edad || 25;
-  d.nacimiento = ca - e;
-  d.nombre = str(p.nombre, 80); d.sub = str(p.sub, 80); d.concepto = str(p.concepto, 500); d.notas = str(p.notas, 5000);
-  d.casa = isMagic(CLASE[d.tipo]) ? str(p.casa, 40) : '';
-  const car = p.car && typeof p.car === 'object' ? p.car : {};
-  const carK = {};
-  Object.keys(car).forEach(k => { carK[tkey(k)] = car[k]; });
-  CHARS.forEach(n => { d.car[n] = Math.max(-6, Math.min(6, Math.round(numv(carK[tkey(n)])))); });
-  const vd = (list, clase) => (Array.isArray(list) ? list : []).slice(0, 30).map(x => {
-    const name = str(typeof x === 'string' ? x : x && x.n, 80);
-    if (!name) return null;
-    let ent = vdFind(name, clase, x && VALORES.includes(x.valor) ? x.valor : '');
-    let obj = str(x && x.obj, 60);
-    if (!ent && clase === 'virtud') { const L = legacyObj(name); if (L) { ent = vdFind(FX_GENERIC[L.fx], 'virtud'); obj = obj || L.obj; } }
-    const casa = !!(x && x.casa === true);
-    const nota = [str(x && x.nota, 200), casa ? 'virtud gratuita de la Casa' : '', vdNota(ent)].filter(Boolean).join(' · ');
-    const item = ent ? { n: ent.n, en: ent.en, cat: ent.cat, valor: casa ? 'Gratuita' : ent.valor, nota: nota }
-      : { n: name, cat: str(x && x.tipo, 30), valor: VALORES.includes(x && x.valor) ? x.valor : '', nota: nota };
-    // Maña, Afinidad, Característica Notable/Mediocre: keep what they apply to, if it is a real Ability, Art or Characteristic
-    const f = vdFx(item, clase);
-    if (FX_OBJ[f] && obj) { const t = vdTarget({ n: item.n, obj: obj }, f); if (t) item.obj = t; }
-    return item;
-  }).filter(Boolean);
-  d.virtudes = vd(p.virtudes, 'virtud');
-  d.defectos = vd(p.defectos, 'defecto');
-  const habs = new Map();
-  (Array.isArray(p.habilidades) ? p.habilidades : []).slice(0, 50).forEach(x => {
-    const n = str(x && x.n, 60);
-    if (!n) return;
-    const k = tkey(n);
-    const row = habs.get(k) || { n: n, cat: ABIL_CATS.includes(x.cat) ? x.cat : guessCat(n), esp: str(x.esp, 60), base: 0 };
-    row.base += Math.max(0, Math.round(numv(x.px)));
-    habs.set(k, row);
-  });
-  d.hab = [...habs.values()];
-  const ar = p.artes && typeof p.artes === 'object' ? p.artes : {};
-  Object.keys(ar).forEach(k => { const a = artOf(k); if (a) d.artes[a] = Math.max(0, Math.round(numv(ar[k]))); });
-  d.hechizos = (Array.isArray(p.hechizos) ? p.hechizos : []).slice(0, 40).map(s => {
-    const n = str(s && s.n, 100);
-    if (!n) return null;
-    const t = artOf(s.tec), f = artOf(s.forma);
-    const m = Math.max(0, Math.min(10, Math.round(numv(s.maestria))));
-    const sp = { n: n, tec: ARTS_T.includes(t) ? t : '', forma: ARTS_F.includes(f) ? f : '', nivel: isFinite(Number(s.nivel)) && s.nivel !== '' && s.nivel != null ? String(Math.round(Number(s.nivel))) : '', alc: str(s.alc, 40), dur: str(s.dur, 40), obj: str(s.obj, 40), nota: str(s.nota, 120) };
-    if (m) sp.maestria = m;
-    return sp;
-  }).filter(Boolean);
-  d.personalidad = (Array.isArray(p.personalidad) ? p.personalidad : []).slice(0, 6).map(t => ({ n: str(t && t.n, 40), v: Math.max(-3, Math.min(3, Math.round(numv(t && t.v)))) })).filter(t => t.n);
-  const ea = Math.round(numv(p.edad_aprendizaje));
-  const pre = PRESETS().find(x => tkey(x.n) === tkey(p.infancia || ''));
-  d.creacion = { lengua: str(p.lengua, 40), tierra: str(p.tierra, 40), infancia: pre ? pre.n : '', edadAprendizaje: ea >= 5 && ea <= 30 ? ea : 10, infAplicada: [], nativaAuto: false };
-  d.confianza = 1;
-  ensureGift(d);
-  return d;
-}
-async function aiRun(change) {
-  if (AI.busy || !S.sample) return;
-  const concept = String(AI.concept || '').trim();
-  if (!concept) { toast('Describe primero el personaje.'); const t = document.getElementById('ai-concept'); if (t) t.focus(); return; }
-  AI.busy = true; AI.error = ''; AI.log = []; AI.ctl = new AbortController(); AI.t0 = Date.now();
-  const tipo = AI.tipo, edad = Math.max(8, Math.min(120, AI.edad || 25));
-  drawAI();
-  const prompt = aiPrompt(concept, tipo, edad);
-  const input = change && AI.last ? [{ role: 'user', content: prompt }, { role: 'assistant', content: JSON.stringify(AI.last) },
-    { role: 'user', content: 'Cambia esto de tu propuesta: ' + change + '\nVuelve a comprobarla con comprobar_ficha y devuelve la ficha completa, con el mismo formato JSON.' }] : prompt;
-  const opts = { signal: AI.ctl.signal };
-  if (S.sampleTools) opts.tools = aiTools(tipo, edad);
-  try {
-    const res = await S.sample.json(input, opts);
-    if (!res || typeof res !== 'object' || Array.isArray(res)) throw { code: 'invalid_json' };
-    AI.last = res;
-    AI.draft = proposalToDraft(res, tipo, edad);
-  } catch (e) {
-    const code = e && e.code;
-    if (code === 'cancelled') AI.error = '';
-    else if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) {
-      AI.error = code === 'not_granted' ? 'No se ha dado permiso a esta página para usar Claude.' : 'El asistente no está disponible en esta vista.';
-    } else if (code === 'tools_unavailable') { S.sampleTools = false; AI.error = 'Esta vista no admite las herramientas del asistente; vuelve a pulsar y se hará sin ellas.'; }
-    else if (code === 'rate_limited') AI.error = 'Has llegado al límite de uso de Claude por ahora. Inténtalo más tarde.';
-    else if (code === 'session_expired') AI.error = 'Tu sesión ha caducado: vuelve a iniciar sesión en claude.ai.';
-    else if (code === 'invalid_json' || code === 'empty_completion') AI.error = 'Claude no ha devuelto una ficha válida. Prueba otra vez o simplifica la descripción.';
-    else if (code === 'refused') AI.error = 'Claude no ha querido hacer esta propuesta; cambia la descripción.';
-    else if (code === 'prompt_too_large') AI.error = 'La petición es demasiado larga; acorta la descripción.';
-    else AI.error = 'Ha fallado la conexión con Claude. Vuelve a intentarlo.';
-  } finally {
-    AI.busy = false; AI.ctl = null;
-    drawAI();
-  }
-}
-
 /* ================================================================== PANTALLA DEL MÁSTER
-   Solo para el dueño de la página (el máster). El aura de la escena —reino y nivel— cambia los totales de lanzamiento
+   Solo para el máster (quien entra con el código de máster). El aura de la escena —reino y nivel— cambia los totales de lanzamiento
    de todas las fichas según la tabla de interacción de reinos de ArM5 (cap. 12, «Realms»): para la magia hermética,
    aura mágica ×1, feérica ×½ (redondeando hacia arriba), divina ×−3 e infernal ×−1, y en un aura de otro reino un dado de
    pifia más por cada punto de aura. El laboratorio sigue usando el aura de la alianza. Un desplegable muestra los rasgos
@@ -3603,88 +3254,13 @@ function viewMaster() {
   document.title = 'Pantalla del máster — Europa Mítica';
   const note = statusNote(); if (note) content.appendChild(note);
   if (S.owner !== true) {
-    content.appendChild(h('p', { class: 'note', text: S.owner == null && S.db ? 'Comprobando quién eres…' : WEB ? 'Esta pantalla es solo para el máster: entra en la saga con el código de máster.' : 'Esta pantalla es solo para el máster de la saga: quien es dueño de la página.' }));
+    content.appendChild(h('p', { class: 'note', text: S.owner == null && S.db ? 'Comprobando quién eres…' : 'Esta pantalla es solo para el máster: entra en la saga con el código de máster.' }));
     return;
   }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(masterAura());
-  content.appendChild(WEB ? masterWeb() : masterCopy());
+  content.appendChild(masterWeb());
   content.appendChild(masterPjs());
-}
-
-/* ---------- the public copy, for viewers without a session (see SNAP in saga.js)
-   Publishing regenerates the page from its own parts —the fixed markup (SRC_PRE, SRC_SHELL, built in build.py), the
-   style, data and script blocks as they were served— with a fresh copy of the database inside, and saves it as a new
-   version of the artifact; every open view then reloads to it. */
-const SKELETON = '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}\x3c/style>\x3c/head><body>';
-function snapClean(col) {
-  const o = {};
-  Object.keys(col || {}).sort().forEach(id => { const d = Object.assign({}, col[id]); delete d.por; o[id] = d; });
-  return o;
-}
-function snapNow() {
-  const estado = S.estado ? Object.assign({}, S.estado) : null;
-  if (estado) { delete estado.por; delete estado.lugares; }
-  return { v: 1, fecha: Date.now(), pj: snapClean(S.pj), av: snapClean(S.av), vis: snapClean(S.vis), tes: snapClean(S.tes), estado: estado };
-}
-function stableStr(v) {
-  if (Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
-  if (v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + stableStr(v[k])).join(',') + '}';
-  return JSON.stringify(v === undefined ? null : v);
-}
-const snapBody = s => stableStr({ pj: s.pj || {}, av: s.av || {}, vis: s.vis || {}, tes: s.tes || {}, estado: s.estado || null });
-function snapStale() { return !SNAP || snapBody(SNAP) !== snapBody(snapNow()); }
-function pageSource(snap) {
-  const txt = id => { const el = document.getElementById(id); if (!el) throw Object.assign(new Error('missing #' + id), { code: 'invalid_content' }); return el.textContent; };
-  const sj = JSON.stringify(snap).replace(/<\//g, '<\\/');
-  // the same wrapping the Artifact tool gives the built file: skeleton, newline, page, newline, closing tags
-  return SKELETON + '\n' + SRC_PRE + '<style id="site-css">' + txt('site-css') + '\x3c/style>' + SRC_SHELL +
-    '\x3cscript type="application/json" id="site-data">' + txt('site-data') + '\x3c/script>\n' +
-    '\x3cscript type="application/json" id="site-img">' + txt('site-img') + '\x3c/script>\n' +
-    '\x3cscript type="application/json" id="saga-snap">' + sj + '\x3c/script>\n' +
-    (document.getElementById('hech-data') ? '\x3cscript type="application/json" id="hech-data">' + txt('hech-data') + '\x3c/script>\n' : '') +
-    '\x3cscript id="site-js">' + txt('site-js') + '\x3c/script>\n' + '\n\x3c/body>\x3c/html>';
-}
-async function publishCopy(btn) {
-  const C = window.claude;
-  const stop = (msg, off) => { if (msg) toast(msg); btn.disabled = !!off; return false; };
-  btn.disabled = true;
-  if (!S.db) return stop('Los datos de la saga no están disponibles en esta vista.');
-  let art = null;
-  try { art = C && typeof C.use === 'function' ? await C.use('artifact') : null; } catch (e) { art = null; }
-  if (!art) return stop('Desde esta vista no se puede publicar la página.', true);
-  let html;
-  try { html = pageSource(snapNow()); } catch (e) { return stop('No se ha podido preparar la copia.'); }
-  toast('Publicando la copia pública…');
-  for (let n = 0; n < 2; n++) {
-    try {
-      await art.publish(html);
-      toast('Copia publicada: la página se recarga con ella.');
-      return true;
-    } catch (e) {
-      const code = e && e.code;
-      if (code === 'conflict') return stop('Acaban de publicar otra versión de la página; se recarga con ella.', true);
-      if (['not_writer', 'not_granted', 'consent_required', 'capability_disabled', 'capability_removed', 'not_declared'].includes(code)) return stop('Desde esta vista no se puede publicar la página.', true);
-      if (code === 'too_large') return stop('La página ocupa demasiado para publicarla.');
-      if (code === 'rate_limited') return stop('Demasiadas publicaciones seguidas: espera un rato y vuelve a intentarlo.');
-      if (code === 'invalid_content' || code === 'transform_error' || code === 'read_only_path') return stop('No se ha podido preparar la copia.');
-      if (n === 0) await new Promise(r => setTimeout(r, 800 + Math.random() * 1200)); // upstream_error or unknown: once more
-    }
-  }
-  return stop('No se ha podido publicar. Inténtalo más tarde.');
-}
-function masterCopy() {
-  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-pub-h' });
-  sec.appendChild(h('h2', { class: 'm-h', id: 'm-pub-h', text: 'Copia pública' }));
-  const stale = snapStale();
-  sec.appendChild(h('p', { class: 'm-now', id: 'm-pub-st' }, [
-    h('span', { class: 'fl', text: SNAP ? 'Copia del ' + snapDate(SNAP.fecha) : 'Sin copia' }),
-    h('span', { text: !SNAP ? 'Quien entra sin iniciar sesión todavía no ve los personajes.' : stale ? 'Hay cambios en la saga que quien entra sin sesión todavía no ve.' : 'Al día: quien entra sin sesión ve lo mismo que tú.' })]));
-  const btn = h('button', { type: 'button', class: 'btn' + (stale ? '' : ' ghost'), id: 'm-pub' }, 'Actualizar la copia pública');
-  btn.addEventListener('click', () => publishCopy(btn));
-  sec.appendChild(h('div', { class: 'actions' }, [btn]));
-  sec.appendChild(h('p', { class: 'note', text: 'Quien abre la página sin iniciar sesión en claude.ai ve esta copia de las fichas y las estaciones, de solo lectura. Al actualizarla se publica una versión nueva de la página y se recarga en todas las pantallas abiertas.' }));
-  return sec;
 }
 
 /* ---------- the scene aura */
@@ -4003,7 +3579,7 @@ function vdInfo(x, clase) {
 }
 
 /* ================================================================== PANTALLA DEL MÁSTER · LA SAGA EN LA WEB
-   Web version only (window.EM_WEB): the saga's codes, a backup copy and importing one. */
+   The saga's codes, a backup copy and importing one. */
 function masterWeb() {
   const W = window.EM_WEB;
   const sec = h('section', { class: 'm-sec m-web', 'aria-labelledby': 'm-web-h' }, [h('h2', { class: 'm-h', id: 'm-web-h', text: 'La saga en la web' })]);
