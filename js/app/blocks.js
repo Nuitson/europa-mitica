@@ -382,19 +382,25 @@ R.table = (b) => {
 };
 
 /* ---------------------------------------------------------------- vis ledger */
+// each ledger's filters, kept while the page is open: a redraw (someone saved a movement) must not clear them
+const VL_FILTERS = new Map();
 R.visledger = (b) => {
   const rows = b.live ? b.rows.concat(visDbRows()) : b.rows; // web movements follow the sheet's
-  const st = { q: '', y: '', tp: '', a: '' };
+  const st = VL_FILTERS.get(b.id) || { q: '', raw: '', y: '', tp: '', a: '' };
+  VL_FILTERS.set(b.id, st);
   const wrap = h('div', { class: 'dt vl' });
   const tools = h('div', { class: 'dt-tools' });
   const input = h('input', { type: 'search', id: 'q-' + b.id, placeholder: 'Filtrar movimientos…', 'aria-label': 'Filtrar movimientos', autocomplete: 'off' });
-  input.addEventListener('input', () => { st.q = norm(input.value); draw(); });
+  input.value = st.raw;
+  input.addEventListener('input', () => { st.raw = input.value; st.q = norm(input.value); draw(); });
   tools.appendChild(input);
   const years = [...new Set(rows.map(r => r.y).filter(Boolean))].sort();
   const types = [...new Set(rows.map(r => r.tp).filter(Boolean))].sort((x, y) => x.localeCompare(y, 'es'));
   const mk = (id, label, vals, key) => {
     const s = h('select', { id: id, 'aria-label': label }, [h('option', { value: '' }, label + ': todos')].concat(vals.map(v => h('option', { value: v }, v))));
     s.addEventListener('change', () => { st[key] = s.value; draw(); });
+    if (st[key] && !vals.includes(st[key])) st[key] = ''; // that year or Art is no longer in the ledger
+    s.value = st[key];
     tools.appendChild(s);
     return s;
   };

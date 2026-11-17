@@ -1,5 +1,5 @@
 /* Las páginas de los documentos y la de inicio. */
-import { artOf, artVar, DATA, DOCS, esc, h, ICON, IMG } from './base.js';
+import { artOf, artVar, DATA, DOCS, esc, h, ICON, IMG, scrollHint } from './base.js';
 import { PATH } from './tree.js';
 import { highlight, search } from './search.js';
 import { renderBlocks } from './blocks.js';
@@ -36,6 +36,7 @@ function viewDoc(doc, sheetId, anchor, keepY) {
       tabs.appendChild(a);
     });
     page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
+    scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
     requestAnimationFrame(() => { const cur = tabs.querySelector('[aria-current]'); if (cur) tabs.scrollLeft = Math.max(0, cur.offsetLeft - 40); });
   } else {
     page.appendChild(h('div', { style: 'height:22px' }));

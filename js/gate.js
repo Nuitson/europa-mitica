@@ -9,6 +9,8 @@ const K_SES = 'em:sesion', K_UID = 'em:uid', K_ARC = 'em:archivo:', K_MSG = 'em:
 const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 const POLL_MS = 15000;
 const APP = new URL('app/main.js', document.currentScript.src).href; // the app's modules, next to this script
+// a copy of the page in this browser, for the game aids without a connection (sw.js, at the site's root)
+if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL('../sw.js', document.currentScript.src)).catch(() => {});
 
 /* ---------- small helpers */
 function lsGet(k, sess) { try { return (sess ? sessionStorage : localStorage).getItem(k); } catch (e) { return null; } }
@@ -107,7 +109,7 @@ async function gateStart() {
   try { sagas = (await api('sagas')).sagas || []; }
   catch (e) {
     const retry = el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: gateStart });
-    showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), retry]);
+    showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), el('div', { class: 'gate-act' }, [retry, offlineButton(e)])]);
     return;
   }
   gateForm(sagas);
@@ -275,14 +277,49 @@ async function openSaga(ses) {
     if (e.code === 'sesion' || e.code === 'saga') return sessionLost(e.message);
     const retry = el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: () => openSaga(ses) });
     const out = el('button', { type: 'button', class: 'glink', text: 'Cambiar de saga', onclick: () => salir() });
-    showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), el('div', { class: 'gate-act' }, [retry, out])]);
+    showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), el('div', { class: 'gate-act' }, [retry, offlineButton(e), out])]);
     return;
   }
+  lsSet(K_OFF, JSON.stringify({ saga: offlineSaga(ses.saga), rol: ses.rol }));
   window.EM_DATA = merge(ses, arc, st);
   const db = makeDb(ses);
   const assets = { upload: (blob, opts) => db._upload(blob, opts) };
   window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: browserId(), db: db, assets: assets, api: (a, d) => api(a, Object.assign({ token: ses.token }, d || {})), blobUrl: id => db._blob(id),
     salir: salir, session: () => ses, setToken: t => { ses.token = t; putSession(ses, !!lsGet(K_SES)); }, refresh: () => db._poll(true) };
+  startApp(ses);
+}
+
+/* ---------- without a connection: the last saga opened in this browser, with the game aids only
+   (the service worker, sw.js, keeps the page and data/*.json; the saga's archive comes from its localStorage copy) */
+const K_OFF = 'em:sin-conexion';
+// what the page needs of a saga to show it, and nothing else (no codes) kept beyond the session
+function offlineSaga(s) { const o = {}; ['id', 'nombre', 'alianza', 'carpeta', 'anio', 'est', 'aura'].forEach(k => { if (s[k] != null) o[k] = s[k]; }); return o; }
+function offlineButton(e) {
+  let off = null;
+  try { off = JSON.parse(lsGet(K_OFF) || 'null'); } catch (x) { off = null; }
+  if (!off || !off.saga || !off.saga.id || (e && e.code !== 'unavailable')) return null;
+  return el('button', { type: 'button', class: 'glink', text: 'Abrir la ' + off.saga.nombre + ' sin conexión (solo las ayudas de juego)', onclick: () => openOffline(off) });
+}
+async function openOffline(off) {
+  busy('Abriendo sin conexión…');
+  let st;
+  try { st = await loadStatic(); }
+  catch (e) {
+    const retry = el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: () => location.reload() });
+    showGate([el('p', { class: 'gate-err', role: 'alert', text: 'No hay conexión y las ayudas de juego todavía no están guardadas en este navegador: ábrelas una vez con conexión.' }), retry]);
+    return;
+  }
+  let arc = null;
+  try { const c = JSON.parse(lsGet(K_ARC + off.saga.id) || 'null'); arc = c && c.archivo || null; } catch (e) { arc = null; }
+  const ses = { saga: off.saga, rol: off.rol, offline: true };
+  window.EM_DATA = merge(ses, arc, st);
+  const none = () => Promise.reject(new ApiError('unavailable', 'Sin conexión con el servidor de la saga.'));
+  window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: browserId(), db: null, assets: null, api: none, blobUrl: () => null,
+    salir: salir, session: () => ses, setToken: () => {}, refresh: () => Promise.resolve(), offline: true };
+  startApp(ses);
+}
+
+async function startApp(ses) {
   gate.remove();
   document.body.classList.remove('gate-on');
   document.title = ses.saga.nombre + ' — Europa Mítica';
@@ -350,7 +387,7 @@ function sessionStrip(ses) {
   if (!brand) return;
   const box = el('div', { class: 'sess' }, [
     el('div', { class: 'sess-s', text: ses.saga.nombre }),
-    el('div', { class: 'sess-r' }, [el('span', { text: ses.rol === 'master' ? 'Máster' : 'Jugador' }),
+    el('div', { class: 'sess-r' }, [el('span', { text: (ses.rol === 'master' ? 'Máster' : 'Jugador') + (ses.offline ? ' · sin conexión' : '') }),
       el('button', { type: 'button', class: 'sess-out', text: 'Cambiar de saga', onclick: () => salir() })])]);
   brand.insertAdjacentElement('afterend', box);
 }

@@ -1,5 +1,5 @@
 /* El editor de personajes. */
-import { ARTS, ARTS_F, ARTS_T, artVar, fmt, h, load, norm, store } from '../base.js';
+import { ARTS, ARTS_F, ARTS_T, artVar, fmt, h, load, norm, scrollHint, store } from '../base.js';
 import { page } from '../views.js';
 import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey, VD_CATS } from '../saga/state.js';
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
@@ -467,7 +467,7 @@ function viewEditor(id, override) {
     field('Confianza', inp(d.confianza != null ? d.confianza : 1, v => { d.confianza = numv(v); }, { type: 'number', min: '0', inputmode: 'numeric' }), 'Normalmente 1, con 3 puntos.'),
     field('Notas: historia, familia, equipo…', h('textarea', { rows: 6, oninput: ev => { d.notas = ev.target.value; } }, d.notas || ''), null, 'w3')])]));
   // save bar with the live budget
-  const chips = h('div', { class: 'cc-chips', 'aria-live': 'polite' });
+  const chips = scrollHint(h('div', { class: 'cc-chips', 'aria-live': 'polite' }));
   const save = h('button', { type: 'button', class: 'btn', id: 'pj-save' }, orig ? 'Guardar cambios' : 'Crear personaje');
   const bar = h('div', { class: 'form-bar' }, [showRules ? chips : null, save, h('a', { class: 'btn ghost', href: orig ? '#pj--' + id : '#personajes', text: 'Cancelar' })]);
   if (orig) bar.appendChild(confirmButton('Borrar personaje', entries.length ? 'Pulsa otra vez: se borra con sus ' + entries.length + ' estaciones' : 'Pulsa otra vez para borrar', async () => {

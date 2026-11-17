@@ -25,15 +25,17 @@ function viewSeasons(slug) {
   const meta = h('div', { class: 'doc-meta' }, [isCur ? h('span', { class: 'badge-cur', text: 'Estación actual' }) : h('span', { text: 'Estación actual: ' + sname(ca, ce) })]);
   if (!isCur) meta.appendChild(h('a', { href: '#estaciones', text: 'Ir a la actual' }));
   meta.appendChild(h('span', { text: 'Aura de la alianza ' + sagaAura() }));
-  if (canWrite()) meta.appendChild(h('button', { type: 'button', class: 'lnk', onclick: editAura }, 'Cambiar aura'));
+  // the saga's season and the covenant aura are the master's to change
+  const master = canWrite() && S.owner === true;
+  if (master) meta.appendChild(h('button', { type: 'button', class: 'lnk', onclick: editAura }, 'Cambiar aura'));
   page.appendChild(meta);
   if (canWrite()) {
     const actions = h('div', { class: 'actions' });
     if (isCur) {
-      actions.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => advanceSeason(a, e) }, 'Pasar a ' + sname(na, ne)));
+      if (master) actions.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => advanceSeason(a, e) }, 'Pasar a ' + sname(na, ne)));
       if (pending && pjs.length) actions.appendChild(h('span', { class: 'fh', text: pending === 1 ? 'Queda 1 personaje sin reparto en esta estación.' : 'Quedan ' + pending + ' personajes sin reparto en esta estación.' }));
-    } else actions.appendChild(h('button', { type: 'button', class: 'btn ghost', onclick: () => setCurrent(a, e) }, 'Marcar como estación actual'));
-    page.appendChild(actions);
+    } else if (master) actions.appendChild(h('button', { type: 'button', class: 'btn ghost', onclick: () => setCurrent(a, e) }, 'Marcar como estación actual'));
+    if (actions.firstChild) page.appendChild(actions);
   }
   const content = h('div', { class: 'content', style: 'margin-top:22px' });
   const note = statusNote();
@@ -115,6 +117,7 @@ function viewSeasons(slug) {
 async function writeEstado(patch, msg) {
   // the saga's state has not arrived yet: writing now would rebuild it from defaults and lose the scene aura
   if (!S.seen.estado) { toast('Espera a que lleguen los datos de la saga y vuelve a intentarlo.'); return false; }
+  if (S.owner !== true) { toast('Solo el máster puede cambiar la estación y el aura de la saga.'); return false; }
   const doc = Object.assign({ aura: sagaAura() }, S.estado || {}, patch);
   if (!doc.anio || !doc.est) { const [ca, ce] = curSeason(); doc.anio = doc.anio || ca; doc.est = doc.est || ce; }
   const ok = await dbWrite(() => S.db.doc('saga/estado').set(stamp(doc)), msg);

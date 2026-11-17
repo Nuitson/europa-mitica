@@ -7,6 +7,7 @@ Web de las sagas de Ars Magica de Europa Mítica: fichas, estaciones, reparto de
 ```
 index.html            la página: solo el marco (barra lateral y zona de contenido)
 config.js             la dirección del servidor, una aplicación web de Google Apps Script
+sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 css/styles.css        los estilos
 js/gate.js            la entrada: elige saga y rol, comprueba el código con el servidor, carga los datos y arranca la aplicación
 js/app/               la aplicación, en módulos de JavaScript (ES modules):
@@ -32,9 +33,21 @@ img/                  las imágenes de las ayudas
 
 `js/gate.js` lee los tres JSON con `fetch`, les añade la carpeta de la saga que llega del servidor y los deja en `window.EM_DATA`, junto con la base de datos de la saga en `window.EM_WEB`. Después importa `js/app/main.js`, que arranca la aplicación al cargarse.
 
-Al añadir un módulo, enlázalo también con `<link rel="modulepreload">` en `index.html`, para que se descargue mientras se muestra la entrada.
+Al añadir un módulo, enlázalo también con `<link rel="modulepreload">` en `index.html`, para que se descargue mientras se muestra la entrada. Añádelo también a `FILES` en `sw.js`, como cualquier imagen o archivo de datos nuevo.
 
 Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar un módulo (fuera de las funciones) solo puede usar lo que ya está cargado. Por eso las tablas fijas y el estado viven en módulos sin dependencias circulares (`base.js`, `saga/state.js`). Una variable `let` solo se puede reasignar en su propio módulo: desde fuera, usa una función (por ejemplo, `resetIndex()` en `search.js`).
+
+## Sin conexión
+
+`sw.js` guarda en el navegador una copia de la página, de los datos y de las imágenes. Con conexión, todo llega siempre del servidor (y la copia se renueva); sin conexión, o si la red tarda más de 4 segundos, responde la copia. El servidor de la saga nunca se guarda en la copia: sus datos siempre llegan en vivo.
+
+Si no hay conexión, la entrada ofrece abrir la última saga abierta en ese navegador con solo las ayudas de juego. Las fichas, las estaciones y la pantalla del máster necesitan el servidor.
+
+## Seguridad
+
+`index.html` lleva una política de seguridad de contenidos (CSP): solo se ejecutan los scripts de la propia web, y la página solo se conecta consigo misma y con Apps Script (`script.google.com`, que responde desde `script.googleusercontent.com`). Si el servidor de la saga cambia de dirección (por ejemplo, uno de pruebas en `localhost` en otro puerto), hay que añadirla a `connect-src` en esa política.
+
+Cambiar la estación actual y el aura de la alianza es cosa del máster: los jugadores no ven esos botones. Qué puede escribir cada rol lo decide, en todo caso, el servidor.
 
 ## Probarla en local
 

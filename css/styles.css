@@ -135,6 +135,10 @@ h1.doc-title { font: 400 clamp(34px, 4.6vw, 52px)/1.05 var(--f-head); color: var
   margin: 22px 0 26px; border-bottom: 1px solid var(--rule-2);
 }
 .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: thin; padding-top: 6px; }
+/* faded edges where a sideways row has more (scrollHint in js/app/base.js) */
+.tabs.more-r, .cc-chips.more-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.tabs.more-l, .cc-chips.more-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+.tabs.more-l.more-r, .cc-chips.more-l.more-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
 .tab {
   flex: none; display: inline-flex; align-items: center; gap: 7px;
   font: 500 13px/1 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2);

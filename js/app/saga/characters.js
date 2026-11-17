@@ -1,5 +1,5 @@
 /* Personajes y sus fichas; búsqueda y rutas de la saga. */
-import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, signed, store } from '../base.js';
+import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, scrollHint, signed, store } from '../base.js';
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
@@ -80,6 +80,7 @@ function viewPj(id, tab) {
   const cur = TABS.some(t => t[0] === tab) ? tab : 'ficha';
   const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de ' + pj.nombre }, TABS.map(([k, t]) => h('a', { class: 'tab', href: '#pj--' + id + '--' + k, 'aria-current': k === cur ? 'page' : null, text: t + (k === 'avance' && entries.length ? ' · ' + entries.length : k === 'hechizos' && (pj.hechizos || []).length ? ' · ' + pj.hechizos.length : '') })));
   page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
+  scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
   const content = h('div', { class: 'content' });
   const note = statusNote(); if (note) content.appendChild(note);
   if (cur === 'ficha') pjFicha(content, pj, c, id);

@@ -69,7 +69,23 @@ function opify(s) {
 function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
 function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 
+/* a row that scrolls sideways (tabs, the editor's budget chips): fade the edge that has more, since phones hide the
+   scrollbar, and bring the current tab into view */
+function scrollHint(el, current) {
+  const set = () => {
+    el.classList.toggle('more-l', el.scrollLeft > 2);
+    el.classList.toggle('more-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  };
+  el.addEventListener('scroll', set, { passive: true });
+  new ResizeObserver(set).observe(el);
+  requestAnimationFrame(() => {
+    if (current && current.offsetLeft + current.offsetWidth > el.clientWidth) el.scrollLeft = current.offsetLeft - 24;
+    set();
+  });
+  return el;
+}
+
 /* block renderers by type (R.p, R.table, …): js/app/blocks.js fills most, saga/home.js the live ones */
 const R = {};
 
-export { ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, DATA, DOCS, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum };
+export { scrollHint, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, DATA, DOCS, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum };
