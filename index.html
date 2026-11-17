@@ -11,6 +11,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Eagle+Lake&family=Oswald:wght@400;500&family=Quintessential&display=swap">
 <link rel="stylesheet" href="css/styles.css">
+<!-- the app's modules (js/app/), fetched while the entry gate is on screen; js/gate.js imports main.js -->
+<link rel="modulepreload" href="js/app/main.js">
+<link rel="modulepreload" href="js/app/base.js">
+<link rel="modulepreload" href="js/app/tree.js">
+<link rel="modulepreload" href="js/app/search.js">
+<link rel="modulepreload" href="js/app/blocks.js">
+<link rel="modulepreload" href="js/app/views.js">
+<link rel="modulepreload" href="js/app/saga/state.js">
+<link rel="modulepreload" href="js/app/saga/core.js">
+<link rel="modulepreload" href="js/app/saga/rules.js">
+<link rel="modulepreload" href="js/app/saga/home.js">
+<link rel="modulepreload" href="js/app/saga/seasons.js">
+<link rel="modulepreload" href="js/app/saga/characters.js">
+<link rel="modulepreload" href="js/app/creation/rules.js">
+<link rel="modulepreload" href="js/app/creation/editor.js">
+<link rel="modulepreload" href="js/app/master.js">
+<link rel="modulepreload" href="js/app/info.js">
 </head>
 <body>
 
@@ -39,7 +56,6 @@
   </main>
 </div>
 
-<script src="js/app.js"></script>
 <script src="config.js"></script>
 <script src="js/gate.js"></script>
 </body>

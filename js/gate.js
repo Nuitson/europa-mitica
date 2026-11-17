@@ -8,6 +8,7 @@ const CFG = window.EM_CONFIG || {};
 const K_SES = 'em:sesion', K_UID = 'em:uid', K_ARC = 'em:archivo:', K_MSG = 'em:aviso';
 const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 const POLL_MS = 15000;
+const APP = new URL('app/main.js', document.currentScript.src).href; // the app's modules, next to this script
 
 /* ---------- small helpers */
 function lsGet(k, sess) { try { return (sess ? sessionStorage : localStorage).getItem(k); } catch (e) { return null; } }
@@ -284,7 +285,13 @@ async function openSaga(ses) {
   gate.remove();
   document.body.classList.remove('gate-on');
   document.title = ses.saga.nombre + ' — Europa Mítica';
-  window.EM_START();
+  // importing the app starts it (js/app/main.js reads window.EM_DATA and window.EM_WEB as it loads)
+  try { await import(APP); }
+  catch (e) {
+    console.error(e);
+    showGate([el('p', { class: 'gate-err', role: 'alert', text: 'No se ha podido cargar la página. Recárgala para volver a intentarlo.' })]);
+    return;
+  }
   sessionStrip(ses);
 }
 
