@@ -354,6 +354,14 @@ function makeDb(ses) {
   const docs = new Map();
   const subs = new Set();
   let rev = null, desde = 0, loaded = false, busyPoll = null, timer = null, fails = 0;
+  // whether the server is answering, for the page's «connection lost» note (db.onConnection)
+  let online = true;
+  const connSubs = new Set();
+  function setOnline(v) {
+    if (v === online) return;
+    online = v;
+    connSubs.forEach(cb => { try { cb(v); } catch (e) { /* a listener's own problem */ } });
+  }
   const colOf = p => p.slice(0, p.lastIndexOf('/'));
   const call = (a, d) => api(a, Object.assign({ token: ses.token }, d)).catch(e => { if (e.code === 'sesion') sessionLost(e.message); throw e; });
   function deliver(s) {
@@ -376,6 +384,7 @@ function makeDb(ses) {
       try {
         const r = await call('leer', { rev: force ? null : rev, desde: loaded ? desde : 0 });
         fails = 0;
+        setOnline(true);
         if (!r.igual) {
           const changed = [];
           if (!loaded || !r.rutas) {
@@ -392,7 +401,11 @@ function makeDb(ses) {
           }
           rev = r.rev; desde = r.ahora;
         }
-      } catch (e) { fails++; }
+      } catch (e) {
+        fails++;
+        // one failed refresh can be a blip; two in a row (or the very first load failing) means the page is out of date
+        if (fails >= (loaded ? 2 : 1)) setOnline(false);
+      }
       finally { busyPoll = null; schedule(); }
     })();
     return busyPoll;
@@ -404,13 +417,18 @@ function makeDb(ses) {
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') poll(); else clearTimeout(timer); });
   window.addEventListener('online', () => poll());
+  window.addEventListener('offline', () => setOnline(false));
   const mapErr = e => {
     const code = { unavailable: 'unavailable', sesion: 'revoked', permiso: 'invalid_argument', ruta: 'invalid_argument', peticion: 'invalid_argument', grande: 'invalid_argument', no_encontrado: 'not_found' }[e.code] || 'internal';
     return Object.assign(new Error(e.message), { code: code });
   };
   async function write(ops) {
     let r;
-    try { r = await call('escribir', { ops: ops }); } catch (e) { throw mapErr(e); }
+    try { r = await call('escribir', { ops: ops }); } catch (e) {
+      if (e.code === 'unavailable') setOnline(false);
+      throw mapErr(e);
+    }
+    setOnline(true);
     const changed = [];
     ops.forEach(op => {
       if (op.op === 'delete') docs.delete(op.ruta);
@@ -441,6 +459,7 @@ function makeDb(ses) {
       get: async () => { if (!loaded) await poll(); const list = []; docs.forEach((d, p) => { if (colOf(p) === path) list.push({ id: p.slice(path.length + 1), data: () => clone(d) }); }); return { docs: list, size: list.length, empty: !list.length }; },
       onSnapshot: (cb, err) => { const s = { kind: 'col', path: path, cb: cb, err: err }; subs.add(s); if (loaded) setTimeout(() => deliver(s), 0); else poll(); return () => subs.delete(s); }
     }),
+    onConnection: cb => { connSubs.add(cb); return () => connSubs.delete(cb); },
     _poll: poll,
     _blob: id => { const d = docs.get(id); return d && d.data ? d.data : null; },
     _upload: async (blob, opts) => {

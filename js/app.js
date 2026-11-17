@@ -1135,7 +1135,12 @@ function sagaInit() {
   S.db = W.db; S.assets = W.assets; S.uid = W.uid;
   S.canWrite = true; // the server decides what each role may write
   S.owner = W.rol === 'master';
-  S.timer = setTimeout(() => { if (S.status === 'loading') { S.status = 'slow'; sagaChanged(); } }, 10000);
+  // the server stops (or starts again) answering: say so, and drop the note once it is back
+  W.db.onConnection(ok => {
+    if (!ok && S.status !== 'revoked' && S.status !== 'error') { clearTimeout(S.timer); S.status = 'error'; sagaChanged(); }
+    else if (ok && S.status === 'error') { S.status = SUBS.every(([, k]) => S.fresh[k]) ? 'ready' : 'loading'; sagaChanged(); }
+  });
+  S.timer =setTimeout(() => { if (S.status === 'loading') { S.status = 'slow'; sagaChanged(); } }, 10000);
   SUBS.forEach(sub => subscribe(sub, 0));
 }
 function subscribe(sub, attempt) {
@@ -1343,7 +1348,8 @@ function repChips(rep) {
 function statusNote() {
   if (S.status === 'off') return h('p', { class: 'note saga-note', text: 'No se puede conectar con el servidor de la saga. Comprueba la conexión y recarga la página.' });
   if (S.status === 'revoked') return h('p', { class: 'note saga-note', text: 'La saga en curso no está disponible en esta vista.' });
-  if (S.status === 'error') return h('p', { class: 'note saga-note', text: 'Se ha perdido la conexión con el servidor de la saga; lo que ves puede estar desactualizado. Se reintenta solo.' });
+  if (S.status === 'error') return h('p', { class: 'note saga-note', role: 'status' }, ['Se ha perdido la conexión con el servidor de la saga; lo que ves puede estar desactualizado y lo que guardes puede no llegar. Se reintenta solo. ',
+    h('button', { type: 'button', class: 'lnk', onclick: () => window.EM_WEB.refresh() }, 'Reintentar ahora')]);
   if (S.status === 'slow') return h('p', { class: 'note saga-note', text: allSeen() ? 'Los datos todavía no han llegado del todo; puede que lo que ves esté desactualizado.' : 'Los datos de la saga todavía no llegan.' });
   if (S.status === 'loading' && !allSeen()) return h('p', { class: 'note saga-note', text: 'Cargando los datos de la saga…' });
   if (S.db && S.canWrite === false) return h('p', { class: 'note saga-note', text: 'Puedes consultar la saga, pero no tienes permiso para guardar cambios.' });
