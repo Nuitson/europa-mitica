@@ -10,6 +10,7 @@ const FILES = [
   'config.js',
   'css/styles.css',
   'js/gate.js',
+  'js/cuenta.js',
   'js/app/base.js',
   'js/app/blocks.js',
   'js/app/creation/editor.js',

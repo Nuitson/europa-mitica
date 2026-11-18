@@ -7,11 +7,13 @@ Web de las sagas de Ars Magica de Europa Mítica: fichas, estaciones, reparto de
 ```
 index.html            la página: solo el marco (barra lateral y zona de contenido)
 config.js             la dirección del servidor (api/api.php)
-api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.php es el punto de entrada, instalar.php prepara la base de datos)
+api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.php es el punto de entrada, instalar.php prepara la base de datos,
+                        usuarios.php gestiona cuentas desde la línea de órdenes)
 herramientas/         migrar_desde_drive.py: pasa una saga del servidor antiguo (Drive) al nuevo
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 css/styles.css        los estilos
-js/gate.js            la entrada: elige saga y rol, comprueba el código con el servidor, carga los datos y arranca la aplicación
+js/gate.js            la entrada: abre la cuenta y la saga, carga los datos y arranca la aplicación
+js/cuenta.js          las pantallas de la cuenta: entrar, crear cuenta, recuperar la contraseña y «Mi zona»
 js/app/               la aplicación, en módulos de JavaScript (ES modules):
   main.js               rutas y arranque
   base.js               datos de la página, artes y utilidades comunes (h, esc…), registro de bloques R
@@ -25,7 +27,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/characters.js    personajes y sus fichas
   creation/rules.js     compendio de virtudes y defectos y reglas de creación
   creation/editor.js    el editor de personajes
-  master.js             la pantalla del máster
+  master.js             la pantalla del máster (miembros de la saga, de quién es cada personaje, copias de seguridad)
   info.js               descripciones al pulsar un hechizo, una virtud o un defecto
 data/ayudas.json      las ayudas de juego compartidas (guías, virtudes y defectos, pantalla del jugador…)
 data/hechizos.json    el catálogo de hechizos
@@ -54,27 +56,49 @@ Si no hay conexión, la entrada ofrece abrir la última saga abierta en ese nave
 
 `index.html` lleva una política de seguridad de contenidos (CSP): solo se ejecutan los scripts de la propia web, y la página solo se conecta consigo misma, y el servidor de la saga está en el mismo sitio (`api/api.php`). Si el servidor pasara a otra dirección, habría que añadirla a `connect-src` en esa política.
 
-Cambiar la estación actual y el aura de la alianza es cosa del máster: los jugadores no ven esos botones. Qué puede escribir cada rol lo decide, en todo caso, el servidor.
+Cambiar la estación actual y el aura de la alianza es cosa del máster: los jugadores no ven esos botones. Qué puede hacer cada rol lo decide, en todo caso, el servidor: copia de seguridad, importar, miembros y asignar personajes son solo del máster.
+
+## Cuentas y sagas
+
+Cada persona tiene su **cuenta** (usuario, contraseña, correo, nombre que se ve e imagen). Las contraseñas se guardan con bcrypt; entrar mal muchas veces bloquea unos minutos; las sesiones duran 120 días y se pueden cerrar en todos los dispositivos desde «Mi perfil». Quien olvida la contraseña la cambia con un enlace que llega por correo (vale una hora y una sola vez).
+
+- **Registrarse es libre**, pero una cuenta nueva no ve ninguna saga. Para entrar en una, el **máster la añade con su usuario** (pantalla del máster → «Quién está en la saga») como jugador o como máster. No hay códigos de saga.
+- **Crear sagas:** solo las cuentas con permiso. La primera cuenta que se registra en una web nueva lo tiene; a otra se le da con `php api/usuarios.php crea-sagas <usuario>`. Quien crea una saga es su máster.
+- **Mi zona** (se abre con «Mi zona» en la barra lateral, o al entrar si no hay saga): *Mis sagas* (con el rol de cada una), *Mis creaciones* (todo lo que has creado, repartido en personajes, hechizos, libros estudiados, actividades de estación y movimientos de vis y tesorería, con la saga a la que pertenece y un botón para abrirlo) y *Mi perfil* (imagen, nombre, correo, contraseña y sesiones).
+- **De quién es cada cosa:** cada documento guarda la cuenta que lo creó, y no cambia al editarlo otra persona. Los personajes que ya existían (por ejemplo, los traídos de Drive) no tienen dueño: el máster los asigna en su pantalla, en «Personajes y jugadores».
+- **«Libros»:** la web no tiene libros como pieza aparte; salen en «Libros estudiados» las actividades de estación de tipo «Estudio: summa» o «Estudio: tractatus», con su nota como título.
+
+**Administrar desde la línea de órdenes** (por SSH en el hosting, o en tu PC):
+
+```
+php api/usuarios.php listar                       cuentas, sagas y sus miembros
+php api/usuarios.php master <usuario> <saga>      hace máster de esa saga a esa cuenta
+php api/usuarios.php miembro <usuario> <saga>     la añade como jugador
+php api/usuarios.php crea-sagas <usuario> [no]    da (o quita) el permiso de crear sagas
+php api/usuarios.php contrasena <usuario>         pone una contraseña nueva al azar (para quien no pueda recuperarla)
+```
+
+**Primera vez con una saga que ya existe** (por ejemplo, la Saga de Arazas traída de Drive): regístrate en la web, y después `php api/usuarios.php master <tu-usuario> arazas`. A partir de ahí añades tú al resto desde la pantalla del máster.
 
 ## El servidor
 
-Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos) viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON; sus acciones son `sagas`, `entrar`, `crear`, `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar` y `codigos`. Cada saga se abre con su código, que da el máster, y solo sus datos llegan al navegador después de comprobarlo. Los códigos se guardan con hash (bcrypt) y hay un freno de intentos.
+Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos) y las cuentas viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON. Las acciones de cuenta son `registrar`, `entrar`, `perfil`, `actualizarPerfil`, `cambiarPassword`, `cerrarSesiones`, `recuperar`, `restablecer`, `contenido` y `crear`. Las de una saga (llevan `token` y `saga`) son `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar`, `miembros`, `anadirMiembro`, `cambiarRol`, `quitarMiembro`, `asignar` y `autores`. El servidor comprueba siempre el rol de la cuenta en la saga.
 
 Necesita PHP 8.1 o superior con la extensión PDO MySQL (en Plesk: «Selector PHP»).
 
 **Instalarlo en el hosting**
 
 1. En Plesk, crea la base de datos MySQL y apunta su nombre, usuario y contraseña.
-2. Sube la carpeta de la web por SFTP.
-3. Copia `api/config.ejemplo.php` como `api/config.php` y rellénalo.
-4. Por SSH, en la carpeta de la web: `php api/instalar.php`. Crea las tablas y muestra el código para crear sagas (apúntalo: no se vuelve a mostrar).
-5. Comprueba que `https://tu-dominio/api/api.php` responde `{"ok":true,…}` en el navegador.
+2. Sube la carpeta de la web por SFTP (sin `datos/`, que es solo para trabajar en local).
+3. Copia `api/config.ejemplo.php` como `api/config.php` y rellénalo: la base de datos y el correo (`'modo' => 'mail'` y la dirección de la que salen los mensajes, por ejemplo `no-responder@tu-dominio.es`; conviene que el dominio tenga SPF para que no caigan en el correo no deseado).
+4. Abre `https://tu-dominio/api/api.php` en el navegador: tiene que responder `{"ok":true,…}`. Las tablas se crean solas en la primera petición (también puedes hacerlo por SSH con `php api/instalar.php`).
+5. Regístrate en la web: tu cuenta podrá crear sagas.
 
-Si al importar una copia grande falla, sube `post_max_size` y `upload_max_filesize` en el Selector PHP.
+Si al importar una copia grande falla, sube `post_max_size` en el Selector PHP.
 
 **Copias de seguridad:** el plan del hosting hace copias de la base de datos, y cada máster puede descargar una copia de su saga desde la pantalla del máster.
 
-**Pasar una saga desde Drive:** `python herramientas/migrar_desde_drive.py --help`.
+**Pasar una saga desde Drive:** `python herramientas/migrar_desde_drive.py --help` (hace falta una cuenta con permiso para crear sagas).
 
 ## Probarla en local
 
@@ -113,6 +137,7 @@ y sustituye todo el contenido de `api/config.php` por esto:
 return [
     'driver' => 'sqlite',
     'file' => __DIR__ . '/../datos/europa.sqlite',
+    'correo' => ['modo' => 'archivo', 'archivo' => __DIR__ . '/../datos/correo.log'],
 ];
 ```
 
@@ -126,7 +151,9 @@ php -S localhost:8080
 
 Abre <http://localhost:8080> (deja la terminal abierta; se para con Ctrl+C). `php -S` sirve la web y el servidor a la vez.
 
-Entra con el código de la saga que te dé quien la lleva. Si necesitas empezar una base de datos desde cero (por ejemplo, para pruebas), borra `datos/europa.sqlite`, ejecuta `php api/instalar.php` (muestra el **código para crear sagas**: apúntalo, no se vuelve a mostrar) y crea una saga desde la entrada: «Máster» → «Crear una saga nueva».
+La base de datos del equipo ya trae las cuentas y sagas que haya (ver «La base de datos compartida en git»). Si todavía no tienes cuenta, créala en la entrada («Crear una cuenta»); para que un máster te añada a su saga, dale tu usuario. Si necesitas empezar de cero (por ejemplo, para pruebas), borra `datos/europa.sqlite`: se crea vacía en la primera petición; la primera cuenta que registres podrá crear sagas.
+
+En local no hay servidor de correo: con el modo `archivo` de arriba, «He olvidado mi contraseña» no envía nada, sino que escribe el mensaje (con el enlace) en `datos/correo.log`, que git ignora.
 
 **Si la web sigue mostrando otra cosa** (por ejemplo, la versión anterior): el navegador guarda copias de la página (`sw.js`). Abre las herramientas de desarrollo (F12) → Application → Storage → «Clear site data» (con «Unregister service workers») y recarga con Ctrl+F5.
 
@@ -134,7 +161,7 @@ Entra con el código de la saga que te dé quien la lleva. Si necesitas empezar 
 
 ## La base de datos compartida en git
 
-Para que todos tengamos los mismos datos, **la base de datos de local viaja en el repositorio**: es el archivo `datos/europa.sqlite` (SQLite, un único archivo con todas las sagas, personajes, estaciones y retratos). Por eso el repositorio tiene que ser **privado**: dentro van los datos de la partida, los hashes de los códigos de acceso y la clave con que se firman las sesiones. Quien tenga acceso al repo puede entrar en cualquier saga.
+Para que todos tengamos los mismos datos, **la base de datos de local viaja en el repositorio**: es el archivo `datos/europa.sqlite` (SQLite, un único archivo con las cuentas, las sagas, los personajes, las estaciones y los retratos). Por eso el repositorio tiene que ser **privado**: dentro van los datos de la partida, los correos de los usuarios, los hashes de sus contraseñas y la clave con que se firman las sesiones. Quien tenga acceso al repo puede ver todo eso, y con la clave de las sesiones, hacerse pasar por cualquier cuenta.
 
 Cómo trabajar:
 
@@ -142,7 +169,7 @@ Cómo trabajar:
 2. Arranca, trabaja en la web (los cambios se guardan solos en `datos/europa.sqlite`) y para el servidor.
 3. Al acabar: `git add datos/europa.sqlite`, `git commit` y `git push`.
 
-**Un solo archivo no se puede fusionar.** Git no sabe mezclar dos versiones de un `.sqlite`: si dos personas cambian datos desde el mismo `pull` y las dos hacen `push`, la segunda recibirá un conflicto en ese archivo y habrá que quedarse con una de las dos versiones (`git checkout --theirs datos/europa.sqlite` o `--ours`) y volver a meter a mano lo que se pierda. Para evitarlo: avisaos antes de tocar datos, haced `pull` justo antes de empezar y `push` justo al acabar, y no dejéis cambios sin subir. Cada versión que se sube pesa casi lo que la base de datos entera (hoy unos 800 KB), así que el repositorio crece con cada commit de datos: no los hagáis más de lo necesario.
+**Un solo archivo no se puede fusionar.** Git no sabe mezclar dos versiones de un `.sqlite`: si dos personas cambian datos desde el mismo `pull` y las dos hacen `push`, la segunda recibirá un conflicto en ese archivo y habrá que quedarse con una de las dos versiones (`git checkout --theirs datos/europa.sqlite` o `--ours`) y volver a meter a mano lo que se pierda. Para evitarlo: avisaos antes de tocar datos, haced `pull` justo antes de empezar y `push` justo al acabar, y no dejéis cambios sin subir. Cada versión que se sube pesa casi lo que la base de datos entera (hoy casi 1 MB), así que el repositorio crece con cada commit de datos: no los hagáis más de lo necesario. Las cuentas también están en ese archivo: quien se registre en su copia local y no suba el archivo, no existe para los demás.
 
 Dos precauciones:
 

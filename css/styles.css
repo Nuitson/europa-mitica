@@ -1159,6 +1159,39 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim { display: 
 .sess-r { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 500 11.5px/1.2 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .sess-out { background: none; border: 0; padding: 2px 0; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--blood-ink); }
 .sess-out:hover { text-decoration: underline; }
+/* accounts: the avatar, «Mi zona» (js/cuenta.js) and the member list on the master screen */
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%; overflow: hidden; background: var(--blood-soft); color: var(--blood-ink); font-family: var(--f-head); font-weight: 500; border: 1px solid var(--rule-2); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gate-card.zona { width: min(760px, 100%); }
+.gate-h2 { margin: 6px 0 0; font: 400 22px/1.2 var(--f-head); color: var(--ink); }
+.gate-form.gate-plain { background: none; border: 0; box-shadow: none; padding: 0; }
+.zona-cab { display: flex; align-items: center; gap: 14px; padding: 4px 2px 14px; }
+.zona-quien { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.zona-quien .gate-h { overflow-wrap: anywhere; }
+.zona-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule-2); overflow-x: auto; }
+.zona-tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px 9px; cursor: pointer; font: 500 12.5px/1.2 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+.zona-tab:hover { color: var(--ink); }
+.zona-tab[aria-selected="true"] { color: var(--blood-ink); border-bottom-color: var(--blood); }
+.zona-tab:focus-visible { outline: 2px solid var(--blood); outline-offset: -2px; }
+.zona-panel { display: flex; flex-direction: column; gap: 14px; background: var(--card); border: 1px solid var(--rule-2); border-top: 0; border-radius: 0 0 12px 12px; padding: 20px 22px 22px; box-shadow: var(--shadow); }
+.saga-card, .crea-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+.saga-card-t, .crea-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.saga-card-t b, .crea-t b { font: 500 19px/1.3 var(--f-body); color: var(--ink); overflow-wrap: anywhere; }
+.saga-card-t small, .crea-t small { font: 400 15.5px/1.35 var(--f-body); color: var(--ink-2); overflow-wrap: anywhere; }
+.chip { flex: none; font: 500 11px/1 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; padding: 5px 9px; border-radius: 99px; background: var(--paper-2); color: var(--ink-2); border: 1px solid var(--rule); max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-master { background: var(--blood-soft); color: var(--blood-ink); border-color: transparent; }
+.zona-img { display: flex; align-items: center; gap: 18px; }
+.gate-act select { width: auto; min-width: 200px; }
+.sess-u { display: flex; align-items: center; gap: 7px; font: 400 15.5px/1.2 var(--f-body); color: var(--ink-2); }
+.members { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
+.member { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); }
+.member-t { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.member-t small { color: var(--ink-3); }
+@media (max-width: 560px) {
+  .zona-panel { padding: 16px 14px 18px; }
+  .saga-card, .crea-row { flex-wrap: wrap; }
+  .chip { max-width: 100%; }
+}
 .m-web .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 
 

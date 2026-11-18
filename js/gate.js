@@ -1,14 +1,15 @@
 /* ================================================================== EUROPA MÍTICA · VERSIÓN WEB
-   Runs before the page: asks which saga and role, checks the code with the server (PHP + MySQL, see
-   api/lib.php), loads that saga's own documents and hands the page (window.EM_WEB) a database that talks to
-   the server. Only the chosen saga's data ever reach this browser. */
+   Runs before the page: asks for the account (js/cuenta.js: sign in, sign up, recover the password, «Mi zona»), opens
+   the chosen saga (the server, api/lib.php, says which role that account has in it), loads that saga's own documents
+   and hands the page (window.EM_WEB) a database that talks to the server. Only the chosen saga's data ever reach
+   this browser. */
 (function () {
 'use strict';
 const CFG = window.EM_CONFIG || {};
-const K_SES = 'em:sesion', K_UID = 'em:uid', K_ARC = 'em:archivo:', K_MSG = 'em:aviso';
-const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
+const K_SES = 'em:sesion', K_ARC = 'em:archivo:', K_MSG = 'em:aviso', K_ZONA = 'em:zona', K_LAST = 'em:ultima';
 const POLL_MS = 15000;
 const APP = new URL('app/main.js', document.currentScript.src).href; // the app's modules, next to this script
+const CUENTA = new URL('cuenta.js', document.currentScript.src).href; // the account screens, loaded when needed
 // a copy of the page in this browser, for the game aids without a connection (sw.js, at the site's root)
 if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL('../sw.js', document.currentScript.src)).catch(() => {});
 
@@ -28,10 +29,6 @@ function el(tag, attrs, kids) {
 }
 const clone = o => (o === undefined ? undefined : JSON.parse(JSON.stringify(o)));
 function rid(n) { const a = 'abcdefghijklmnopqrstuvwxyz0123456789'; let s = ''; const r = new Uint32Array(n || 20); crypto.getRandomValues(r); r.forEach(x => { s += a[x % 36]; }); return s; }
-const WORDS = ['vis', 'aura', 'creo', 'rego', 'muto', 'perdo', 'ignem', 'aquam', 'auram', 'terram', 'herbam', 'corpus', 'mentem',
-  'parma', 'aegis', 'regio', 'summa', 'grog', 'magus', 'lumen', 'draco', 'verbum', 'arcana', 'silva', 'lupus', 'ursus', 'stella', 'ventus', 'umbra', 'flamma', 'petra'];
-function suggestCode() { const r = new Uint32Array(3); crypto.getRandomValues(r); return WORDS[r[0] % WORDS.length] + '-' + WORDS[r[1] % WORDS.length] + '-' + (100 + r[2] % 900); }
-
 /* ---------- the server */
 class ApiError extends Error { constructor(code, msg) { super(msg); this.code = code; } }
 async function api(accion, datos) {
@@ -67,23 +64,18 @@ function loadStatic() {
   return staticLoad;
 }
 
-/* ---------- session: in localStorage when the player asks to be remembered, else for this tab only */
+/* ---------- session: the account's token, in localStorage when the user asks to be remembered, else for this tab only */
 function getSession() {
   const raw = lsGet(K_SES) || lsGet(K_SES, true);
-  try { const s = raw ? JSON.parse(raw) : null; return s && s.token && s.saga && s.saga.id ? s : null; } catch (e) { return null; }
+  try { const s = raw ? JSON.parse(raw) : null; return s && s.token ? { token: s.token } : null; } catch (e) { return null; }
 }
 function putSession(s, remember) {
   lsSet(K_SES, null); lsSet(K_SES, null, true);
-  if (s) lsSet(K_SES, JSON.stringify(s), !remember);
+  if (s) lsSet(K_SES, JSON.stringify({ token: s.token }), !remember);
 }
-function salir(msg) {
-  const s = getSession();
-  putSession(null);
-  if (msg) lsSet(K_MSG, msg, true);
-  if (s) lsSet('em:ultima', JSON.stringify({ saga: s.saga.id, rol: s.rol }));
-  location.hash = '';
-  location.reload();
-}
+// sign out, or go back to «Mi zona» (the page reloads: the next start shows what was asked for)
+function salir(msg) { putSession(null); if (msg) lsSet(K_MSG, msg, true); location.hash = ''; location.reload(); }
+function aZona(msg) { if (msg) lsSet(K_MSG, msg, true); lsSet(K_ZONA, '1', true); location.hash = ''; location.reload(); }
 function sessionLost(msg) { salir(msg || 'Tu sesión ha caducado. Vuelve a entrar.'); }
 
 /* ================================================================== the gate */
@@ -102,170 +94,68 @@ function busy(text) { showGate([el('p', { class: 'gate-busy', role: 'status', te
 function errBox() { return el('p', { class: 'gate-err', role: 'alert', hidden: true }); }
 function showErr(box, msg) { box.textContent = msg; box.hidden = !msg; }
 
+/* the account's avatar (its picture, or its initials on a coloured disc) */
+function avatar(p, px) {
+  const box = el('span', { class: 'avatar', style: 'width:' + px + 'px;height:' + px + 'px;font-size:' + Math.round(px * 0.42) + 'px', 'aria-hidden': 'true' });
+  if (p && p.avatar) box.appendChild(el('img', { src: p.avatar, alt: '' }));
+  else box.textContent = String((p && (p.nombre || p.usuario)) || '?').trim().slice(0, 1).toUpperCase();
+  return box;
+}
+
+let cuentaMod = null;
+async function cuenta() {
+  if (!cuentaMod) cuentaMod = (await import(CUENTA)).crear(CTX);
+  return cuentaMod;
+}
+const CTX = { el: el, api: api, showGate: showGate, busy: busy, errBox: errBox, showErr: showErr, lsGet: lsGet, lsSet: lsSet, avatar: avatar,
+  K_MSG: K_MSG, K_LAST: K_LAST, putSession: putSession, salir: salir, openSaga: (ses, id) => openSaga(ses, id), continuar: ses => continuar(ses),
+  sessionLost: sessionLost, offlineButton: e => offlineButton(e), retry: () => gateStart() };
+
+/* the entry: without a session, sign in or sign up; with one, straight into the last saga (or «Mi zona» if there is none, or it was asked for) */
 async function gateStart() {
-  busy('Buscando las sagas…');
-  let sagas;
-  try { sagas = (await api('sagas')).sagas || []; }
+  const rec = /^#recuperar=([0-9a-f]{64})$/.exec(location.hash);
+  if (rec) { putSession(null); (await cuenta()).auth({ recuperar: rec[1] }); return; }
+  const ses = getSession();
+  if (!ses) { (await cuenta()).auth(); return; }
+  busy('Abriendo tu cuenta…');
+  try { ses.perfil = (await api('perfil', { token: ses.token })).perfil; }
   catch (e) {
+    if (e.code === 'sesion') { putSession(null); (await cuenta()).auth({ nota: e.message }); return; }
     const retry = el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: gateStart });
     showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), el('div', { class: 'gate-act' }, [retry, offlineButton(e)])]);
     return;
   }
-  gateForm(sagas);
+  const zona = lsGet(K_ZONA, true);
+  lsSet(K_ZONA, null, true);
+  if (zona) (await cuenta()).zona(ses); else continuar(ses);
 }
-
-function gateForm(sagas, pre) {
-  pre = pre || {};
-  let last = {};
-  try { last = JSON.parse(lsGet('em:ultima') || '{}') || {}; } catch (e) { last = {}; }
-  const st = { saga: pre.saga || (sagas.some(s => s.id === last.saga) ? last.saga : sagas.length === 1 ? sagas[0].id : null), rol: pre.rol || last.rol || 'jugador' };
-  const err = errBox();
-  const notice = lsGet(K_MSG, true);
-  lsSet(K_MSG, null, true);
-  const kids = [];
-  if (notice) kids.push(el('p', { class: 'gate-note', role: 'status', text: notice }));
-  // which saga
-  const sagaSet = el('fieldset', { class: 'gate-set' }, [el('legend', { text: '¿Qué saga juegas?' })]);
-  if (!sagas.length) sagaSet.appendChild(el('p', { class: 'gate-hint', text: 'Todavía no hay ninguna saga. Entra como máster para crear la primera.' }));
-  sagas.forEach(s => sagaSet.appendChild(choice('saga', s.id, s.nombre, null, st.saga === s.id, v => { st.saga = v; })));
-  kids.push(sagaSet);
-  // which role
-  const rolSet = el('fieldset', { class: 'gate-set gate-roles' }, [el('legend', { text: '¿Cómo entras?' }),
-    choice('rol', 'jugador', 'Jugador', 'Las fichas, las estaciones y el reparto de experiencia.', st.rol === 'jugador', v => { st.rol = v; sync(); }),
-    choice('rol', 'master', 'Máster', 'Además, la pantalla del máster y la gestión de la saga.', st.rol === 'master', v => { st.rol = v; sync(); })]);
-  kids.push(rolSet);
-  // code
-  const code = el('input', { type: 'password', id: 'g-code', autocomplete: 'current-password', autocapitalize: 'none', spellcheck: 'false', autofocus: st.saga ? true : null });
-  const show = el('button', { type: 'button', class: 'gate-eye', 'aria-pressed': 'false', text: 'Ver' });
-  show.addEventListener('click', () => { const on = code.type === 'password'; code.type = on ? 'text' : 'password'; show.textContent = on ? 'Ocultar' : 'Ver'; show.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  const codeLab = el('label', { for: 'g-code', class: 'gate-lab' });
-  const codeHint = el('span', { class: 'gate-hint' });
-  kids.push(el('div', { class: 'gate-fld' }, [codeLab, el('div', { class: 'gate-code' }, [code, show]), codeHint]));
-  const rem = el('input', { type: 'checkbox', id: 'g-rem', checked: true });
-  kids.push(el('label', { class: 'gate-chk', for: 'g-rem' }, [rem, ' Recordarme en este navegador']));
-  kids.push(err);
-  const go = el('button', { type: 'submit', class: 'gbtn', text: 'Entrar' });
-  const crear = el('button', { type: 'button', class: 'glink', text: 'Crear una saga nueva', onclick: () => gateCreate(sagas) });
-  kids.push(el('div', { class: 'gate-act' }, [go, crear]));
-  const form = el('form', { class: 'gate-form', novalidate: true }, kids);
-  form.addEventListener('submit', async ev => {
-    ev.preventDefault();
-    showErr(err, '');
-    if (!st.saga) return showErr(err, 'Elige la saga.');
-    if (!code.value.trim()) { code.focus(); return showErr(err, 'Escribe el código.'); }
-    go.disabled = true; go.textContent = 'Comprobando…';
-    try {
-      const r = await api('entrar', { saga: st.saga, rol: st.rol, codigo: code.value });
-      const ses = { token: r.token, rol: r.rol, saga: r.saga };
-      putSession(ses, rem.checked);
-      lsSet('em:ultima', JSON.stringify({ saga: st.saga, rol: st.rol }));
-      openSaga(ses);
-    } catch (e) {
-      go.disabled = false; go.textContent = 'Entrar';
-      showErr(err, e.message);
-      code.select();
-    }
-  });
-  function sync() {
-    codeLab.textContent = st.rol === 'master' ? 'Código de máster' : 'Código de jugador';
-    codeHint.textContent = st.rol === 'master' ? 'El que se dio al crear la saga; se cambia desde la pantalla del máster.' : 'Te lo da el máster de la saga.';
-    crear.hidden = st.rol !== 'master';
-  }
-  sync();
-  showGate([form]);
-}
-
-function choice(name, value, label, desc, checked, on) {
-  const id = 'g-' + name + '-' + value;
-  const i = el('input', { type: 'radio', name: name, id: id, value: value, checked: checked ? true : null });
-  i.addEventListener('change', () => { if (i.checked) on(value); });
-  return el('label', { class: 'gate-opt', for: id }, [i, el('span', { class: 'gate-opt-t' }, [el('b', { text: label }), desc ? el('small', { text: desc }) : null])]);
-}
-
-function gateCreate(sagas) {
-  const err = errBox();
-  const fld = (id, label, input, hint) => el('div', { class: 'gate-fld' }, [el('label', { for: id, class: 'gate-lab', text: label }), input, hint ? el('span', { class: 'gate-hint', text: hint }) : null]);
-  const nombre = el('input', { id: 'c-nombre', placeholder: 'Saga de …', autofocus: true, maxlength: '80' });
-  const alianza = el('input', { id: 'c-alianza', placeholder: 'Nombre de la alianza', maxlength: '60' });
-  const est = el('select', { id: 'c-est', 'aria-label': 'Estación' }, SEASONS.map((s, i) => el('option', { value: String(i + 1), text: s })));
-  const anio = el('input', { id: 'c-anio', type: 'number', min: '600', max: '1600', value: '1220', inputmode: 'numeric', 'aria-label': 'Año' });
-  const aura = el('input', { id: 'c-aura', type: 'number', min: '0', max: '10', value: '3', inputmode: 'numeric' });
-  const cj = el('input', { id: 'c-cj', value: suggestCode(), autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none' });
-  const cm = el('input', { id: 'c-cm', value: suggestCode(), autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none' });
-  const otros = el('button', { type: 'button', class: 'glink', text: 'Otros', onclick: () => { cj.value = suggestCode(); cm.value = suggestCode(); } });
-  const crearCode = el('input', { id: 'c-crear', type: 'password', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
-  const go = el('button', { type: 'submit', class: 'gbtn', text: 'Crear la saga' });
-  const back = el('button', { type: 'button', class: 'glink', text: 'Volver', onclick: () => gateForm(sagas, { rol: 'master' }) });
-  const form = el('form', { class: 'gate-form', novalidate: true }, [
-    el('h2', { class: 'gate-h', text: 'Saga nueva' }),
-    fld('c-nombre', 'Nombre de la saga', nombre),
-    fld('c-alianza', 'Alianza', alianza),
-    el('div', { class: 'gate-row' }, [
-      el('div', { class: 'gate-fld' }, [el('span', { class: 'gate-lab', text: 'Primera estación' }), el('div', { class: 'gate-pair' }, [est, anio])]),
-      fld('c-aura', 'Aura de la alianza', aura)]),
-    el('fieldset', { class: 'gate-set' }, [el('legend', { text: 'Códigos de la saga' }),
-      el('div', { class: 'gate-row' }, [fld('c-cj', 'De jugador', cj), fld('c-cm', 'De máster', cm)]),
-      el('div', { class: 'gate-hint' }, ['Apúntalos: el de jugador es para tu mesa; el de máster, solo para ti. ', otros])]),
-    fld('c-crear', 'Código para crear sagas', crearCode, 'Lo tiene quien instaló la web.'),
-    err, el('div', { class: 'gate-act' }, [go, back])]);
-  form.addEventListener('submit', async ev => {
-    ev.preventDefault();
-    showErr(err, '');
-    if (nombre.value.trim().length < 3) { nombre.focus(); return showErr(err, 'Ponle un nombre a la saga.'); }
-    if (cj.value.trim().length < 6 || cm.value.trim().length < 6) return showErr(err, 'Cada código tiene que tener al menos 6 caracteres.');
-    if (cj.value.trim().toLowerCase() === cm.value.trim().toLowerCase()) return showErr(err, 'Los dos códigos tienen que ser distintos.');
-    if (!crearCode.value.trim()) { crearCode.focus(); return showErr(err, 'Falta el código para crear sagas.'); }
-    const datos = { nombre: nombre.value.trim(), alianza: alianza.value.trim(), est: Number(est.value), anio: Number(anio.value), aura: Number(aura.value),
-      codigoJugador: cj.value.trim(), codigoMaster: cm.value.trim(), codigoCrear: crearCode.value };
-    busy('Creando la saga…');
-    try {
-      const r = await api('crear', datos);
-      created(r, datos);
-    } catch (e) {
-      // the connection failed while the server was working: it may have finished, and a second «Crear» would make another saga
-      gateCreateAgain(sagas, datos, e.code === 'unavailable' ? e.message + ' Puede que la saga se haya creado igualmente: recarga la página y mira si aparece en la lista antes de volver a crearla.' : e.message);
-    }
-  });
-  showGate([form]);
-  function gateCreateAgain(s, d, msg) {
-    gateCreate(s);
-    const set = (id, v) => { const i = document.getElementById(id); if (i) i.value = v; };
-    set('c-nombre', d.nombre); set('c-alianza', d.alianza); set('c-est', String(d.est)); set('c-anio', String(d.anio)); set('c-aura', String(d.aura));
-    set('c-cj', d.codigoJugador); set('c-cm', d.codigoMaster); set('c-crear', d.codigoCrear);
-    const e = gate.querySelector('.gate-err'); if (e) { e.textContent = msg; e.hidden = false; }
-  }
-}
-
-function created(r, datos) {
-  const ses = { token: r.token, rol: 'master', saga: r.saga };
-  const row = (l, v) => el('div', { class: 'gate-codes-r' }, [el('span', { text: l }), el('code', { text: v })]);
-  const go = el('button', { type: 'button', class: 'gbtn', text: 'Entrar como máster', autofocus: true, onclick: () => { putSession(ses, true); lsSet('em:ultima', JSON.stringify({ saga: ses.saga.id, rol: 'master' })); openSaga(ses); } });
-  showGate([el('div', { class: 'gate-form' }, [
-    el('h2', { class: 'gate-h', text: r.saga.nombre + ' está creada' }),
-    el('div', { class: 'gate-codes' }, [row('Código de jugador', r.codigos.jugador), row('Código de máster', r.codigos.master)]),
-    el('p', { class: 'gate-hint', text: 'Apúntalos ahora: aquí no se vuelven a mostrar. Desde la pantalla del máster puedes cambiarlos.' }),
-    (r.avisos || []).length ? el('div', { class: 'gate-note', role: 'status' }, r.avisos.map(t => el('p', { text: t }))) : null,
-    el('div', { class: 'gate-act' }, [go])])]);
+/* with the account open: into the last saga, into the only one it has, or «Mi zona» */
+async function continuar(ses) {
+  const sagas = ses.perfil.sagas;
+  const last = lsGet(K_LAST);
+  const id = sagas.some(s => s.id === last) ? last : sagas.length === 1 ? sagas[0].id : null;
+  if (id) openSaga(ses, id); else (await cuenta()).zona(ses);
 }
 
 /* ================================================================== opening a saga */
-async function openSaga(ses) {
-  busy('Abriendo la ' + ses.saga.nombre + '…');
+async function openSaga(ses, sagaId) {
+  const entry = (ses.perfil && ses.perfil.sagas.find(s => s.id === sagaId)) || { nombre: 'saga' };
+  busy('Abriendo la ' + entry.nombre + '…');
   let arc = null, st = null;
   const statics = loadStatic();
   statics.catch(() => {}); // awaited below; this only keeps an early failure from being reported as unhandled
   try {
-    // the saga may have changed since this session began (codes, archive): ask the server
-    const info = await api('info', { token: ses.token });
+    // the saga may have changed since this session began (members, archive): ask the server, which also says the role here
+    const info = await api('info', { token: ses.token, saga: sagaId });
     ses.saga = info.saga; ses.rol = info.rol;
-    const rem = !!lsGet(K_SES);
-    putSession(ses, rem);
+    lsSet(K_LAST, sagaId);
     if (ses.saga.archivo) arc = await loadArchive(ses);
     st = await statics;
   } catch (e) {
-    if (e.code === 'sesion' || e.code === 'saga') return sessionLost(e.message);
-    const retry = el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: () => openSaga(ses) });
-    const out = el('button', { type: 'button', class: 'glink', text: 'Cambiar de saga', onclick: () => salir() });
+    if (e.code === 'sesion') return sessionLost(e.message);
+    if (e.code === 'saga') return aZona(e.message);
+    const retry = el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: () => openSaga(ses, sagaId) });
+    const out = el('button', { type: 'button', class: 'glink', text: 'Mi zona', onclick: () => aZona() });
     showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), el('div', { class: 'gate-act' }, [retry, offlineButton(e), out])]);
     return;
   }
@@ -273,15 +163,16 @@ async function openSaga(ses) {
   window.EM_DATA = merge(ses, arc, st);
   const db = makeDb(ses);
   const assets = { upload: (blob, opts) => db._upload(blob, opts) };
-  window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: browserId(), db: db, assets: assets, api: (a, d) => api(a, Object.assign({ token: ses.token }, d || {})), blobUrl: id => db._blob(id),
-    salir: salir, session: () => ses, setToken: t => { ses.token = t; putSession(ses, !!lsGet(K_SES)); }, refresh: () => db._poll(true) };
+  window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: ses.perfil.id, user: ses.perfil, db: db, assets: assets,
+    api: (a, d) => api(a, Object.assign({ token: ses.token, saga: ses.saga.id }, d || {})), blobUrl: id => db._blob(id),
+    salir: salir, zona: aZona, session: () => ses, setToken: t => { ses.token = t; putSession(ses, !!lsGet(K_SES)); }, refresh: () => db._poll(true) };
   startApp(ses);
 }
 
 /* ---------- without a connection: the last saga opened in this browser, with the game aids only
    (the service worker, sw.js, keeps the page and data/*.json; the saga's archive comes from its localStorage copy) */
 const K_OFF = 'em:sin-conexion';
-// what the page needs of a saga to show it, and nothing else (no codes) kept beyond the session
+// what the page needs of a saga to show it, and nothing else kept beyond the session
 function offlineSaga(s) { const o = {}; ['id', 'nombre', 'alianza', 'anio', 'est', 'aura'].forEach(k => { if (s[k] != null) o[k] = s[k]; }); return o; }
 function offlineButton(e) {
   let off = null;
@@ -300,10 +191,10 @@ async function openOffline(off) {
   }
   let arc = null;
   try { const c = JSON.parse(lsGet(K_ARC + off.saga.id) || 'null'); arc = c && c.archivo || null; } catch (e) { arc = null; }
-  const ses = { saga: off.saga, rol: off.rol, offline: true };
+  const ses = { saga: off.saga, rol: off.rol, offline: true, perfil: null };
   window.EM_DATA = merge(ses, arc, st);
   const none = () => Promise.reject(new ApiError('unavailable', 'Sin conexión con el servidor de la saga.'));
-  window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: browserId(), db: null, assets: null, api: none, blobUrl: () => null,
+  window.EM_WEB = { saga: ses.saga, rol: ses.rol, uid: null, user: null, db: null, assets: null, api: none, blobUrl: () => null,
     salir: salir, session: () => ses, setToken: () => {}, refresh: () => Promise.resolve(), offline: true };
   startApp(ses);
 }
@@ -328,7 +219,7 @@ async function loadArchive(ses) {
     const c = JSON.parse(lsGet(key) || 'null');
     if (c && c.rev === ses.saga.archivo && c.archivo) return c.archivo;
   } catch (e) { /* stale cache */ }
-  const r = await api('archivo', { token: ses.token });
+  const r = await api('archivo', { token: ses.token, saga: ses.saga.id });
   if (r.archivo) lsSet(key, JSON.stringify({ rev: r.rev, archivo: r.archivo }));
   return r.archivo;
 }
@@ -374,10 +265,12 @@ function sessionStrip(ses) {
   const side = document.getElementById('side');
   const brand = side && side.querySelector('.brand');
   if (!brand) return;
+  const p = ses.perfil;
   const box = el('div', { class: 'sess' }, [
     el('div', { class: 'sess-s', text: ses.saga.nombre }),
+    p ? el('div', { class: 'sess-u' }, [avatar(p, 22), el('span', { text: p.nombre })]) : null,
     el('div', { class: 'sess-r' }, [el('span', { text: (ses.rol === 'master' ? 'Máster' : 'Jugador') + (ses.offline ? ' · sin conexión' : '') }),
-      el('button', { type: 'button', class: 'sess-out', text: 'Cambiar de saga', onclick: () => salir() })])]);
+      el('button', { type: 'button', class: 'sess-out', text: 'Mi zona', onclick: () => aZona() })])]);
   brand.insertAdjacentElement('afterend', box);
 }
 
@@ -397,8 +290,8 @@ function makeDb(ses) {
     connSubs.forEach(cb => { try { cb(v); } catch (e) { /* a listener's own problem */ } });
   }
   const colOf = p => p.slice(0, p.lastIndexOf('/'));
-  // the session expired or the saga is gone (as when opening it): back to the entry gate
-  const call = (a, d) => api(a, Object.assign({ token: ses.token }, d)).catch(e => { if (e.code === 'sesion' || e.code === 'saga') sessionLost(e.message); throw e; });
+  // the session expired (back to the sign-in) or this account is no longer in the saga (back to «Mi zona»)
+  const call = (a, d) => api(a, Object.assign({ token: ses.token, saga: ses.saga.id }, d)).catch(e => { if (e.code === 'sesion') sessionLost(e.message); else if (e.code === 'saga') aZona(e.message); throw e; });
   function deliver(s) {
     if (s.kind === 'doc') {
       const d = docs.get(s.path);
@@ -516,14 +409,6 @@ function makeDb(ses) {
   return db;
 }
 
-/* who wrote what (the «por» field): an id kept in this browser */
-function browserId() {
-  let uid = lsGet(K_UID);
-  if (!uid) { uid = 'u' + rid(12); lsSet(K_UID, uid); }
-  return uid;
-}
-
 /* ---------- start */
-const ses = getSession();
-if (ses) openSaga(ses); else gateStart();
+gateStart();
 })();

@@ -2,13 +2,13 @@
 import { ABBR, artOf, esc, h, load, R, store, toNum } from './base.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
-import { field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
+import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
 import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards } from './saga/rules.js';
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 
 /* ================================================================== PANTALLA DEL MÁSTER
-   Solo para el máster (quien entra con el código de máster). El aura de la escena —reino y nivel— cambia los totales de lanzamiento
+   Solo para el máster (quien es máster de la saga). El aura de la escena —reino y nivel— cambia los totales de lanzamiento
    de todas las fichas según la tabla de interacción de reinos de ArM5 (cap. 12, «Realms»): para la magia hermética,
    aura mágica ×1, feérica ×½ (redondeando hacia arriba), divina ×−3 e infernal ×−1, y en un aura de otro reino un dado de
    pifia más por cada punto de aura. El laboratorio sigue usando el aura de la alianza. Un desplegable muestra los rasgos
@@ -191,34 +191,82 @@ function masterCard(p, compact) {
 }
 
 /* ================================================================== PANTALLA DEL MÁSTER · LA SAGA EN LA WEB
-   The saga's codes, a backup copy and importing one. */
+   The saga's members, who plays each character, a backup copy and importing one. */
 function masterWeb() {
   const W = window.EM_WEB;
   const sec = h('section', { class: 'm-sec m-web', 'aria-labelledby': 'm-web-h' }, [h('h2', { class: 'm-h', id: 'm-web-h', text: 'La saga en la web' })]);
   const s = W.saga;
   sec.appendChild(h('p', { class: 'doc-blurb', text: 'Los datos de la ' + s.nombre + ' se guardan en la base de datos de la web.' }));
 
-  // codes
-  const cj = h('input', { type: 'text', id: 'm-cj', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none', placeholder: 'Sin cambios' });
-  const cm = h('input', { type: 'text', id: 'm-cm', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none', placeholder: 'Sin cambios' });
-  const save = h('button', { type: 'button', class: 'btn' }, 'Cambiar los códigos');
-  save.addEventListener('click', async () => {
-    const j = cj.value.trim(), m = cm.value.trim();
-    if (!j && !m) { toast('Escribe al menos un código nuevo.'); return; }
-    if ((j && j.length < 6) || (m && m.length < 6)) { toast('Cada código tiene que tener al menos 6 caracteres.'); return; }
-    save.disabled = true;
-    try {
-      const r = await W.api('codigos', { jugador: j || null, master: m || null });
-      W.setToken(r.token);
-      cj.value = ''; cm.value = '';
-      toast('Códigos cambiados. Quien estaba dentro tendrá que entrar con el nuevo.');
-    } catch (e) { toast(e.message || 'No se han podido cambiar los códigos.'); }
-    save.disabled = false;
+  // members: who is in the saga and with which role (the master adds people by their username)
+  const lista = h('div', { class: 'members' });
+  const avatarMini = (m, px) => {
+    const a = h('span', { class: 'avatar', style: 'width:' + px + 'px;height:' + px + 'px;font-size:' + Math.round(px * 0.42) + 'px', 'aria-hidden': 'true' });
+    if (m.avatar) a.appendChild(h('img', { src: m.avatar, alt: '' })); else a.textContent = String(m.nombre || m.usuario).slice(0, 1).toUpperCase();
+    return a;
+  };
+  const yo = W.user ? W.user.usuario : null;
+  let miembros = [];
+  function pintaMiembros() {
+    lista.innerHTML = '';
+    miembros.forEach(m => {
+      const rol = h('select', { 'aria-label': 'Rol de ' + m.nombre }, [h('option', { value: 'master', text: 'Máster' }), h('option', { value: 'jugador', text: 'Jugador' })]);
+      rol.value = m.rol;
+      rol.addEventListener('change', async () => {
+        try { miembros = (await W.api('cambiarRol', { usuario: m.usuario, rol: rol.value })).miembros; toast(m.nombre + ' ahora es ' + (rol.value === 'master' ? 'máster' : 'jugador') + '.'); }
+        catch (e) { toast(e.message || 'No se ha podido cambiar el rol.'); }
+        pintaMiembros(); pintaAsignar();
+      });
+      const quitar = confirmButton('Quitar', 'Pulsa otra vez para quitar', async () => {
+        try { miembros = (await W.api('quitarMiembro', { usuario: m.usuario })).miembros; toast(m.nombre + ' ya no está en la saga.'); }
+        catch (e) { toast(e.message || 'No se ha podido quitar.'); }
+        pintaMiembros(); pintaAsignar();
+      });
+      lista.appendChild(h('div', { class: 'member' }, [avatarMini(m, 36),
+        h('div', { class: 'member-t' }, [h('b', { text: m.nombre + (m.usuario === yo ? ' (tú)' : '') }), h('small', { text: '@' + m.usuario })]), rol, quitar]));
+    });
+    if (!miembros.length) lista.appendChild(h('p', { class: 'note', text: 'Cargando los miembros…' }));
+  }
+  const nuevo = h('input', { type: 'text', id: 'm-nuevo', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none', placeholder: 'usuario' });
+  const nuevoRol = h('select', { id: 'm-nuevo-rol', 'aria-label': 'Rol' }, [h('option', { value: 'jugador', text: 'Jugador' }), h('option', { value: 'master', text: 'Máster' })]);
+  const add = h('button', { type: 'button', class: 'btn' }, 'Añadir a la saga');
+  add.addEventListener('click', async () => {
+    const u = nuevo.value.trim().replace(/^@/, '');
+    if (!u) { toast('Escribe el usuario de quien quieras añadir.'); return; }
+    add.disabled = true;
+    try { miembros = (await W.api('anadirMiembro', { usuario: u, rol: nuevoRol.value })).miembros; nuevo.value = ''; toast('Añadido a la saga.'); pintaMiembros(); pintaAsignar(); }
+    catch (e) { toast(e.message || 'No se ha podido añadir.'); }
+    add.disabled = false;
   });
-  sec.appendChild(h('h3', { class: 'm-sub', text: 'Códigos de entrada' }));
-  sec.appendChild(h('p', { class: 'note', text: 'Al cambiar un código, todos los que estaban dentro (también los demás másteres) tienen que volver a entrar. Tú sigues dentro.' }));
-  sec.appendChild(h('div', { class: 'fld-row fx' }, [field('Nuevo código de jugador', cj), field('Nuevo código de máster', cm)]));
-  sec.appendChild(h('div', { class: 'actions' }, [save]));
+  sec.appendChild(h('h3', { class: 'm-sub', text: 'Quién está en la saga' }));
+  sec.appendChild(h('p', { class: 'note', text: 'Cada persona entra con su cuenta. Para que alguien juegue en la saga, tiene que crearse una cuenta y tú la añades aquí con su usuario. Un máster puede cambiar los roles y quitar a cualquiera; la saga siempre necesita al menos un máster.' }));
+  sec.appendChild(lista);
+  sec.appendChild(h('div', { class: 'fld-row fx' }, [field('Usuario', nuevo), field('Rol', nuevoRol)]));
+  sec.appendChild(h('div', { class: 'actions' }, [add]));
+
+  // characters and their players: whose each character is (it appears in that account's «Mis creaciones»)
+  const asig = h('div', { class: 'members' });
+  let autores = {};
+  function pintaAsignar() {
+    asig.innerHTML = '';
+    const pjs = pjsSorted(true);
+    if (!pjs.length) { asig.appendChild(h('p', { class: 'note', text: 'Todavía no hay personajes.' })); return; }
+    pjs.forEach(p => {
+      const s = h('select', { 'aria-label': 'Jugador de ' + p.nombre }, [h('option', { value: '', text: 'De nadie' })].concat(miembros.map(m => h('option', { value: m.usuario, text: m.nombre + ' (@' + m.usuario + ')' }))));
+      s.value = autores['personajes/' + p._id] || '';
+      s.addEventListener('change', async () => {
+        try { await W.api('asignar', { ruta: 'personajes/' + p._id, usuario: s.value || null }); autores['personajes/' + p._id] = s.value; toast(s.value ? p.nombre + ' asignado.' : p.nombre + ' ya no es de nadie.'); }
+        catch (e) { toast(e.message || 'No se ha podido asignar.'); s.value = autores['personajes/' + p._id] || ''; }
+      });
+      asig.appendChild(h('div', { class: 'member' }, [h('div', { class: 'member-t' }, [h('b', { text: p.nombre }), h('small', { text: [p.tipo, p.jugador ? 'jugador: ' + p.jugador : ''].filter(Boolean).join(' · ') })]), s]));
+    });
+  }
+  sec.appendChild(h('h3', { class: 'm-sub', text: 'Personajes y jugadores' }));
+  sec.appendChild(h('p', { class: 'note', text: 'Elige de quién es cada personaje: aparecerá en «Mis creaciones» de esa cuenta, junto con sus hechizos. Lo que cada uno crea desde ahora queda a su nombre sin hacer nada.' }));
+  sec.appendChild(asig);
+  pintaMiembros(); pintaAsignar();
+  Promise.all([W.api('miembros'), W.api('autores')]).then(([m, a]) => { miembros = m.miembros; autores = a.autores || {}; pintaMiembros(); pintaAsignar(); },
+    e => { lista.innerHTML = ''; lista.appendChild(h('p', { class: 'note', text: e.message || 'No se han podido cargar los miembros.' })); });
 
   // backup
   const down = h('button', { type: 'button', class: 'btn ghost' }, 'Descargar una copia');

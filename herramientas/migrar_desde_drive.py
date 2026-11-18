@@ -1,17 +1,22 @@
 """Pasa una saga del servidor antiguo (Google Apps Script / Drive) al servidor nuevo (api/api.php).
 
-Hace tres cosas: descarga de Drive los documentos y el archivo de la saga, la crea en el servidor nuevo (o usa la que ya exista con ese nombre)
-y los importa. Al terminar descarga lo importado y lo compara con lo original. También deja una copia en un archivo local.
+Hace tres cosas: descarga de Drive los documentos y el archivo de la saga, la crea en el servidor nuevo (o usa la que ya tengas con ese
+nombre) y los importa. Al terminar descarga lo importado y lo compara con lo original. También deja una copia en un archivo local.
+
+Hace falta una cuenta del servidor nuevo (créala en la web) con permiso para crear sagas: la primera que se registra lo tiene. La saga
+queda a su nombre, como máster. Si la saga ya existe en el servidor nuevo, esa cuenta tiene que ser máster de ella.
 
 Ejemplo (servidor nuevo en local):
   python herramientas/migrar_desde_drive.py ^
-    --viejo https://script.google.com/macros/s/XXXX/exec --saga arazas --codigo-master-viejo CODIGO ^
-    --nuevo http://localhost:8080/api/api.php --codigo-crear CODIGO_CREAR --codigo-jugador NUEVO_CODIGO_JUGADOR
+    --viejo https://script.google.com/macros/s/XXXX/exec --saga arazas --codigo-master-viejo CODIGO_DE_MASTER_ANTIGUO ^
+    --nuevo http://localhost:8080/api/api.php --usuario MI_USUARIO
 
-El código de máster nuevo es, si no dices otro, el mismo que el viejo. El de jugador antiguo no se puede recuperar: pon uno nuevo.
+La contraseña se pide al ejecutarlo (o se lee de la variable de entorno EM_PASSWORD).
 Solo usa la biblioteca estándar de Python."""
 import argparse
+import getpass
 import json
+import os
 import sys
 import urllib.request
 
@@ -31,13 +36,12 @@ def main():
     a = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     a.add_argument('--viejo', required=True, help='dirección del Apps Script (termina en /exec)')
     a.add_argument('--saga', help='id de la saga en el servidor viejo (si solo hay una, no hace falta)')
-    a.add_argument('--codigo-master-viejo', required=True)
+    a.add_argument('--codigo-master-viejo', required=True, help='el código de máster que tenía la saga en el servidor viejo')
     a.add_argument('--nuevo', required=True, help='dirección del servidor nuevo (…/api/api.php)')
-    a.add_argument('--codigo-crear', required=True, help='el que dio api/instalar.php')
-    a.add_argument('--codigo-jugador', required=True, help='el código de jugador que tendrá la saga nueva')
-    a.add_argument('--codigo-master-nuevo', help='por defecto, el mismo código de máster que el viejo')
+    a.add_argument('--usuario', required=True, help='tu cuenta en el servidor nuevo')
     a.add_argument('--copia', help='archivo donde dejar la copia (por defecto copia-<saga>.json)')
     o = a.parse_args()
+    password = os.environ.get('EM_PASSWORD') or getpass.getpass('Contraseña de %s en el servidor nuevo: ' % o.usuario)
 
     sagas = llamar(o.viejo, 'sagas')['sagas']
     if not o.saga:
@@ -58,28 +62,31 @@ def main():
     print('Copia local en', copia)
 
     info = exp['saga']
-    master = o.codigo_master_nuevo or o.codigo_master_viejo
-    existe = next((s for s in llamar(o.nuevo, 'sagas')['sagas'] if s['nombre'].lower() == info['nombre'].lower()), None)
+    nuevo = llamar(o.nuevo, 'entrar', usuario=o.usuario, password=password)
+    t = nuevo['token']
+    existe = next((s for s in nuevo['perfil']['sagas'] if s['nombre'].lower() == info['nombre'].lower()), None)
     if existe:
+        if existe['rol'] != 'master':
+            sys.exit('Ya existe «%s» en el servidor nuevo y no eres su máster.' % existe['nombre'])
         print('Ya existe «%s» en el servidor nuevo: se usa esa y se sustituye su contenido.' % existe['nombre'])
-        nueva = llamar(o.nuevo, 'entrar', saga=existe['id'], rol='master', codigo=master)
+        saga_id = existe['id']
     else:
-        nueva = llamar(o.nuevo, 'crear', nombre=info['nombre'], alianza=info.get('alianza') or '', anio=info.get('anio'), est=info.get('est'),
-                       aura=info.get('aura'), codigoJugador=o.codigo_jugador, codigoMaster=master, codigoCrear=o.codigo_crear)
-        print('Creada «%s» en el servidor nuevo.' % nueva['saga']['nombre'])
-    r = llamar(o.nuevo, 'importar', token=nueva['token'], docs=docs, archivo=arc, reemplazar=True)
+        r = llamar(o.nuevo, 'crear', token=t, nombre=info['nombre'], alianza=info.get('alianza') or '', anio=info.get('anio'), est=info.get('est'), aura=info.get('aura'))
+        saga_id = r['saga']['id']
+        print('Creada «%s» en el servidor nuevo, a nombre de %s.' % (r['saga']['nombre'], o.usuario))
+    r = llamar(o.nuevo, 'importar', token=t, saga=saga_id, docs=docs, archivo=arc, reemplazar=True)
     print('Importados %d documentos.' % r['n'])
 
     # comprobación: lo que guarda el servidor nuevo tiene que ser igual a lo que salió de Drive (también los {} y [] vacíos)
-    de_vuelta = llamar(o.nuevo, 'exportar', token=nueva['token'])['docs']
+    de_vuelta = llamar(o.nuevo, 'exportar', token=t, saga=saga_id)['docs']
     if de_vuelta != docs:
         falta = sorted(set(docs) - set(de_vuelta))
         distintos = sorted(k for k in docs if k in de_vuelta and de_vuelta[k] != docs[k])
         sys.exit('¡Ojo! No coincide. Faltan %s; distintos %s' % (falta[:10], distintos[:10]))
-    if arc and llamar(o.nuevo, 'archivo', token=nueva['token']).get('archivo') != arc:
+    if arc and llamar(o.nuevo, 'archivo', token=t, saga=saga_id).get('archivo') != arc:
         sys.exit('¡Ojo! El archivo de hojas no coincide.')
     print('Comprobado: los %d documentos son idénticos a los de Drive.' % len(docs))
-    print('Entra en la web con el código de máster %s' % ('que ya tenías' if not o.codigo_master_nuevo else 'nuevo'), 'y el de jugador que has puesto.')
+    print('Los demás entran con su propia cuenta: añádelos en la pantalla del máster, en «Quién está en la saga».')
 
 
 if __name__ == '__main__':
