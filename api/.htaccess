@@ -1,0 +1,4 @@
+# Solo api.php se puede abrir desde fuera: el resto es código y configuración.
+<FilesMatch "^(?!api\.php$).+\.(php|sqlite|db)$">
+    Require all denied
+</FilesMatch>

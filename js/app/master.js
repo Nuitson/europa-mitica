@@ -196,9 +196,7 @@ function masterWeb() {
   const W = window.EM_WEB;
   const sec = h('section', { class: 'm-sec m-web', 'aria-labelledby': 'm-web-h' }, [h('h2', { class: 'm-h', id: 'm-web-h', text: 'La saga en la web' })]);
   const s = W.saga;
-  sec.appendChild(h('p', { class: 'doc-blurb' }, ['Los datos de la ' + s.nombre + ' se guardan en una hoja de cálculo de su carpeta de Drive. ',
-    h('a', { href: s.carpeta, target: '_blank', rel: 'noopener', text: 'Abrir la carpeta' }), s.datos ? ' · ' : null,
-    s.datos ? h('a', { href: s.datos, target: '_blank', rel: 'noopener', text: 'la hoja de datos' }) : null, '.']));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Los datos de la ' + s.nombre + ' se guardan en la base de datos de la web.' }));
 
   // codes
   const cj = h('input', { type: 'text', id: 'm-cj', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none', placeholder: 'Sin cambios' });

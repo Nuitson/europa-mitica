@@ -11,7 +11,7 @@ let pendingFocus = null;
 
 function crumbs(docId) {
   const c = h('div', { class: 'crumbs' }, [h('a', { href: '#inicio', text: DATA.root.short })]);
-  (PATH[docId] || []).forEach(f => { c.appendChild(h('span', { class: 'sep', text: '/' })); c.appendChild(f.drive ? h('a', { href: f.drive, target: '_blank', rel: 'noopener', text: f.f }) : h('span', { text: f.f })); });
+  (PATH[docId] || []).forEach(f => { c.appendChild(h('span', { class: 'sep', text: '/' })); c.appendChild(h('span', { text: f.f })); });
   return c;
 }
 
@@ -22,8 +22,7 @@ function viewDoc(doc, sheetId, anchor, keepY) {
   page.appendChild(h('h1', { class: 'doc-title', text: doc.title }));
   const meta = h('div', { class: 'doc-meta' }, [
     h('span', { text: doc.web ? 'Se lleva desde la web' : 'Hoja de cálculo «' + doc.file + '»' }),
-    h('span', { text: doc.sheets.length === 1 ? '1 pestaña' : doc.sheets.length + ' pestañas' }),
-    doc.drive ? h('a', { href: doc.drive, target: '_blank', rel: 'noopener', html: (doc.web ? 'Carpeta en Drive ' : 'Abrir en Drive ') + ICON.ext }) : null
+    h('span', { text: doc.sheets.length === 1 ? '1 pestaña' : doc.sheets.length + ' pestañas' })
   ]);
   page.appendChild(meta);
   if (doc.blurb) page.appendChild(h('p', { class: 'doc-blurb', text: doc.blurb }));
@@ -108,7 +107,6 @@ function viewHome(q) {
   DATA.tree.forEach(top => {
     const s = h('section', { class: 'folder-sec' });
     const head = h('div', { class: 'folder-h' }, [h('h2', { text: top.f })]);
-    if (top.drive) head.appendChild(h('a', { href: top.drive, target: '_blank', rel: 'noopener', html: 'Carpeta en Drive ' + ICON.ext }));
     s.appendChild(head);
     if (top.glance) s.appendChild(glanceNode(top.glance));
     const grid = h('div', { class: 'docs' });

@@ -1,6 +1,6 @@
 /* Europa Mítica: keeps the page in this browser so the game aids open without a connection.
    Network first: online, every file comes fresh from the server (and refreshes the copy); offline, or when the network
-   takes too long, the copy answers. The saga's server (Apps Script) is never cached: its data stay live, and writes
+   takes too long, the copy answers. The saga's server (api/api.php) is never cached: its data stay live, and writes
    (POST) never reach this worker.
    Keep FILES in step with the repository: a new module, image or data file goes here too. */
 const CACHE = 'europa-mitica-v1';

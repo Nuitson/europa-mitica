@@ -10,3 +10,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+### Servidor
+api/config.php
+*.sqlite
+copia-*.json

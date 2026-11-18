@@ -6,7 +6,9 @@ Web de las sagas de Ars Magica de Europa Mítica: fichas, estaciones, reparto de
 
 ```
 index.html            la página: solo el marco (barra lateral y zona de contenido)
-config.js             la dirección del servidor, una aplicación web de Google Apps Script
+config.js             la dirección del servidor (api/api.php)
+api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.php es el punto de entrada, instalar.php prepara la base de datos)
+herramientas/         migrar_desde_drive.py: pasa una saga del servidor antiguo (Drive) al nuevo
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 css/styles.css        los estilos
 js/gate.js            la entrada: elige saga y rol, comprueba el código con el servidor, carga los datos y arranca la aplicación
@@ -31,7 +33,7 @@ data/imagenes.json    la lista de imágenes de las ayudas (id → archivo)
 img/                  las imágenes de las ayudas
 ```
 
-`js/gate.js` lee los tres JSON con `fetch`, les añade la carpeta de la saga que llega del servidor y los deja en `window.EM_DATA`, junto con la base de datos de la saga en `window.EM_WEB`. Después importa `js/app/main.js`, que arranca la aplicación al cargarse.
+`js/gate.js` lee los tres JSON con `fetch`, les añade los datos de la saga que llegan del servidor y los deja en `window.EM_DATA`, junto con la base de datos de la saga en `window.EM_WEB`. Después importa `js/app/main.js`, que arranca la aplicación al cargarse.
 
 Al añadir un módulo, enlázalo también con `<link rel="modulepreload">` en `index.html`, para que se descargue mientras se muestra la entrada. Añádelo también a `FILES` en `sw.js`, como cualquier imagen o archivo de datos nuevo.
 
@@ -50,21 +52,41 @@ Si no hay conexión, la entrada ofrece abrir la última saga abierta en ese nave
 
 ## Seguridad
 
-`index.html` lleva una política de seguridad de contenidos (CSP): solo se ejecutan los scripts de la propia web, y la página solo se conecta consigo misma y con Apps Script (`script.google.com`, que responde desde `script.googleusercontent.com`). Si el servidor de la saga cambia de dirección (por ejemplo, uno de pruebas en `localhost` en otro puerto), hay que añadirla a `connect-src` en esa política.
+`index.html` lleva una política de seguridad de contenidos (CSP): solo se ejecutan los scripts de la propia web, y la página solo se conecta consigo misma, y el servidor de la saga está en el mismo sitio (`api/api.php`). Si el servidor pasara a otra dirección, habría que añadirla a `connect-src` en esa política.
 
 Cambiar la estación actual y el aura de la alianza es cosa del máster: los jugadores no ven esos botones. Qué puede escribir cada rol lo decide, en todo caso, el servidor.
 
+## El servidor
+
+Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos) viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON; sus acciones son `sagas`, `entrar`, `crear`, `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar` y `codigos`. Cada saga se abre con su código, que da el máster, y solo sus datos llegan al navegador después de comprobarlo. Los códigos se guardan con hash (bcrypt) y hay un freno de intentos.
+
+Necesita PHP 8.1 o superior con la extensión PDO MySQL (en Plesk: «Selector PHP»).
+
+**Instalarlo en el hosting**
+
+1. En Plesk, crea la base de datos MySQL y apunta su nombre, usuario y contraseña.
+2. Sube la carpeta de la web por SFTP.
+3. Copia `api/config.ejemplo.php` como `api/config.php` y rellénalo.
+4. Por SSH, en la carpeta de la web: `php api/instalar.php`. Crea las tablas y muestra el código para crear sagas (apúntalo: no se vuelve a mostrar).
+5. Comprueba que `https://tu-dominio/api/api.php` responde `{"ok":true,…}` en el navegador.
+
+Si al importar una copia grande falla, sube `post_max_size` y `upload_max_filesize` en el Selector PHP.
+
+**Copias de seguridad:** el plan del hosting hace copias de la base de datos, y cada máster puede descargar una copia de su saga desde la pantalla del máster.
+
+**Pasar una saga desde Drive:** `python herramientas/migrar_desde_drive.py --help`.
+
 ## Probarla en local
 
-Como los datos se cargan con `fetch`, la página no funciona abriendo `index.html` con doble clic (`file://`). Hay que servir la carpeta:
+Como los datos se cargan con `fetch`, la página no funciona abriendo `index.html` con doble clic (`file://`). Hace falta PHP; con SQLite no hace falta instalar MySQL:
 
 ```
-python -m http.server 8000
+cp api/config.ejemplo.php api/config.php     (y deja activo el bloque de SQLite)
+php api/instalar.php
+php -S localhost:8080
 ```
 
-y abrir <http://localhost:8000>. En GitHub Pages funciona tal cual.
-
-Cada saga se abre con su código, que da el máster. Sus datos viven en el Drive de quien instaló el servidor y solo llegan a la web después de comprobar ese código.
+y abrir <http://localhost:8080>. `php -S` sirve la web y el servidor a la vez.
 
 El catálogo de hechizos y las descripciones de virtudes y defectos están resumidos en castellano a partir del material de Ars Magica publicado con licencia abierta:
 

@@ -1,6 +1,6 @@
 /* ================================================================== EUROPA MÍTICA · VERSIÓN WEB
-   Runs before the page: asks which saga and role, checks the code with the server (Google Apps Script, see
-   backend/Code.gs), loads that saga's own documents and hands the page (window.EM_WEB) a database that talks to
+   Runs before the page: asks which saga and role, checks the code with the server (PHP + MySQL, see
+   api/lib.php), loads that saga's own documents and hands the page (window.EM_WEB) a database that talks to
    the server. Only the chosen saga's data ever reach this browser. */
 (function () {
 'use strict';
@@ -35,9 +35,8 @@ function suggestCode() { const r = new Uint32Array(3); crypto.getRandomValues(r)
 /* ---------- the server */
 class ApiError extends Error { constructor(code, msg) { super(msg); this.code = code; } }
 async function api(accion, datos) {
-  if (!CFG.backend || !/^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(CFG.backend)) throw new ApiError('config', 'Falta la dirección del servidor: pégala en config.js (está explicado en INSTALAR.md).');
+  if (!CFG.backend) throw new ApiError('config', 'Falta la dirección del servidor: ponla en config.js (está explicado en el README).');
   let res;
-  // a plain-text body keeps this a «simple» request: Apps Script answers it without a CORS preflight
   try { res = await fetch(CFG.backend, { method: 'POST', body: JSON.stringify(Object.assign({ accion: accion }, datos || {})), redirect: 'follow' }); }
   catch (e) { throw new ApiError('unavailable', 'No hay conexión con el servidor de la saga.'); }
   if (!res.ok) throw new ApiError('unavailable', 'El servidor de la saga ha respondido con un error (' + res.status + ').');
@@ -195,18 +194,12 @@ function gateCreate(sagas) {
   const cm = el('input', { id: 'c-cm', value: suggestCode(), autocomplete: 'off', spellcheck: 'false', autocapitalize: 'none' });
   const otros = el('button', { type: 'button', class: 'glink', text: 'Otros', onclick: () => { cj.value = suggestCode(); cm.value = suggestCode(); } });
   const crearCode = el('input', { id: 'c-crear', type: 'password', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
-  const yaChk = el('input', { type: 'checkbox', id: 'c-ya' });
-  const carpeta = el('input', { id: 'c-carpeta', placeholder: 'https://drive.google.com/drive/folders/…' });
-  const ya = el('div', { class: 'gate-fld', hidden: true }, [el('label', { for: 'c-carpeta', class: 'gate-lab', text: 'Enlace de la carpeta de Drive' }), carpeta,
-    el('span', { class: 'gate-hint', text: 'Se usa esa carpeta tal cual: no se crean carpetas ni hojas nuevas, solo la hoja de datos de la web.' })]);
-  yaChk.addEventListener('change', () => { ya.hidden = !yaChk.checked; });
   const go = el('button', { type: 'submit', class: 'gbtn', text: 'Crear la saga' });
   const back = el('button', { type: 'button', class: 'glink', text: 'Volver', onclick: () => gateForm(sagas, { rol: 'master' }) });
   const form = el('form', { class: 'gate-form', novalidate: true }, [
     el('h2', { class: 'gate-h', text: 'Saga nueva' }),
-    el('p', { class: 'gate-hint', text: 'Se crea en Drive una carpeta con la misma estructura que la Saga de Arazas —Alianza, Personajes, Ambientación…— con la ficha de la alianza, la reserva de vis y la ficha de personaje en blanco.' }),
     fld('c-nombre', 'Nombre de la saga', nombre),
-    fld('c-alianza', 'Alianza', alianza, 'Da nombre a su ficha en Drive.'),
+    fld('c-alianza', 'Alianza', alianza),
     el('div', { class: 'gate-row' }, [
       el('div', { class: 'gate-fld' }, [el('span', { class: 'gate-lab', text: 'Primera estación' }), el('div', { class: 'gate-pair' }, [est, anio])]),
       fld('c-aura', 'Aura de la alianza', aura)]),
@@ -214,7 +207,6 @@ function gateCreate(sagas) {
       el('div', { class: 'gate-row' }, [fld('c-cj', 'De jugador', cj), fld('c-cm', 'De máster', cm)]),
       el('div', { class: 'gate-hint' }, ['Apúntalos: el de jugador es para tu mesa; el de máster, solo para ti. ', otros])]),
     fld('c-crear', 'Código para crear sagas', crearCode, 'Lo tiene quien instaló la web.'),
-    el('label', { class: 'gate-chk', for: 'c-ya' }, [yaChk, ' La saga ya tiene carpeta en Drive']), ya,
     err, el('div', { class: 'gate-act' }, [go, back])]);
   form.addEventListener('submit', async ev => {
     ev.preventDefault();
@@ -223,10 +215,9 @@ function gateCreate(sagas) {
     if (cj.value.trim().length < 6 || cm.value.trim().length < 6) return showErr(err, 'Cada código tiene que tener al menos 6 caracteres.');
     if (cj.value.trim().toLowerCase() === cm.value.trim().toLowerCase()) return showErr(err, 'Los dos códigos tienen que ser distintos.');
     if (!crearCode.value.trim()) { crearCode.focus(); return showErr(err, 'Falta el código para crear sagas.'); }
-    if (yaChk.checked && !carpeta.value.trim()) { carpeta.focus(); return showErr(err, 'Pega el enlace de la carpeta.'); }
     const datos = { nombre: nombre.value.trim(), alianza: alianza.value.trim(), est: Number(est.value), anio: Number(anio.value), aura: Number(aura.value),
-      codigoJugador: cj.value.trim(), codigoMaster: cm.value.trim(), codigoCrear: crearCode.value, carpeta: yaChk.checked ? carpeta.value.trim() : '' };
-    busy(yaChk.checked ? 'Registrando la saga…' : 'Creando la carpeta y las hojas en Drive. Puede tardar un minuto…');
+      codigoJugador: cj.value.trim(), codigoMaster: cm.value.trim(), codigoCrear: crearCode.value };
+    busy('Creando la saga…');
     try {
       const r = await api('crear', datos);
       created(r, datos);
@@ -241,7 +232,6 @@ function gateCreate(sagas) {
     const set = (id, v) => { const i = document.getElementById(id); if (i) i.value = v; };
     set('c-nombre', d.nombre); set('c-alianza', d.alianza); set('c-est', String(d.est)); set('c-anio', String(d.anio)); set('c-aura', String(d.aura));
     set('c-cj', d.codigoJugador); set('c-cm', d.codigoMaster); set('c-crear', d.codigoCrear);
-    if (d.carpeta) { const c = document.getElementById('c-ya'); c.checked = true; c.dispatchEvent(new Event('change')); set('c-carpeta', d.carpeta); }
     const e = gate.querySelector('.gate-err'); if (e) { e.textContent = msg; e.hidden = false; }
   }
 }
@@ -254,7 +244,6 @@ function created(r, datos) {
     el('h2', { class: 'gate-h', text: r.saga.nombre + ' está creada' }),
     el('div', { class: 'gate-codes' }, [row('Código de jugador', r.codigos.jugador), row('Código de máster', r.codigos.master)]),
     el('p', { class: 'gate-hint', text: 'Apúntalos ahora: aquí no se vuelven a mostrar. Desde la pantalla del máster puedes cambiarlos.' }),
-    el('p', { class: 'gate-hint' }, [datos.carpeta ? 'Usa la carpeta que indicaste. ' : 'La carpeta ya está en Drive. ', el('a', { href: r.saga.carpeta, target: '_blank', rel: 'noopener', text: 'Abrir la carpeta' })]),
     (r.avisos || []).length ? el('div', { class: 'gate-note', role: 'status' }, r.avisos.map(t => el('p', { text: t }))) : null,
     el('div', { class: 'gate-act' }, [go])])]);
 }
@@ -293,7 +282,7 @@ async function openSaga(ses) {
    (the service worker, sw.js, keeps the page and data/*.json; the saga's archive comes from its localStorage copy) */
 const K_OFF = 'em:sin-conexion';
 // what the page needs of a saga to show it, and nothing else (no codes) kept beyond the session
-function offlineSaga(s) { const o = {}; ['id', 'nombre', 'alianza', 'carpeta', 'anio', 'est', 'aura'].forEach(k => { if (s[k] != null) o[k] = s[k]; }); return o; }
+function offlineSaga(s) { const o = {}; ['id', 'nombre', 'alianza', 'anio', 'est', 'aura'].forEach(k => { if (s[k] != null) o[k] = s[k]; }); return o; }
 function offlineButton(e) {
   let off = null;
   try { off = JSON.parse(lsGet(K_OFF) || 'null'); } catch (x) { off = null; }
@@ -348,7 +337,7 @@ async function loadArchive(ses) {
 function merge(ses, arc, st) {
   const D = st.data, I = st.img;
   const s = ses.saga;
-  const node = { f: s.nombre, drive: s.carpeta, glance: [], children: [] };
+  const node = { f: s.nombre, glance: [], children: [] };
   if (arc && Array.isArray(arc.docs)) {
     D.docs = D.docs.concat(arc.docs);
     Object.assign(I, arc.img || {});
@@ -370,7 +359,7 @@ function merge(ses, arc, st) {
 }
 function alianzaWeb(s) {
   const name = s.alianza ? 'La alianza de ' + s.alianza : 'La alianza';
-  return { id: 'alianza-web', title: name, file: '', web: true, drive: s.carpeta,
+  return { id: 'alianza-web', title: name, file: '', web: true,
     blurb: 'La reserva de vis y la tesorería de la alianza, con los movimientos que se apuntan desde la web.',
     sheets: [
       { id: 'vis', title: 'Reserva de vis', blocks: [

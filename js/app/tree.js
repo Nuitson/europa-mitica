@@ -21,7 +21,6 @@ function renderTree() {
       } else {
         const li = h('li');
         const f = h('div', { class: 't-folder', html: ICON.folder + '<span>' + esc(n.f) + '</span>' });
-        if (n.drive) f.appendChild(h('a', { href: n.drive, target: '_blank', rel: 'noopener', title: 'Abrir carpeta en Drive', 'aria-label': 'Abrir ' + n.f + ' en Drive', html: ICON.ext }));
         li.appendChild(f);
         li.appendChild(ul(n.children || []));
         u.appendChild(li);
@@ -30,7 +29,7 @@ function renderTree() {
     return u;
   }
   root.appendChild(ul(DATA.tree));
-  document.getElementById('sidefoot').innerHTML = 'Hecho a partir de ' + DATA.docs.length + ' hojas de cálculo de la carpeta <a href="' + esc(DATA.root.drive) + '" target="_blank" rel="noopener">' + esc(DATA.root.name) + '</a>.';
+  document.getElementById('sidefoot').innerHTML = 'Hecho a partir de ' + DATA.docs.length + ' hojas de cálculo de la carpeta ' + esc(DATA.root.name) + '.';
 }
 
 export { PATH, renderTree };
