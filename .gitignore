@@ -12,5 +12,6 @@ $RECYCLE.BIN/
 *.lnk
 ### Servidor
 api/config.php
-*.sqlite
+*.sqlite*
+!datos/europa.sqlite
 copia-*.json

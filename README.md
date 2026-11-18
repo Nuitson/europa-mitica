@@ -78,7 +78,7 @@ Si al importar una copia grande falla, sube `post_max_size` y `upload_max_filesi
 
 ## Probarla en local
 
-La página no funciona abriendo `index.html` con doble clic (`file://`): necesita el servidor PHP. En local se usa SQLite, así que **no hace falta instalar MySQL** (en el hosting se usa MySQL; el código es el mismo).
+La página no funciona abriendo `index.html` con doble clic (`file://`): necesita el servidor PHP. En local se usa SQLite, así que **no hace falta instalar MySQL** (en el hosting se usa MySQL; el código es el mismo). Los datos vienen en el repositorio: ver «La base de datos compartida en git».
 
 **1. Instalar PHP 8.1 o superior** (Windows, en PowerShell):
 
@@ -112,21 +112,13 @@ y sustituye todo el contenido de `api/config.php` por esto:
 <?php
 return [
     'driver' => 'sqlite',
-    'file' => __DIR__ . '/../../europa-mitica.sqlite',
+    'file' => __DIR__ . '/../datos/europa.sqlite',
 ];
 ```
 
-El archivo de la base de datos se crea solo, en la carpeta de arriba del proyecto (`europa-mitica.sqlite`), fuera de la web. `config.php` y los `.sqlite` no se suben a git.
+`config.php` es de cada uno y no se sube a git.
 
-**4. Crear las tablas.**
-
-```
-php api/instalar.php
-```
-
-Muestra el **código para crear sagas**: apúntalo, no se vuelve a mostrar (si lo pierdes: `php api/instalar.php --nuevo-codigo-crear`).
-
-**5. Arrancar.**
+**4. Arrancar.**
 
 ```
 php -S localhost:8080
@@ -134,14 +126,28 @@ php -S localhost:8080
 
 Abre <http://localhost:8080> (deja la terminal abierta; se para con Ctrl+C). `php -S` sirve la web y el servidor a la vez.
 
-**6. Tener datos.** La base de datos de cada uno empieza vacía. Dos formas de llenarla:
-
-- **Una saga de prueba:** en la entrada, «Máster» → «Crear una saga nueva», con el código para crear sagas del paso 4.
-- **Las sagas reales:** pide a quien las tiene una copia (la que se descarga en la pantalla del máster, «Descargar una copia», o el `copia-<saga>.json` que deja la herramienta de migración). Crea una saga nueva con el mismo nombre y, ya dentro como máster, usa «Importar una copia». Las copias llevan los datos de la partida: no las subas a git ni las compartas fuera del grupo.
+Entra con el código de la saga que te dé quien la lleva. Si necesitas empezar una base de datos desde cero (por ejemplo, para pruebas), borra `datos/europa.sqlite`, ejecuta `php api/instalar.php` (muestra el **código para crear sagas**: apúntalo, no se vuelve a mostrar) y crea una saga desde la entrada: «Máster» → «Crear una saga nueva».
 
 **Si la web sigue mostrando otra cosa** (por ejemplo, la versión anterior): el navegador guarda copias de la página (`sw.js`). Abre las herramientas de desarrollo (F12) → Application → Storage → «Clear site data» (con «Unregister service workers») y recarga con Ctrl+F5.
 
 **Si falla:** el registro de errores de PHP sale en la terminal donde corre `php -S`. El error «could not find driver» significa que falta activar `pdo_sqlite` (paso 2).
+
+## La base de datos compartida en git
+
+Para que todos tengamos los mismos datos, **la base de datos de local viaja en el repositorio**: es el archivo `datos/europa.sqlite` (SQLite, un único archivo con todas las sagas, personajes, estaciones y retratos). Por eso el repositorio tiene que ser **privado**: dentro van los datos de la partida, los hashes de los códigos de acceso y la clave con que se firman las sesiones. Quien tenga acceso al repo puede entrar en cualquier saga.
+
+Cómo trabajar:
+
+1. Antes de empezar: `git pull`, con el servidor parado (Ctrl+C en la terminal de `php -S`).
+2. Arranca, trabaja en la web (los cambios se guardan solos en `datos/europa.sqlite`) y para el servidor.
+3. Al acabar: `git add datos/europa.sqlite`, `git commit` y `git push`.
+
+**Un solo archivo no se puede fusionar.** Git no sabe mezclar dos versiones de un `.sqlite`: si dos personas cambian datos desde el mismo `pull` y las dos hacen `push`, la segunda recibirá un conflicto en ese archivo y habrá que quedarse con una de las dos versiones (`git checkout --theirs datos/europa.sqlite` o `--ours`) y volver a meter a mano lo que se pierda. Para evitarlo: avisaos antes de tocar datos, haced `pull` justo antes de empezar y `push` justo al acabar, y no dejéis cambios sin subir. Cada versión que se sube pesa casi lo que la base de datos entera (hoy unos 800 KB), así que el repositorio crece con cada commit de datos: no los hagáis más de lo necesario.
+
+Dos precauciones:
+
+- Los `.sqlite-wal`, `.sqlite-shm` y `-journal` están ignorados a propósito: la base de datos se guarda sin ellos (`journal_mode=DELETE`) para que `datos/europa.sqlite` sea siempre un archivo completo. Si copias o subes el archivo con el servidor en medio de una escritura, espera a que termine.
+- `datos/` es solo para trabajar en local. **No la subas al hosting**: allí los datos viven en MySQL, y la carpeta lleva un `.htaccess` que impide descargarla por si acaso. Para llevar los datos del equipo al hosting, descarga una copia desde la pantalla del máster y impórtala allí (o usa la herramienta de migración).
 
 El catálogo de hechizos y las descripciones de virtudes y defectos están resumidos en castellano a partir del material de Ars Magica publicado con licencia abierta:
 

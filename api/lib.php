@@ -40,7 +40,8 @@ function db(): PDO {
     $opts = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
     if (driver() === 'sqlite') {
         $pdo = new PDO('sqlite:' . $c['file'], null, null, $opts);
-        $pdo->exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=20000;');
+        // sin WAL: el .sqlite es un único archivo completo, que es lo que se sube a git
+        $pdo->exec('PRAGMA journal_mode=DELETE; PRAGMA busy_timeout=20000;');
     } else {
         $opts[PDO::ATTR_EMULATE_PREPARES] = false;
         $pdo = new PDO('mysql:host=' . ($c['host'] ?? 'localhost') . ';dbname=' . $c['db'] . ';charset=utf8mb4', $c['user'], $c['pass'], $opts);

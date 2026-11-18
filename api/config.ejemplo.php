@@ -10,9 +10,9 @@ return [
     'pass' => 'contraseña',
 ];
 
-/* Para probar en tu PC sin MySQL, usa SQLite (la extensión pdo_sqlite de PHP). El archivo queda fuera de la carpeta de la web:
+/* Para trabajar en tu PC sin MySQL, usa SQLite (la extensión pdo_sqlite de PHP). La base de datos viaja en el repositorio (datos/europa.sqlite):
 return [
     'driver' => 'sqlite',
-    'file' => __DIR__ . '/../../europa-mitica.sqlite',
+    'file' => __DIR__ . '/../datos/europa.sqlite',
 ];
 */
