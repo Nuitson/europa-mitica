@@ -78,15 +78,70 @@ Si al importar una copia grande falla, sube `post_max_size` y `upload_max_filesi
 
 ## Probarla en local
 
-Como los datos se cargan con `fetch`, la página no funciona abriendo `index.html` con doble clic (`file://`). Hace falta PHP; con SQLite no hace falta instalar MySQL:
+La página no funciona abriendo `index.html` con doble clic (`file://`): necesita el servidor PHP. En local se usa SQLite, así que **no hace falta instalar MySQL** (en el hosting se usa MySQL; el código es el mismo).
+
+**1. Instalar PHP 8.1 o superior** (Windows, en PowerShell):
 
 ```
-cp api/config.ejemplo.php api/config.php     (y deja activo el bloque de SQLite)
+winget install PHP.PHP.8.3
+```
+
+Cierra y abre la terminal para que encuentre `php`. En macOS: `brew install php`; en Linux, el paquete `php-cli` con `php-sqlite3` y `php-mbstring`.
+
+**2. Activar las extensiones.** Solo en Windows: PHP viene sin ellas. Crea un archivo `php.ini` (en cualquier carpeta fuera del proyecto) con estas líneas, cambiando la ruta de `extension_dir` por la carpeta `ext` de tu instalación de PHP. Para saber dónde está: `(Get-Command php).Source`, y la carpeta `ext` está junto a `php.exe` (suele estar en `%LOCALAPPDATA%\Microsoft\WinGet\Packages\PHP.PHP.8.3_…`).
+
+```
+extension_dir="C:\ruta\a\php\ext"
+extension=pdo_sqlite
+extension=sqlite3
+extension=mbstring
+extension=openssl
+```
+Comprueba que salen las cuatro con `php -c C:\ruta\al\php.ini -m`. En el resto de comandos, `php` se escribe `php -c C:\ruta\al\php.ini`. (Si ya tienes un `php.ini` global con esas extensiones, no hace falta el `-c`.)
+Comprueba que salen las cuatro con `php -c C:
+
+**3. Configurar la base de datos.** Desde la carpeta del proyecto:
+
+```
+copy api\config.ejemplo.php api\config.php
+```
+
+y sustituye todo el contenido de `api/config.php` por esto:
+
+```php
+<?php
+return [
+    'driver' => 'sqlite',
+    'file' => __DIR__ . '/../../europa-mitica.sqlite',
+];
+```
+
+El archivo de la base de datos se crea solo, en la carpeta de arriba del proyecto (`europa-mitica.sqlite`), fuera de la web. `config.php` y los `.sqlite` no se suben a git.
+
+**4. Crear las tablas.**
+
+```
 php api/instalar.php
+```
+
+Muestra el **código para crear sagas**: apúntalo, no se vuelve a mostrar (si lo pierdes: `php api/instalar.php --nuevo-codigo-crear`).
+
+**5. Arrancar.**
+
+```
 php -S localhost:8080
 ```
 
-y abrir <http://localhost:8080>. `php -S` sirve la web y el servidor a la vez.
+Abre <http://localhost:8080> (deja la terminal abierta; se para con Ctrl+C). `php -S` sirve la web y el servidor a la vez.
+
+**6. Tener datos.** La base de datos de cada uno empieza vacía. Dos formas de llenarla:
+
+- **Una saga de prueba:** en la entrada, «Máster» → «Crear una saga nueva», con el código para crear sagas del paso 4.
+- **Las sagas reales:** pide a quien las tiene una copia (la que se descarga en la pantalla del máster, «Descargar una copia», o el `copia-<saga>.json` que deja la herramienta de migración). Crea una saga nueva con el mismo nombre y, ya dentro como máster, usa «Importar una copia». Las copias llevan los datos de la partida: no las subas a git ni las compartas fuera del grupo.
+
+**Si la web sigue mostrando otra cosa** (por ejemplo, la versión anterior): el navegador guarda copias de la página (`sw.js`). Abre las herramientas de desarrollo (F12) → Application → Storage → «Clear site data» (con «Unregister service workers») y recarga con Ctrl+F5.
+
+**Si falla:** el registro de errores de PHP sale en la terminal donde corre `php -S`. El error «could not find driver» significa que falta activar `pdo_sqlite` (paso 2).
 
 El catálogo de hechizos y las descripciones de virtudes y defectos están resumidos en castellano a partir del material de Ars Magica publicado con licencia abierta:
 
