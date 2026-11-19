@@ -21,6 +21,7 @@ const FILES = [
   'js/app/saga/characters.js',
   'js/app/saga/core.js',
   'js/app/saga/home.js',
+  'js/app/saga/pjfile.js',
   'js/app/saga/rules.js',
   'js/app/saga/seasons.js',
   'js/app/saga/state.js',

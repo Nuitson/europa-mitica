@@ -25,6 +25,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/home.js          la saga en la barra lateral, en el inicio y en las cifras vivas de las hojas
   saga/seasons.js       estaciones: reparto de experiencia, vis y tesorería
   saga/characters.js    personajes y sus fichas
+  saga/pjfile.js        exportar un personaje a un archivo e importarlo (en esta saga o en otra)
   creation/rules.js     compendio de virtudes y defectos y reglas de creación
   creation/editor.js    el editor de personajes
   master.js             la pantalla del máster (miembros de la saga, de quién es cada personaje, copias de seguridad)
@@ -44,6 +45,7 @@ Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar 
 ## En la mesa
 
 - **Imprimir:** la ficha (la pestaña que está abierta) y la pantalla del máster tienen un botón «Imprimir». Sale en el tema claro, sin el índice, las pestañas ni los botones; también sirve para guardarla en PDF.
+- **Exportar e importar personajes:** la página de cada personaje tiene «Exportar», que descarga un archivo `.json` con la ficha, todas sus estaciones y el retrato. En «Personajes», «Importar personaje» lee ese archivo, enseña lo que trae y lo crea como un personaje **nuevo**, a nombre de quien lo importa; nunca cambia los que ya hay (si ya existe uno con el mismo nombre, se avisa y quedan los dos). Sirve para pasar un personaje de una saga a otra o para guardar una copia suya. La copia de la saga entera sigue en la pantalla del máster.
 - **Tiradas:** la descripción de cada hechizo de una ficha tiene «Tirar dado de estrés». Suma el dado de estrés de ArM5 al total de lanzamiento (con el aura de la escena) y dice si sale, si cuesta fatiga o si falla. Con un 0 tira los dados de pifia: uno, más uno por punto de aura de otro reino y menos uno por punto de maestría.
 
 ## Sin conexión

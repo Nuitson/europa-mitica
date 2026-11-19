@@ -1030,6 +1030,9 @@ table.mx { width: 100%; table-layout: fixed; border-collapse: separate; border-s
 .hab-car[aria-pressed="true"] { background: var(--blood); border-color: var(--blood); color: #fff8f0; }
 .hab-car:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .hab-roll { margin-top: 0; }
+/* importing a character: what the file brings, and the warnings */
+.imp-list { margin: 4px 0 12px; padding-left: 20px; }
+.note.warn { color: var(--ink-2); border-left: 3px solid var(--gold); padding-left: 10px; }
 @media (max-width: 420px) { .hab-car { width: 34px; height: 34px; font-size: 12px; } }
 
 /* the animal form (Cambiapieles): a panel in the text block while it lasts */

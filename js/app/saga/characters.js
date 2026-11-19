@@ -5,6 +5,7 @@ import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js'
 import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
 import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
+import { exportPj, importButton } from './pjfile.js';
 import { vdLabel } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
@@ -16,7 +17,7 @@ function viewCharacters() {
   page.appendChild(sagaCrumbs([['Personajes', null]]));
   page.appendChild(h('h1', { class: 'doc-title', text: 'Personajes' }));
   page.appendChild(h('p', { class: 'doc-blurb', text: 'Las fichas vivas de la saga. Cada estación se reparte la experiencia y los niveles se recalculan solos.' }));
-  if (canWrite()) page.appendChild(h('div', { class: 'actions' }, h('a', { class: 'btn', href: '#pj-nuevo', text: 'Nuevo personaje' })));
+  if (canWrite()) page.appendChild(h('div', { class: 'actions' }, [h('a', { class: 'btn', href: '#pj-nuevo', text: 'Nuevo personaje' }), ...importButton()]));
   const content = h('div', { class: 'content', style: 'margin-top:22px' });
   const note = statusNote();
   if (note) content.appendChild(note);
@@ -76,6 +77,8 @@ function viewPj(id, tab) {
   }
   // the tab on screen, on paper (or PDF): the print style drops the index, the buttons and the dark theme
   acts.push(h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir'));
+  // a file with the sheet, its seasons and the portrait, to keep or to import into this saga or another one
+  acts.push(h('button', { type: 'button', class: 'btn ghost', onclick: () => exportPj(id) }, 'Exportar'));
   hi.appendChild(h('div', { class: 'actions' }, acts));
   head.appendChild(hi);
   page.appendChild(head);
