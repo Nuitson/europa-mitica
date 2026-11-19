@@ -151,7 +151,7 @@ function pjFicha(content, pj, c, id) {
   if (fa) main.appendChild(formaBlock(pj, c, fa));
   const hasArts = ARTS.some(a => c.arts[a] > 0);
   if (hasArts || pj.tipo === 'Magus' || pj.tipo === 'Aprendiz') main.appendChild(sheetArts(pj, c, id));
-  main.appendChild(sheetAbil(c, id));
+  main.appendChild(sheetAbil(c, id, pj, fa));
   content.appendChild(h('div', { class: 'sheet' }, h('div', { class: 'sheet-in' }, [rail, main])));
 }
 const shHead = (id, t) => h('h3', { class: 'sh-h', id: id, text: t });
@@ -368,25 +368,52 @@ function sheetArts(pj, c, id) {
   return sec;
 }
 const habLv = (c, x) => abLvl(x.xp) + manaHab(c, x.n);
-function sheetAbil(c, id) {
+/* the floating buttons of the Abilities, one per Characteristic by its initials: pressing one turns each Ability into
+   its roll (level + that Characteristic + the wound and fatigue malus, without the die); pressing it again goes back
+   to the levels. The choice is kept while the page is open, so it survives the redraws of the sheet. */
+const CAR_INI = { Inteligencia: 'In', Percepción: 'Pe', Fuerza: 'Fu', Vitalidad: 'Vi', Presencia: 'Pr', Comunicación: 'Co', Destreza: 'De', Rapidez: 'Ra' };
+let habCar = '';
+function sheetAbil(c, id, pj, fa) {
   const sec = h('section', { class: 'sh-sec s-hab', 'aria-labelledby': 'sh-hab' }, [shHead('sh-hab', 'Habilidades')]);
-  if (c.hab.some(x => habLv(c, x) >= 1)) sec.appendChild(abilBlock(c));
-  else sec.appendChild(h('p', { class: 'sh-aside', text: 'Ninguna habilidad de nivel 1 o más todavía.' }));
   const low = c.hab.filter(x => x.xp > 0 && habLv(c, x) < 1).length;
-  if (low && id) sec.appendChild(h('a', { class: 'vd-more', href: '#pj--' + id + '--avance', text: low === 1 ? 'Una habilidad más en camino del nivel 1, en Avance' : low + ' habilidades más en camino del nivel 1, en Avance' }));
+  const more = low && id ? h('a', { class: 'vd-more', href: '#pj--' + id + '--avance', text: low === 1 ? 'Una habilidad más en camino del nivel 1, en Avance' : low + ' habilidades más en camino del nivel 1, en Avance' }) : null;
+  if (!c.hab.some(x => habLv(c, x) >= 1)) {
+    sec.appendChild(h('p', { class: 'sh-aside', text: 'Ninguna habilidad de nivel 1 o más todavía.' }));
+    if (more) sec.appendChild(more);
+    return sec;
+  }
+  const car = pjCar(pj, fa), e = estadoFisico(pj);
+  const note = h('p', { class: 'sh-aside hab-roll', 'aria-live': 'polite' });
+  const block = h('div');
+  const bar = h('div', { class: 'hab-cars', role: 'group', 'aria-label': 'Sumar una característica a las habilidades' });
+  const draw = () => {
+    const cv = habCar ? numv(car[habCar]) : 0;
+    note.hidden = !habCar;
+    note.textContent = !habCar ? '' : 'Tiradas con ' + habCar + ' (' + sgn(cv) + ')'
+      + (e.total ? ' y el malus por heridas y fatiga (' + sgn(e.total) + ')' : ', sin malus por heridas ni fatiga')
+      + ': nivel + característica' + (e.total ? ' + malus' : '') + ', sin el dado.' + (e.fuera ? ' ' + e.fuera + '.' : '')
+      + ' Pulsa ' + CAR_INI[habCar] + ' otra vez para ver solo los niveles.';
+    block.replaceChildren(abilBlock(c, habCar ? cv + e.total : null));
+    bar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.car === habCar)));
+  };
+  CHARS.forEach(n => bar.appendChild(h('button', { type: 'button', class: 'hab-car', 'data-car': n, title: n + ' ' + sgn(numv(car[n])), 'aria-label': 'Sumar ' + n + ' (' + sgn(numv(car[n])) + ')',
+    onclick: () => { habCar = habCar === n ? '' : n; draw(); } }, CAR_INI[n])));
+  draw();
+  [note, block, more, bar].forEach(x => { if (x) sec.appendChild(x); });
   return sec;
 }
-// the sheet lists the Abilities of level 1 or more; the ones still on their way to level 1 are in Avance (pjAvance)
-function abilBlock(c) {
+// the sheet lists the Abilities of level 1 or more; the ones still on their way to level 1 are in Avance (pjAvance).
+// With mod (a Characteristic plus the malus), the figure is the roll and the level goes in small type.
+function abilBlock(c, mod) {
   const groups = {};
   c.hab.forEach(x => { if (habLv(c, x) >= 1) (groups[x.cat || 'Otras'] = groups[x.cat || 'Otras'] || []).push(x); });
   const order = ABIL_CATS.filter(g => groups[g]).concat(Object.keys(groups).filter(g => !ABIL_CATS.includes(g)));
-  return h('div', { class: 'abil' }, order.map(g => h('section', null, [h('h4', { text: g })].concat(groups[g].sort((x, y) => x.n.localeCompare(y.n, 'es')).map(x => {
-    const L = abLvl(x.xp), need = abCost(L + 1) - x.xp, b = manaHab(c, x.n);
+  return h('div', { class: 'abil' + (mod == null ? '' : ' roll') }, order.map(g => h('section', null, [h('h4', { text: g })].concat(groups[g].sort((x, y) => x.n.localeCompare(y.n, 'es')).map(x => {
+    const L = abLvl(x.xp), need = abCost(L + 1) - x.xp, b = manaHab(c, x.n), lv = L + b, roll = mod == null ? null : lv + mod;
     const tags = [b ? 'Maña ' + sgn(b) : '', x.af ? 'Afinidad' : ''].filter(Boolean);
     return h('div', { 'data-base': String(L), title: fmt(x.xp) + ' px · faltan ' + fmt(need) + ' para el nivel ' + (L + 1) + (b ? ' · ' + L + ' + ' + b + ' de Maña' : '') }, [
       h('span', { html: esc(x.n) + (x.esp ? ' <em>(' + esc(x.esp) + ')</em>' : '') + tags.map(t => ' <small class="vtag">' + esc(t) + '</small>').join('') }),
-      h('span', { class: 'ab-r' }, [h('small', { text: fmt(x.xp) + ' px' }), h('b', { text: String(L + b) })])]);
+      h('span', { class: 'ab-r' }, [h('small', { text: roll == null ? fmt(x.xp) + ' px' : 'nivel ' + lv }), h('b', { class: roll != null && roll < 0 ? 'neg' : null, text: roll == null ? String(lv) : sgn(roll) })])]);
   })))));
 }
 function pjAvance(content, id, entries, c) {

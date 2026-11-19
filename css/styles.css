@@ -1019,6 +1019,18 @@ table.mx { width: 100%; table-layout: fixed; border-collapse: separate; border-s
 .sheet .abil .ab-r { gap: 12px; }
 .sheet .abil .ab-r small { font: 400 12.5px/1 var(--f-body); color: var(--ink-3); font-variant-numeric: tabular-nums lining-nums; }
 .sheet .abil .ab-r b { font: 600 19px/1 var(--f-body); min-width: 1.1em; text-align: right; font-variant-numeric: tabular-nums lining-nums; }
+.sheet .abil.roll .ab-r b { color: var(--blood-ink); min-width: 1.6em; }
+.sheet .abil .ab-r b.neg { color: var(--neg); }
+/* the Characteristic buttons of the Abilities: they float at the foot of the screen while the Abilities are in view */
+.hab-cars { position: sticky; bottom: 12px; z-index: 5; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: fit-content; max-width: 100%;
+  margin: 16px auto 0; padding: 6px; border-radius: 24px; background: color-mix(in srgb, var(--card) 90%, transparent); border: 1px solid var(--rule-2);
+  box-shadow: var(--shadow); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.hab-car { font: 600 13px/1 var(--f-ui); letter-spacing: .04em; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 1px solid var(--rule-2); background: var(--card); color: var(--ink-2); cursor: pointer; }
+.hab-car:hover { border-color: var(--blood); color: var(--blood-ink); }
+.hab-car[aria-pressed="true"] { background: var(--blood); border-color: var(--blood); color: #fff8f0; }
+.hab-car:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.hab-roll { margin-top: 0; }
+@media (max-width: 420px) { .hab-car { width: 34px; height: 34px; font-size: 12px; } }
 
 /* the animal form (Cambiapieles): a panel in the text block while it lasts */
 .sheet .forma { border: 1px solid var(--rule-2); border-radius: 12px; background: var(--paper-2); padding: 16px 20px 18px; gap: 14px; }
@@ -1221,7 +1233,7 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim { display: 
   }
   body { background: #fff; color: var(--ink); }
   .topbar, .side, .scrim, #gate, .toast, .modal, .lightbox, .tabs-wrap, .actions, .btn, .lnk, button.x,
-  .dt-tools, .info-hint, .saga-note, .chk.cer, .draft-note, .m-web { display: none !important; }
+  .dt-tools, .info-hint, .saga-note, .chk.cer, .draft-note, .m-web, .hab-cars { display: none !important; }
   .shell { display: block; }
   .main { padding: 0 !important; }
   .page { max-width: none; }
