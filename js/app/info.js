@@ -201,8 +201,8 @@ async function saveSpellPatch(pjId, i, s, patch, msg) {
   return ok;
 }
 
-/* a Virtue or Flaw: the compendium's text, its book and the note on the sheet */
-function vdInfo(x, clase) {
+/* a Virtue or Flaw: the compendium's text, its book and the note on the sheet; g, the character's gender, for its name */
+function vdInfo(x, clase, g) {
   if (!x) return;
   const e = vdEntry(x, clase);
   const body = [];
@@ -216,7 +216,7 @@ function vdInfo(x, clase) {
     const src = [e.en && tkey(e.en) !== tkey(e.n) ? '«' + e.en + '»' : '', e.libro, e.pag].filter(Boolean).join(', ');
     if (src) body.push(h('p', { class: 'info-src', text: src + '.' }));
   }
-  const close = openModal(vdLabel(x), body, [h('a', { class: 'btn ghost', href: '#virtudes-defectos--' + (clase === 'defecto' ? 'defectos' : 'virtudes'), onclick: () => { close(); }, text: 'Compendio' })]);
+  const close = openModal(vdLabel(x, g), body, [h('a', { class: 'btn ghost', href: '#virtudes-defectos--' + (clase === 'defecto' ? 'defectos' : 'virtudes'), onclick: () => { close(); }, text: 'Compendio' })]);
   const card = document.querySelector('.modal-card');
   if (card) card.classList.add('info');
 }

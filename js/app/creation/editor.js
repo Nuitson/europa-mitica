@@ -1,11 +1,12 @@
 /* El editor de personajes. */
 import { ARTS, ARTS_F, ARTS_T, artVar, fmt, h, load, norm, scrollHint, store } from '../base.js';
 import { page } from '../views.js';
-import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey, VD_CATS } from '../saga/state.js';
+import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../saga/state.js';
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
-import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, grpOf, isMagic, objOptionsHtml, PRESETS, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdIndex, vdLabel, vdNormalize, vdNota, vdOptionsHtml, vdTarget } from './rules.js';
+import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdIndex, vdLabel, vdNormalize, vdNota, vdOptionsHtml, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
+import { openVdTab } from './vdtab.js';
 
 /* ---------- editor */
 let EDITOR = null; // {d, isNew} of the form on screen
@@ -25,7 +26,7 @@ function loadDraft() {
 function draftHasContent(d) {
   return !!(String(d.nombre || '').trim() || (d.hab || []).length || (d.defectos || []).some(x => String(x.n || '').trim()) || (d.virtudes || []).some(x => String(x.n || '').trim() && vdFx(x, 'virtud') !== 'don') || (d.hechizos || []).length || String(d.concepto || '').trim());
 }
-const cleanVd = l => (l || []).filter(x => x && String(x.n || '').trim()).map(x => { const o = Object.assign({}, x); delete o._otra; o.n = String(o.n).trim(); if (!String(o.obj || '').trim()) delete o.obj; return o; });
+const cleanVd = l => (l || []).filter(x => x && String(x.n || '').trim()).map(x => { const o = Object.assign({}, x); delete o._otra; o.n = String(o.n).trim(); if (!String(o.obj || '').trim()) delete o.obj; if (!String(o.obj2 || '').trim()) delete o.obj2; return o; });
 function viewEditor(id, override) {
   const orig = id ? S.pj[id] : null;
   page.innerHTML = '';
@@ -38,6 +39,8 @@ function viewEditor(id, override) {
   if (!d) d = orig ? clone(orig) : blankPj();
   ['virtudes', 'defectos', 'hab', 'hechizos', 'personalidad'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(x => x && typeof x === 'object') : []; });
   d.virtudes = d.virtudes.map(vdNormalize);
+  // El Don is always free, and its row is locked for magi: one saved without a value gets it here
+  d.virtudes.forEach(x => { if (!x.valor && vdFx(x, 'virtud') === 'don') x.valor = 'Gratuita'; });
   // one row per ability (older forms allowed the same name twice): their px add up
   d.hab = d.hab.filter(x => x && typeof x === 'object').reduce((acc, x) => {
     const o = acc.find(y => String(x.n || '').trim() && tkey(y.n) === tkey(x.n));
@@ -75,6 +78,8 @@ function viewEditor(id, override) {
     field('Nombre', inp(d.nombre, v => { d.nombre = v; }, { required: true, placeholder: 'Nombre ex Casa', id: 'pj-nombre', autocomplete: 'off' }), null, 'w2'),
     field('Epíteto o apodo', inp(d.sub, v => { d.sub = v; }, { placeholder: 'fili de…' })),
     field('Tipo', sel(TIPOS, d.tipo, v => { d.tipo = v; ensureGift(d); drawVd(); drawHab(); if (artSec) artSec.hidden = !showArts(); if (eaField) eaField.hidden = !isMagic(CLASE[d.tipo]); }, { id: 'pj-tipo' })),
+    // the gender of the names of the virtues and flaws on the sheet: «Compasivo», «Compasiva», «Compasive»
+    field('Género', sel(GENERO, d.genero || 'm', v => { d.genero = v; drawVd(); }, { id: 'pj-genero' }), 'Para los nombres de virtudes y defectos; el neutro, en -e.'),
     field('Casa', inp(d.casa, v => { d.casa = v; }, { list: casaDl, autocomplete: 'off' })),
     field('Jugador', inp(d.jugador, v => { d.jugador = v; })),
     h('label', { class: 'fld' }, [h('span', { class: 'fl', text: 'Año de nacimiento' }), inp(d.nacimiento, v => { d.nacimiento = parseInt(v, 10) || ''; drawAge(); drawHab(); }, { type: 'number', inputmode: 'numeric', id: 'pj-nac' }), ageNote]),
@@ -164,6 +169,8 @@ function viewEditor(id, override) {
   function vdRow(k, clase, x, i, focus) {
     const idx = vdIndex();
     const fxk = vdFx(x, clase), kind = FX_OBJ[fxk];
+    // the other brackets the player fills in: «(Reino) estigmático», «Vulnerable a (Forma)»…
+    const slots = kind ? [] : vdSlots(x, clase);
     const locked = clase === 'virtud' && fxk === 'don' && isMagic(CLASE[d.tipo]);
     const named = !!String(x.n || '').trim();
     const e = named ? vdEntry(x, clase) : null;
@@ -195,15 +202,17 @@ function viewEditor(id, override) {
       let need = false;
       vdMutate(() => {
         delete x._otra;
-        if (v === '__otra') { x.n = ''; delete x.en; delete x.obj; x._otra = true; x.valor = x.valor || 'Menor'; if (x.nota === auto) x.nota = ''; }
-        else if (!v) { x.n = ''; delete x.en; delete x.obj; x.valor = ''; if (x.nota === auto) x.nota = ''; }
+        if (v === '__otra') { x.n = ''; delete x.en; delete x.obj; delete x.obj2; x._otra = true; x.valor = x.valor || 'Menor'; if (x.nota === auto) x.nota = ''; }
+        else if (!v) { x.n = ''; delete x.en; delete x.obj; delete x.obj2; x.valor = ''; if (x.nota === auto) x.nota = ''; }
         else {
           const ne = idx.list[Number(v)];
           Object.assign(x, { n: ne.n, en: ne.en, cat: ne.cat, valor: ne.valor });
           if (!x.nota || x.nota === auto) x.nota = vdNota(ne);
           const nk = FX_OBJ[vdFx(x, clase)];
-          if (nk !== kind) delete x.obj;
-          need = !!nk && !x.obj;
+          const ns = nk ? [] : vdSlots(x, clase);
+          // another kind of choice (an Ability instead of a realm…): the old one no longer applies
+          if (nk !== kind || ns.map(s => s.k).join() !== slots.map(s => s.k).join()) { delete x.obj; delete x.obj2; }
+          need = (!!nk || ns.length > 0) && !x.obj;
         }
       });
       afterVd({ k: k, i: i, el: v === '__otra' ? 'other' : need ? 'obj' : 'name' });
@@ -236,6 +245,25 @@ function viewEditor(id, override) {
       });
       objCell = h('label', { class: 'cell vd-o', 'data-l': 'Se aplica a' }, objSel);
       if (focus && focus.el === 'obj') setTimeout(() => objSel.focus(), 0);
+    } else if (slots.length) {
+      // a list for the realm, the Form, the Technique…; a word to type for the beings, the land, the guild…
+      const ctl = slots.map((s, j) => {
+        const key = j ? 'obj2' : 'obj', cur = String(x[key] || '').trim();
+        const lbl = 'Elige ' + (SLOT_TXT[s.k] || s.w.toLowerCase());
+        if (s.k === 'txt') {
+          const ti = inp(cur, v => { x[key] = v.trim(); ti.classList.toggle('need', !v.trim()); }, { 'aria-label': lbl, title: lbl, placeholder: s.w, autocomplete: 'off', class: cur ? null : 'need' });
+          ti.addEventListener('change', () => refresh());
+          return ti;
+        }
+        const sl = h('select', { 'aria-label': lbl, title: lbl, class: cur ? null : 'need' });
+        sl.innerHTML = objOptionsHtml(s.k, d);
+        if (cur && ![...sl.options].some(o => o.value === cur)) sl.appendChild(h('option', { value: cur }, cur));
+        sl.value = cur;
+        sl.addEventListener('change', () => { x[key] = sl.value; sl.classList.toggle('need', !sl.value); refresh(); });
+        return sl;
+      });
+      objCell = h('div', { class: 'cell vd-o' + (ctl.length > 1 ? ' two' : ''), 'data-l': 'Se aplica a' }, ctl);
+      if (focus && focus.el === 'obj') setTimeout(() => ctl[0].focus(), 0);
     } else objCell = h('span', { class: 'cell vd-o none', 'aria-hidden': 'true' });
     // value: the compendium's, or another (a House's free virtue); the same name may exist as major and minor
     const valSel = sel([['', '—'], ['Mayor', 'Mayor (3)'], ['Menor', 'Menor (1)'], ['Gratuita', 'Gratuita'], ['Especial', 'Especial']], x.valor || '', v => {
@@ -248,17 +276,33 @@ function viewEditor(id, override) {
     }, { 'aria-label': 'Valor', disabled: locked ? true : null });
     const notaIn = inp(x.nota, v => { x.nota = v; }, { 'aria-label': 'Nota', placeholder: 'Nota o página' });
     const eff = named ? vdEffTxt(x, clase, fxk) : '';
+    // the name as the sheet will show it in the character's gender («Compasiva»), when it changes
+    const shown = named && d.genero && d.genero !== 'm' ? vdLabel(x, d.genero) : '';
+    const asTxt = shown && shown !== vdLabel(x) ? 'En la ficha: «' + shown + '». ' : '';
+    // a status that grows into another: «Aprendiz» → «Magus Hermético» when the Gauntlet is passed
+    const evo = vdEvolve(x, clase);
+    const evoBtn = evo ? h('button', { type: 'button', class: 'lnk vd-evo', title: vdLabel(x, d.genero) + ' → ' + vdGen(evo.to.n, d.genero), onclick: () => {
+      vdMutate(() => {
+        Object.assign(x, { n: evo.to.n, en: evo.to.en, cat: evo.to.cat, valor: evo.to.valor });
+        delete x._otra; delete x.obj; delete x.obj2;
+        x.nota = evo.nota + (vdNota(evo.to) ? ' · ' + vdNota(evo.to) : '');
+      });
+      // an apprentice who becomes a magus is a Magus from now on
+      if (evo.magus && d.tipo === 'Aprendiz') { const t = document.getElementById('pj-tipo'); if (t) { t.value = 'Magus'; t.dispatchEvent(new Event('change')); } }
+      afterVd({ k: k, i: i, el: 'name' });
+      toast(evo.nota + ': ahora es ' + vdGen(evo.to.n, d.genero) + '. Guarda la ficha para conservarlo.');
+    } }, evo.label + ' → ' + vdGen(evo.to.n, d.genero)) : null;
     const full = canon && canon.desc ? canon.desc : '';
     const desc = full.length > 220 ? full.slice(0, 218) + '…' : full;
-    const row = h('div', { class: 'lrow vd' + (locked ? ' locked' : '') + (kind ? '' : ' noobj') }, [
+    const row = h('div', { class: 'lrow vd' + (locked ? ' locked' : '') + (kind || slots.length ? '' : ' noobj') }, [
       h('label', { class: 'cell vd-t', 'data-l': 'Tipo' }, tipoSel),
-      h('div', { class: 'cell vd-n', 'data-l': clase === 'virtud' ? 'Virtud' : 'Defecto' }, [nameSel, other]),
+      h('div', { class: 'cell vd-n', 'data-l': clase === 'virtud' ? 'Virtud' : 'Defecto' }, [nameSel, other, evoBtn]),
       objCell,
       h('label', { class: 'cell vd-v', 'data-l': 'Valor' }, valSel),
       h('label', { class: 'cell vd-nota', 'data-l': 'Nota' }, notaIn),
       pts,
       locked ? h('span', { class: 'lock', title: 'Obligatorio para los magos', text: 'oblig.' }) : h('button', { type: 'button', class: 'x', 'aria-label': 'Quitar ' + (vdLabel(x) || 'fila'), onclick: () => { vdMutate(() => { d[k].splice(i, 1); }); afterVd(); } }, '×'),
-      desc || eff ? h('p', { class: 'vd-desc', title: full.length > 220 ? full : null }, [desc ? document.createTextNode(desc + (eff ? ' ' : '')) : null, eff ? h('b', { text: eff }) : null]) : null]);
+      desc || eff || asTxt ? h('p', { class: 'vd-desc', title: full.length > 220 ? full : null }, [asTxt ? h('i', { text: asTxt }) : null, desc ? document.createTextNode(desc + (eff ? ' ' : '')) : null, eff ? h('b', { text: eff }) : null]) : null]);
     if (focus && focus.el !== 'obj') setTimeout(() => { const t = focus.el === 'other' ? other : focus.el === 'valor' ? valSel : nameSel; if (t && !t.disabled) t.focus(); }, 0);
     return row;
   }
@@ -274,17 +318,42 @@ function viewEditor(id, override) {
     });
     refresh();
   }
-  const picker = vdPicker((item, kind) => {
-    const clase = kind === 'virtudes' ? 'virtud' : 'defecto';
-    const objKind = FX_OBJ[vdFx(item, clase)];
-    if (!objKind && d[kind].some(x => tkey(x.n) === tkey(item.n))) { toast(item.n + ' ya está en la ficha.'); return; }
-    vdMutate(() => { d[kind].push(item); });
-    afterVd(objKind ? { k: kind, i: d[kind].length - 1, el: 'obj' } : null);
-    toast('Añadida a ' + kind + ': ' + item.n + (objKind ? '. Elige a qué se aplica.' : ''));
-  });
+  // the compendium tab (vdtab.js): a box per entry adds it to the sheet or takes it out; the rows below keep the rest
+  const vdKind = clase => clase === 'virtud' ? 'virtudes' : 'defectos';
+  const sameVd = (x, e) => { const xe = String(x.n || '').trim() ? vdEntry(x, e.clase) : null; return !!xe && xe.dk === e.dk; };
+  const vdTab = {
+    genero: () => d.genero,
+    chosen: e => d[vdKind(e.clase)].some(x => sameVd(x, e)),
+    locked: e => e.clase === 'virtud' && vdFx({ n: e.n, en: e.en, valor: e.valor }, 'virtud') === 'don' && isMagic(CLASE[d.tipo]),
+    toggle(e, on) {
+      const kind = vdKind(e.clase);
+      if (on) {
+        if (vdTab.chosen(e)) return;
+        if (d[kind].some(x => tkey(x.n) === tkey(e.n))) { toast(e.n + ' ya está en la ficha con otro valor.'); return; }
+        vdMutate(() => { d[kind].push({ n: e.n, en: e.en, cat: e.cat, valor: e.valor, nota: vdNota(e) }); });
+      } else {
+        if (vdTab.locked(e)) return;
+        vdMutate(() => { d[kind] = d[kind].filter(x => !sameVd(x, e)); });
+      }
+      afterVd();
+    },
+    // the same rule as the check of the budget (creation/rules.js): flaws give points, virtues spend them
+    balance() {
+      const cls = CLASE[d.tipo] || 'otro';
+      const pts = (k, clase) => d[k].filter(x => x && String(x.n || '').trim()).reduce((s, x) => { const v = valorOf(x, clase); return s + (v === 'Mayor' ? 3 : v === 'Menor' ? 1 : 0); }, 0);
+      return { pv: pts('virtudes', 'virtud'), pd: pts('defectos', 'defecto'), cap: cls === 'grog' ? 3 : cls === 'otro' ? null : 10 };
+    },
+    summary() {
+      const named = k => d[k].filter(x => String(x.n || '').trim());
+      const pts = (k, clase) => named(k).reduce((s, x) => { const v = valorOf(x, clase); return s + (v === 'Mayor' ? 3 : v === 'Menor' ? 1 : 0); }, 0);
+      const nv = named('virtudes').length, nd = named('defectos').length;
+      return (nv === 1 ? '1 virtud' : nv + ' virtudes') + ' (' + pts('virtudes', 'virtud') + ' pts) · ' + (nd === 1 ? '1 defecto' : nd + ' defectos') + ' (' + pts('defectos', 'defecto') + ' pts)';
+    }
+  };
+  const vdOpen = h('div', { class: 'actions vd-open' }, h('button', { type: 'button', class: 'btn', id: 'vd-open', onclick: () => openVdTab(vdTab) }, 'Elegir virtudes y defectos'));
   f.appendChild(sec('Virtudes y defectos', [h('p', { class: 'fh', text: (showRules ? 'Se empieza con 0 puntos: cada defecto mayor da 3 y cada menor 1; cada virtud mayor cuesta 3 y cada menor 1. Magos y compañeros, hasta 10 puntos de defectos; grogs, hasta 3. El Don es gratuito y obligatorio para los magos. ' : '') +
-    'Elige el tipo y la virtud o el defecto en los desplegables, o búscalo por nombre: se rellenan el valor y la página, y las Mañas, Afinidades, Características Notables y los estatus o virtudes que dan experiencia se aplican solos a la ficha.' }),
-    picker, vdBox], 'vd'));
+    '«Elegir virtudes y defectos» abre el compendio con buscador y filtros: marca la casilla de cada una para añadirla. Aquí abajo eliges a qué se aplican las Mañas, Afinidades y Características Notables, cambias el valor o escribes notas; el valor y la página se rellenan solos, y lo que da experiencia se aplica a la ficha.' }),
+    vdOpen, vdBox], 'vd'));
   // abilities: every standard Ability plus this character's own, in balanced columns. Only the px are typed;
   // the level and the px missing for the next one follow (Affinity: the px count ×1.5; Puissant: +2 on the level)
   const habGrid = h('div', { class: 'hab-grid', id: 'hab-grid', lang: 'es' });
@@ -526,6 +595,8 @@ function viewEditor(id, override) {
         if (k in live) out[k] = clone(live[k]); else delete out[k];
       });
     }
+    // El Don without a value (older sheets): always free, also when the rest of the virtues come from the live copy
+    (out.virtudes || []).forEach(x => { if (x && !x.valor && vdFx(x, 'virtud') === 'don') x.valor = 'Gratuita'; });
     save.disabled = true;
     const ok = await dbWrite(() => S.db.doc('personajes/' + pid).set(stamp(out, !orig)), orig ? 'Ficha guardada' : 'Personaje creado');
     save.disabled = false;
@@ -598,41 +669,4 @@ function renameSlot(d, slot, oldVal, newVal) {
   // the homeland's Area Lore shows among the abilities, ready for its px
   if (slot === 'tierra' && newVal && !d.hab.some(x => tkey(x.n) === tkey(newVal))) d.hab.push({ n: newVal, cat: 'Conocimientos de área', esp: '', base: 0 });
 }
-/* compendium search with filters, next to the drop-downs */
-function vdSearch(q, f) {
-  f = f || {};
-  const terms = norm(q || '').split(/\s+/).filter(t => t.length > 1);
-  const hits = vdIndex().list.filter(e => (!f.clase || e.clase === f.clase) && (!f.tipo || norm(e.cat) === norm(f.tipo)) && (!f.valor || e.valor === f.valor) && terms.every(t => e.key.includes(t)));
-  const first = terms[0] || '';
-  return hits.sort((a, b) => (norm(b.n).includes(first) - norm(a.n).includes(first)) || (b.core - a.core) || a.n.localeCompare(b.n, 'es'));
-}
-function vdPicker(onAdd) {
-  const st = { q: '', clase: '', tipo: '', valor: '' };
-  const box = h('div', { class: 'picker' });
-  const q = h('input', { type: 'search', id: 'vd-q', placeholder: 'Buscar en el compendio…', autocomplete: 'off', 'aria-label': 'Buscar virtud o defecto' });
-  const res = h('div', { class: 'picker-res' });
-  const draw = () => {
-    res.innerHTML = '';
-    if (!st.q.trim() && !st.tipo && !st.valor) return;
-    const hits = vdSearch(st.q, st);
-    hits.slice(0, 12).forEach(e => {
-      res.appendChild(h('button', { type: 'button', class: 'pick', onclick: () => onAdd({ n: e.n, en: e.en, cat: e.cat, valor: e.valor, nota: vdNota(e) }, e.clase === 'virtud' ? 'virtudes' : 'defectos') }, [
-        h('span', { class: 'pk' + (e.clase === 'defecto' ? ' def' : ''), text: (e.clase === 'virtud' ? 'Virtud' : 'Defecto') + (e.valor ? ' · ' + e.valor : '') }),
-        h('b', { text: e.n + (e.en && norm(e.en) !== norm(e.n) ? ' ' : '') }, e.en && norm(e.en) !== norm(e.n) ? h('i', { text: '(' + e.en + ')' }) : null),
-        h('span', { class: 'pm', text: [e.cat, e.libro === 'Core Rulebook' ? 'reglamento' : e.libro, e.pag].filter(Boolean).join(' · ') }),
-        e.desc ? h('span', { class: 'pdsc', text: e.desc.length > 170 ? e.desc.slice(0, 168) + '…' : e.desc }) : null]));
-    });
-    if (hits.length > 12) res.appendChild(h('p', { class: 'fh', text: 'y ' + (hits.length - 12) + ' más; afina la búsqueda.' }));
-    if (!hits.length) res.appendChild(h('p', { class: 'fh', text: 'Nada coincide; usa «Otra, escrita a mano» en el desplegable.' }));
-  };
-  q.addEventListener('input', () => { st.q = q.value; draw(); });
-  const filters = h('div', { class: 'picker-f' }, [q,
-    sel([['', 'Virtudes y defectos'], ['virtud', 'Solo virtudes'], ['defecto', 'Solo defectos']], '', v => { st.clase = v; draw(); }, { 'aria-label': 'Clase' }),
-    sel([['', 'Todos los tipos']].concat(VD_CATS), '', v => { st.tipo = v; draw(); }, { 'aria-label': 'Tipo' }),
-    sel([['', 'Mayor y menor'], ['Mayor', 'Mayor (3)'], ['Menor', 'Menor (1)'], ['Gratuita', 'Gratuita']], '', v => { st.valor = v; draw(); }, { 'aria-label': 'Valor' })]);
-  box.appendChild(filters);
-  box.appendChild(res);
-  return box;
-}
-
 export { viewEditor };

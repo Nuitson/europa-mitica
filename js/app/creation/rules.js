@@ -1,7 +1,33 @@
 /* Creación de personajes: el compendio de virtudes y defectos y las reglas de creación. */
 import { artOf, ARTS, ARTS_F, ARTS_T, DATA, DOCS, esc, norm } from '../base.js';
-import { ABIL_STD, CHARS, KEYP, tkey, VD_CATS } from '../saga/state.js';
+import { ABIL_STD, CASAS, CHARS, KEYP, tkey, VD_CATS } from '../saga/state.js';
 import { abCost, abLvl, afXp, artLvl, curSeason, guessCat, numv, sgn } from '../saga/rules.js';
+import { GEN_F } from './generos.js';
+
+/* ---------- the character's grammatical gender (pj.genero: 'm', 'f' or 'n'; none means the compendium's masculine).
+   The neutral form is inclusive Spanish in -e, taken from the feminine word by word: -a → -e, -ca → -que, -ga → -gue */
+const GENERO = [['m', 'Masculino'], ['f', 'Femenino'], ['n', 'Neutro']];
+const GENERO_TXT = { m: 'masculino', f: 'femenino', n: 'neutro' };
+function neutroDe(m, f) {
+  const mw = m.split(' '), fw = f.split(' ');
+  if (mw.length !== fw.length) return f;
+  return fw.map((w, i) => w === mw[i] ? w : w.replace(/ca(s?)$/, 'que$1').replace(/ga(s?)$/, 'gue$1').replace(/a(s?)$/, 'e$1')).join(' ');
+}
+// tkey of every form → {m, f, n}: the masculine of the compendium, the feminine and the neutral
+const GEN = new Map();
+Object.keys(GEN_F).forEach(m => {
+  const v = GEN_F[m], f = Array.isArray(v) ? v[0] : v, n = Array.isArray(v) ? v[1] : neutroDe(m, f);
+  const e = { m: m, f: f, n: n };
+  [m, f, n].forEach(w => { if (!GEN.has(tkey(w))) GEN.set(tkey(w), e); });
+});
+/* a virtue's or flaw's name in the character's gender, whichever form it was written in («Compasiva» → «Compasive» for
+   neutral); without a gender, the name as it is written */
+function vdGen(name, g) {
+  const s = String(name || '');
+  const e = g && GEN.get(tkey(s));
+  if (!e) return s;
+  return g === 'f' ? e.f : g === 'n' ? e.n : e.m;
+}
 
 /* ================================================================== CREACIÓN DE PERSONAJES
    Rules of ArM5 character creation, checked live in the editor. Sources: ArM5 core, chapters 3 and 4 (Project Redcap's open
@@ -28,6 +54,14 @@ const FX = {
 /* the ones that apply to something the player chooses: an Ability, an Art or a Characteristic */
 const FX_OBJ = { afHab: 'hab', manaHab: 'hab', afArte: 'art', manaArte: 'art', carGrande: 'car', carPobre: 'car' };
 const FX_GENERIC = { afHab: 'Affinity with Ability', afArte: 'Affinity with Art', manaHab: 'Puissant (Ability)', manaArte: 'Puissant Art' };
+/* the brackets of a name that the player fills in: «(Reino) estigmático», «Vulnerable a (Forma)», «Inofensivo para
+   (Seres)»… A list for the ones the page knows (realm, Form, Technique, Ability, Characteristic, House), a typed word
+   for the rest. Brackets that name a fixed variant («(Tribunal del Rin)», «(Zmey)», «(Islámico)») are not choices. */
+const REINOS = [['Magia', 'Magia'], ['Feérico', 'Feérico'], ['Dominio', 'Dominio (divino)'], ['Infernal', 'Infernal']];
+const SLOT_KIND = { reino: 'reino', forma: 'forma', tecnica: 'tec', habilidad: 'hab', arte: 'art', caracteristica: 'car', casa: 'casa',
+  tipo: 'txt', seres: 'txt', ser: 'txt', 'ser-magico': 'txt', terreno: 'txt', 'tipo-de-terreno': 'txt', 'de-un-terreno': 'txt', pnj: 'txt', pj: 'txt',
+  'signo-planeta': 'txt', 'signo-o-planeta': 'txt', pecado: 'txt', gremio: 'txt', facultad: 'txt', mercancia: 'txt', enemigo: 'txt', rol: 'txt', 'tipo-habilidad': 'txt' };
+const SLOT_TXT = { reino: 'el reino', forma: 'la Forma', tec: 'la Técnica', hab: 'la habilidad', art: 'el Arte', car: 'la característica', casa: 'la casa' };
 /* what the page does with each one (shown under the row) */
 const FX_TXT = {
   don: 'Obligatoria y gratuita para magos y aprendices.',
@@ -72,7 +106,8 @@ function vdIndex() {
       const e = { clase: si === 0 ? 'virtud' : 'defecto', n: r[0], en: r[1] || '', cat: r[2] || '', valor: r[3] || '', libro: r[4] || '', pag: r[5] || '', desc: r[6] || '' };
       if (!String(e.n || '').trim()) return;
       e.i = VD_IDX.list.length;
-      e.key = norm([e.n, e.en, e.cat, e.desc].join(' '));
+      const ge = GEN.get(tkey(e.n));
+      e.key = norm([e.n, e.en, e.cat, e.desc].concat(ge ? [ge.f, ge.n] : []).join(' ')); // «compasiva» finds «Compasivo»
       e.core = e.libro === 'Core Rulebook';
       // one option per virtue: the same rule from several books (or two Spanish names of it) shows once, from the core book if it is there
       e.dk = e.clase + '|' + tkey(e.en || e.n) + '|' + e.valor + '|' + tkey(e.cat);
@@ -88,6 +123,11 @@ function vdIndex() {
         VD_IDX.byKey.get(kk).push(e);
       });
     });
+  }));
+  // the feminine and neutral forms find the same entries as the masculine: «Compasiva» written by hand is «Compasivo»
+  GEN.forEach((g, k) => ['virtud', 'defecto'].forEach(cl => {
+    const arr = VD_IDX.byKey.get(tkey(g.m) + '|' + cl);
+    if (arr && !VD_IDX.byKey.has(k + '|' + cl)) VD_IDX.byKey.set(k + '|' + cl, arr);
   }));
   const ord = c => { const i = VD_CATS.indexOf(c); return i < 0 ? 99 : i; };
   Object.values(VD_IDX.cats).forEach(l => l.sort((a, b) => ord(a) - ord(b) || a.localeCompare(b, 'es')));
@@ -132,6 +172,31 @@ function vdTarget(x, f) {
   if (kind === 'car') return CHARS.find(c => tkey(c) === tkey(o)) || '';
   return o;
 }
+/* status virtues that grow into another one: the apprentice who passes the Gauntlet becomes a magus (and, in the Rhine
+   Tribunal, a journeyman, then a master, then an archmage). By the original name: [the next one, the button, the note] */
+const EVOLVE = {
+  'apprentice': ['Hermetic Magus', 'Superar el guantelete', 'Superó el guantelete'],
+  'apprentice-rhine-tribunal': ['Journeyman (Rhine Tribunal)', 'Superar el guantelete', 'Superó el guantelete'],
+  'journeyman-rhine-tribunal': ['Master (Rhine Tribunal)', 'Hacerse maestro', 'Se hizo maestro'],
+  'master-rhine-tribunal': ['Archmage (Rhine Tribunal)', 'Hacerse archimago', 'Se hizo archimago']
+};
+function vdEvolve(x, clase) {
+  if (clase !== 'virtud' || !x || !String(x.n || '').trim()) return null;
+  const e = vdEntry(x, 'virtud');
+  // «Aprendiz hermético» written by hand is the compendium's «Aprendiz»
+  const ev = EVOLVE[tkey(e ? (e.en || e.n) : (x.en || x.n))] || (tkey(x.n) === 'aprendiz-hermetico' ? EVOLVE.apprentice : null);
+  const to = ev && vdFind(ev[0], 'virtud');
+  return to ? { to: to, label: ev[1], nota: ev[2], magus: ev[0] === 'Hermetic Magus' } : null;
+}
+/* what the player fills in for this virtue or flaw: [{k: kind, w: the bracket's word}] — the target of a Maña,
+   Afinidad or Característica Notable/Mediocre (stored in obj), or each bracket of the name (obj, then obj2) */
+function vdSlots(x, clase) {
+  const f = vdFx(x, clase);
+  if (FX_OBJ[f]) return [{ k: FX_OBJ[f], w: '' }];
+  const e = x && String(x.n || x.en || '').trim() ? vdEntry(x, clase) : null;
+  if (!e) return [];
+  return [...String(e.n).matchAll(/\(([^)]+)\)/g)].map(m => ({ k: SLOT_KIND[tkey(m[1])], w: m[1].trim() })).filter(s => s.k).slice(0, 2);
+}
 /* the effects on the sheet: used by the editor, the live sheet (calc) and the season editor */
 function vdEffects(pj) {
   const fx = { af: { hab: new Set(), art: new Set() }, mana: { hab: {}, art: {} }, car: {} };
@@ -151,10 +216,17 @@ function vdEffects(pj) {
   return fx;
 }
 /* «Maña con (Habilidad)» + Concentración → «Maña con Concentración» */
-function vdLabel(x) {
-  const n = String((x && x.n) || '').trim(), o = String((x && x.obj) || '').trim();
+/* «(Reino) estigmático» + Dominio → «Dominio estigmático»: each bracket to fill takes its choice, in order;
+   g, the character's gender, turns the name into its feminine or neutral form first («Dominio estigmática») */
+function vdLabel(x, g) {
+  const n = vdGen(String((x && x.n) || '').trim(), g), o = String((x && x.obj) || '').trim(), o2 = String((x && x.obj2) || '').trim();
+  if (!o && !o2) return n;
+  const vals = [o, o2];
+  let i = 0, used = 0;
+  const b = n.replace(/\(([^)]+)\)/g, (m, w) => { if (!SLOT_KIND[tkey(w)]) return m; const v = vals[i++]; if (!v) return m; used++; return v; });
+  if (used) return b;
   if (!o) return n;
-  const r = n.replace(/\(\s*(habilidad|arte|caracter[ií]stica)\s*\)|\b(habilidad|arte)\b/i, o);
+  const r = n.replace(/\b(habilidad|arte)\b/i, o);
   return r !== n ? r : n + ' (' + o + ')';
 }
 /* «Afinidad con Vim» (Excel) → the compendium's «Afinidad con Arte» applied to Vim */
@@ -229,8 +301,13 @@ function creationCheck(d) {
   if (unknown.length) avisos.push('No están en el compendio (revisa el nombre y el valor): ' + unknown.join(', ') + '.');
   // Maña, Afinidad and Característica Notable/Mediocre need their target, once per target
   const noObj = [], twice = [], seenObj = new Set();
-  [[V, fxV], [D, fxD]].forEach(([L, F]) => L.forEach((x, i) => {
-    if (!FX_OBJ[F[i]]) return;
+  [[V, fxV, 'virtud'], [D, fxD, 'defecto']].forEach(([L, F, clase]) => L.forEach((x, i) => {
+    if (!FX_OBJ[F[i]]) {
+      // the other brackets to fill: the realm, the Form, the beings…
+      const sl = vdSlots(x, clase);
+      if (sl.some((s, j) => !String((j ? x.obj2 : x.obj) || '').trim())) noObj.push('«' + x.n + '»');
+      return;
+    }
     const t = vdTarget(x, F[i]);
     if (!t) { noObj.push('«' + x.n + '»'); return; }
     const k = F[i] + '|' + tkey(t);
@@ -407,6 +484,10 @@ function vdOptionsHtml(clase, tipo) {
 function objOptionsHtml(kind, d) {
   if (kind === 'art') return optH('', '— Elige —') + grpH('Técnicas', ARTS_T.map(a => optH(a)).join('')) + grpH('Formas', ARTS_F.map(a => optH(a)).join(''));
   if (kind === 'car') return optH('', '— Elige —') + CHARS.map(c => optH(c)).join('');
+  if (kind === 'reino') return optH('', '— Elige el reino —') + REINOS.map(([v, l]) => optH(v, l)).join('');
+  if (kind === 'forma') return optH('', '— Elige la Forma —') + ARTS_F.map(a => optH(a)).join('');
+  if (kind === 'tec') return optH('', '— Elige la Técnica —') + ARTS_T.map(a => optH(a)).join('');
+  if (kind === 'casa') return optH('', '— Elige la casa —') + CASAS.map(c => optH(c)).join('');
   const mine = [], seen = new Set();
   (d.hab || []).forEach(x => { const n = String(x.n || '').trim(); if (n && !seen.has(tkey(n))) { seen.add(tkey(n)); mine.push(n); } });
   let html = optH('', '— Elige —') + grpH('En la ficha', mine.sort((a, b) => a.localeCompare(b, 'es')).map(n => optH(n)).join(''));
@@ -419,4 +500,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, grpOf, isMagic, objOptionsHtml, PRESETS, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdIndex, vdLabel, vdNormalize, vdNota, vdOptionsHtml, vdTarget };
+export { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdIndex, vdLabel, vdNormalize, vdEvolve, vdNota, vdOptionsHtml, vdSlots, vdTarget };

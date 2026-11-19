@@ -109,10 +109,11 @@ function formaButtons(id, pj) {
   return formasOf(pj).filter(f => !act || act.id === f.id).map(f => h('button', { type: 'button', class: 'btn ghost forma-btn', 'data-forma': f.id,
     onclick: async e => { const b = e.currentTarget; b.disabled = true; if (!(await setForma(id, act ? null : f.id))) b.disabled = false; } }, act ? 'Volver a forma humana' : 'Transformarse en ' + f.n.toLowerCase()));
 }
-function vdCards(list, clase) {
+// g: the character's gender, for the names («Compasiva»)
+function vdCards(list, clase, g) {
   const L = (Array.isArray(list) ? list : []).filter(x => x && String(x.n || '').trim());
   return h('ul', { class: 'm-vd' }, L.map(x => h('li', null, [
-    h('div', { class: 'm-vd-h' }, [clase ? h('button', { type: 'button', class: 'info-btn', onclick: () => vdInfo(x, typeof clase === 'function' ? clase(x) : clase) }, h('b', { text: vdLabel(x) })) : h('b', { text: vdLabel(x) }), h('span', { class: 'xt', text: [x.cat, x.valor].filter(Boolean).join(' · ') })]),
+    h('div', { class: 'm-vd-h' }, [clase ? h('button', { type: 'button', class: 'info-btn', onclick: () => vdInfo(x, typeof clase === 'function' ? clase(x) : clase, g) }, h('b', { text: vdLabel(x, g) })) : h('b', { text: vdLabel(x, g) }), h('span', { class: 'xt', text: [x.cat, x.valor].filter(Boolean).join(' · ') })]),
     x.nota ? h('div', { class: 'm-vd-n', text: x.nota }) : null])));
 }
 function formaBlock(pj, c, f) {
@@ -137,7 +138,7 @@ function formaBlock(pj, c, f) {
   const vd = (f.virtudes || []).concat(f.defectos || []).filter(x => x && String(x.n || '').trim());
   if (vd.length) {
     sec.appendChild(h('h4', { class: 'sh-rub', text: 'Virtudes y defectos del ' + f.n.toLowerCase() }));
-    sec.appendChild(ledger('sh-vd', vd.map(x => ({ l: vdLabel(x), n: x.nota || '', s: [(f.defectos || []).includes(x) ? 'defecto' : 'virtud', String(x.valor || '').toLowerCase()].filter(Boolean).join(' ') }))));
+    sec.appendChild(ledger('sh-vd', vd.map(x => ({ l: vdLabel(x, pj.genero), n: x.nota || '', s: [(f.defectos || []).includes(x) ? 'defecto' : 'virtud', String(x.valor || '').toLowerCase()].filter(Boolean).join(' ') }))));
   }
   if (f.fuente) sec.appendChild(h('p', { class: 'sh-aside', text: 'Fuente: ' + f.fuente }));
   return sec;

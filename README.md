@@ -28,6 +28,8 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/pjfile.js        exportar un personaje a un archivo e importarlo (en esta saga o en otra)
   creation/rules.js     compendio de virtudes y defectos y reglas de creación
   creation/editor.js    el editor de personajes
+  creation/vdtab.js     la pestaña para elegir virtudes y defectos: buscador, filtros, descripciones y casillas
+  creation/generos.js   las virtudes y defectos en femenino (el neutro, en -e, sale de ahí), según el género de la ficha
   master.js             la pantalla del máster (miembros de la saga, de quién es cada personaje, copias de seguridad)
   info.js               descripciones al pulsar un hechizo, una virtud o un defecto
 data/ayudas.json      las ayudas de juego compartidas (guías, virtudes y defectos, pantalla del jugador…)

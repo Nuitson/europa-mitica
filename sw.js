@@ -15,6 +15,8 @@ const FILES = [
   'js/app/blocks.js',
   'js/app/creation/editor.js',
   'js/app/creation/rules.js',
+  'js/app/creation/vdtab.js',
+  'js/app/creation/generos.js',
   'js/app/info.js',
   'js/app/main.js',
   'js/app/master.js',

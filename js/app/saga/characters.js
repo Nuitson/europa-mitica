@@ -6,7 +6,7 @@ import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toas
 import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
-import { vdLabel } from '../creation/rules.js';
+import { GENERO_TXT, vdLabel } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
 import { spellInfo, vdInfo } from '../info.js';
@@ -62,7 +62,7 @@ function viewPj(id, tab) {
   hi.appendChild(h('h1', { class: 'doc-title', text: pj.nombre }));
   if (pj.sub) hi.appendChild(h('div', { class: 'pj-sub', text: pj.sub }));
   const role = pj.casa ? (/^(Magus|Maga|Aprendiz)$/.test(pj.tipo || '') ? pj.tipo + ' de la casa ' + pj.casa : [pj.tipo, pj.casa].filter(Boolean).join(', ')) : pj.tipo;
-  const meta = h('div', { class: 'doc-meta pj-meta' }, [role, pj.nacimiento ? (edadTxt(ca, pj.nacimiento) ? edadTxt(ca, pj.nacimiento) + ' (n. ' + pj.nacimiento + ')' : 'n. ' + pj.nacimiento) : '', pj.aparenta ? String(pj.aparenta) : '',
+  const meta = h('div', { class: 'doc-meta pj-meta' }, [role, GENERO_TXT[pj.genero] ? 'Género ' + GENERO_TXT[pj.genero] : '', pj.nacimiento ? (edadTxt(ca, pj.nacimiento) ? edadTxt(ca, pj.nacimiento) + ' (n. ' + pj.nacimiento + ')' : 'n. ' + pj.nacimiento) : '', pj.aparenta ? String(pj.aparenta) : '',
     pj.jugador ? 'Juega ' + pj.jugador : '', pj.activo === false ? 'Fuera de juego' : ''].filter(Boolean).map(t => h('span', { text: t })));
   if (pj.excel && DOCS[pj.excel]) meta.appendChild(h('a', { href: '#' + pj.excel, text: 'Hoja de Excel original' }));
   const fa = formaActiva(pj);
@@ -121,13 +121,13 @@ function viewPj(id, tab) {
     content.appendChild(R.stats({ items: [{ l: 'Virtudes', v: String(V.length), s: pts(V) + ' puntos' }, { l: 'Defectos', v: String(D.length), s: pts(D) + ' puntos' }] }));
     [['Virtudes', V], ['Defectos', D]].forEach(([t, l]) => {
       content.appendChild(h('h3', { text: t }));
-      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(x => [vdLabel(x), x.cat || '', x.valor || '', x.nota || '']), fcl: true, info: i => vdInfo(l[i], t === 'Virtudes' ? 'virtud' : 'defecto') }));
+      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(x => [vdLabel(x, pj.genero), x.cat || '', x.valor || '', x.nota || '']), fcl: true, info: i => vdInfo(l[i], t === 'Virtudes' ? 'virtud' : 'defecto', pj.genero) }));
       else content.appendChild(h('p', { class: 'note', text: 'Ninguno.' }));
     });
     const fa = formaActiva(pj);
     if (fa && (fa.virtudes || []).concat(fa.defectos || []).length) {
       content.appendChild(h('h3', { text: 'Del ' + fa.n.toLowerCase() + ', mientras está transformado' }));
-      content.appendChild(vdCards((fa.virtudes || []).concat(fa.defectos || []), x => (fa.defectos || []).includes(x) ? 'defecto' : 'virtud'));
+      content.appendChild(vdCards((fa.virtudes || []).concat(fa.defectos || []), x => (fa.defectos || []).includes(x) ? 'defecto' : 'virtud', pj.genero));
     }
   } else {
     if (pj.notas) String(pj.notas).split(/\n+/).forEach(p => content.appendChild(h('p', { text: p })));
@@ -255,7 +255,7 @@ function sheetVd(pj, id) {
     const L = (Array.isArray(l) ? l : []).filter(x => x && String(x.n || '').trim());
     const clase = t === 'Virtudes' ? 'virtud' : 'defecto';
     cols.appendChild(h('div', { class: 'sh-vdcol' }, [shHead(k, t),
-      L.length ? ledger('sh-vd', L.map(x => ({ l: vdLabel(x), s: String(x.valor || '').toLowerCase(), title: [x.cat, x.nota].filter(Boolean).join(' — ') || null, info: () => vdInfo(x, clase) })))
+      L.length ? ledger('sh-vd', L.map(x => ({ l: vdLabel(x, pj.genero), s: String(x.valor || '').toLowerCase(), title: [x.cat, x.nota].filter(Boolean).join(' — ') || null, info: () => vdInfo(x, clase, pj.genero) })))
         : h('p', { class: 'sh-aside', text: none })]));
   });
   sec.appendChild(cols);

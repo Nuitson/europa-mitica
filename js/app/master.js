@@ -6,6 +6,7 @@ import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toas
 import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards } from './saga/rules.js';
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
+import { GENERO_TXT } from './creation/rules.js';
 
 /* ================================================================== PANTALLA DEL MÁSTER
    Solo para el máster (quien es máster de la saga). El aura de la escena —reino y nivel— cambia los totales de lanzamiento
@@ -147,7 +148,7 @@ function masterCard(p, compact) {
   const card = h('article', { class: 'm-card', 'aria-label': p.nombre });
   card.appendChild(h('div', { class: 'm-card-h' }, [monogram(p, 'mono'), h('div', { class: 'm-id' }, [
     h('a', { class: 'm-name', href: '#pj--' + id, text: p.nombre }),
-    h('div', { class: 'xt', text: [p.tipo, p.casa, edadTxt(ca, p.nacimiento), p.jugador ? 'juega ' + p.jugador : ''].filter(Boolean).join(' · ') })])]));
+    h('div', { class: 'xt', text: [p.tipo, p.casa, GENERO_TXT[p.genero] ? 'género ' + GENERO_TXT[p.genero] : '', edadTxt(ca, p.nacimiento), p.jugador ? 'juega ' + p.jugador : ''].filter(Boolean).join(' · ') })])]));
   // wounds and fatigue marked on the sheet: the master sees the malus at a glance
   const et = estadoTxt(p);
   if (et) card.appendChild(h('p', { class: 'm-her' + (estadoFisico(p).fuera ? ' out' : ''), text: et }));
@@ -161,12 +162,12 @@ function masterCard(p, compact) {
     const L = (Array.isArray(l) ? l : []).filter(x => x && String(x.n || '').trim());
     const pts = L.reduce((s, x) => s + (x.valor === 'Mayor' ? 3 : x.valor === 'Menor' ? 1 : 0), 0);
     card.appendChild(h('h3', { class: 'm-sub', text: t + (L.length ? ' · ' + L.length + ' (' + pts + ' puntos)' : '') }));
-    if (L.length) card.appendChild(vdCards(L, t === 'Virtudes' ? 'virtud' : 'defecto'));
+    if (L.length) card.appendChild(vdCards(L, t === 'Virtudes' ? 'virtud' : 'defecto', p.genero));
     else card.appendChild(h('p', { class: 'note', text: 'Ninguno.' }));
   });
   if (fa && (fa.virtudes || []).concat(fa.defectos || []).length) {
     card.appendChild(h('h3', { class: 'm-sub', text: 'Del ' + fa.n.toLowerCase() + ', mientras está transformado' }));
-    card.appendChild(vdCards((fa.virtudes || []).concat(fa.defectos || []), x => (fa.defectos || []).includes(x) ? 'defecto' : 'virtud'));
+    card.appendChild(vdCards((fa.virtudes || []).concat(fa.defectos || []), x => (fa.defectos || []).includes(x) ? 'defecto' : 'virtud', p.genero));
   }
   const sp = (p.hechizos || []).filter(x => x && String(x.n || '').trim());
   if (sp.length) {
