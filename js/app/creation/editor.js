@@ -4,7 +4,7 @@ import { page } from '../views.js';
 import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../saga/state.js';
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
-import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdIndex, vdLabel, vdNormalize, vdNota, vdOptionsHtml, vdSlots, vdTarget } from './rules.js';
+import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
 import { openVdTab } from './vdtab.js';
 
@@ -26,7 +26,7 @@ function loadDraft() {
 function draftHasContent(d) {
   return !!(String(d.nombre || '').trim() || (d.hab || []).length || (d.defectos || []).some(x => String(x.n || '').trim()) || (d.virtudes || []).some(x => String(x.n || '').trim() && vdFx(x, 'virtud') !== 'don') || (d.hechizos || []).length || String(d.concepto || '').trim());
 }
-const cleanVd = l => (l || []).filter(x => x && String(x.n || '').trim()).map(x => { const o = Object.assign({}, x); delete o._otra; o.n = String(o.n).trim(); if (!String(o.obj || '').trim()) delete o.obj; if (!String(o.obj2 || '').trim()) delete o.obj2; return o; });
+const cleanVd = l => (l || []).filter(x => x && String(x.n || '').trim()).map(x => { const o = Object.assign({}, x); delete o._otra; o.n = String(o.n).trim(); if (!String(o.obj || '').trim()) delete o.obj; if (!String(o.obj2 || '').trim()) delete o.obj2; if (!(o.sinOtorgar || []).length) delete o.sinOtorgar; if (!o.por) { delete o.por; delete o.og; } return o; });
 function viewEditor(id, override) {
   const orig = id ? S.pj[id] : null;
   page.innerHTML = '';
@@ -178,11 +178,14 @@ function viewEditor(id, override) {
     const manual = !canon && (named || !!x._otra);
     const auto = canon ? vdNota(canon) : '';
     const tipo = canon ? canon.cat : (x.cat || '');
+    // given by another virtue or flaw at no cost: its name is fixed, or one of a few
+    const gr = vdGrantOf(d, x);
+    const fixedName = !!gr && gr.opts.length === 1;
     const pts = h('span', { class: 'vd-pts', title: 'Puntos' });
     const drawPts = () => { const v = valorOf(x, clase); pts.textContent = v === 'Mayor' ? '3' : v === 'Menor' ? '1' : v ? '0' : '·'; };
     drawPts();
     // type: narrows the list of names
-    const tipoSel = h('select', { 'aria-label': 'Tipo', disabled: locked ? true : null }, [h('option', { value: '' }, 'Todos los tipos')].concat(idx.cats[clase].map(c => h('option', { value: c }, c))));
+    const tipoSel = h('select', { 'aria-label': 'Tipo', disabled: locked || (gr && gr.opts.length) ? true : null }, [h('option', { value: '' }, 'Todos los tipos')].concat(idx.cats[clase].map(c => h('option', { value: c }, c))));
     if (tipo && !idx.cats[clase].includes(tipo)) tipoSel.appendChild(h('option', { value: tipo }, tipo));
     tipoSel.value = tipo;
     tipoSel.addEventListener('change', () => {
@@ -193,10 +196,19 @@ function viewEditor(id, override) {
       afterVd({ k: k, i: i, el: 'name' });
     });
     // name: the compendium's entries, or one typed by hand
-    const nameSel = h('select', { 'aria-label': 'Nombre', disabled: locked ? true : null });
-    nameSel.innerHTML = vdOptionsHtml(clase, tipo);
-    nameSel.value = canon ? String(canon.i) : manual ? '__otra' : '';
-    if (canon && nameSel.value !== String(canon.i)) { nameSel.innerHTML = vdOptionsHtml(clase, ''); nameSel.value = String(canon.i); }
+    const nameSel = h('select', { 'aria-label': 'Nombre', disabled: locked || fixedName ? true : null });
+    if (gr && gr.opts.length > 1) {
+      // one of the few the grant allows
+      nameSel.appendChild(h('option', { value: '' }, '— Elige ' + (clase === 'virtud' ? 'la virtud' : 'el defecto') + ' —'));
+      gr.opts.forEach(o => nameSel.appendChild(h('option', { value: String(o.i) }, vdGen(o.n, d.genero))));
+      const cur = e && gr.opts.find(o => o.dk === e.dk || tkey(o.en || o.n) === tkey(e.en || e.n));
+      nameSel.value = cur ? String(cur.i) : '';
+      nameSel.classList.toggle('need', !cur);
+    } else {
+      nameSel.innerHTML = vdOptionsHtml(clase, tipo);
+      nameSel.value = canon ? String(canon.i) : manual ? '__otra' : '';
+      if (canon && nameSel.value !== String(canon.i)) { nameSel.innerHTML = vdOptionsHtml(clase, ''); nameSel.value = String(canon.i); }
+    }
     nameSel.addEventListener('change', () => {
       const v = nameSel.value;
       let need = false;
@@ -206,7 +218,7 @@ function viewEditor(id, override) {
         else if (!v) { x.n = ''; delete x.en; delete x.obj; delete x.obj2; x.valor = ''; if (x.nota === auto) x.nota = ''; }
         else {
           const ne = idx.list[Number(v)];
-          Object.assign(x, { n: ne.n, en: ne.en, cat: ne.cat, valor: ne.valor });
+          Object.assign(x, { n: ne.n, en: ne.en, cat: ne.cat, valor: x.og != null ? 'Gratuita' : ne.valor });
           if (!x.nota || x.nota === auto) x.nota = vdNota(ne);
           const nk = FX_OBJ[vdFx(x, clase)];
           const ns = nk ? [] : vdSlots(x, clase);
@@ -272,7 +284,12 @@ function viewEditor(id, override) {
       if (altC && altC !== canon) {
         vdMutate(() => { Object.assign(x, { n: altC.n, en: altC.en, cat: altC.cat, valor: v }); if (!x.nota || x.nota === auto) x.nota = vdNota(altC); });
         afterVd({ k: k, i: i, el: 'valor' });
-      } else { x.valor = v; drawPts(); refresh(); }
+      } else {
+        const was = x.valor;
+        x.valor = v;
+        // free or not changes whether «Otorgada por» shows
+        if ((was === 'Gratuita') !== (v === 'Gratuita')) afterVd({ k: k, i: i, el: 'valor' }); else { drawPts(); refresh(); }
+      }
     }, { 'aria-label': 'Valor', disabled: locked ? true : null });
     const notaIn = inp(x.nota, v => { x.nota = v; }, { 'aria-label': 'Nota', placeholder: 'Nota o página' });
     const eff = named ? vdEffTxt(x, clase, fxk) : '';
@@ -292,27 +309,69 @@ function viewEditor(id, override) {
       afterVd({ k: k, i: i, el: 'name' });
       toast(evo.nota + ': ahora es ' + vdGen(evo.to.n, d.genero) + '. Guarda la ficha para conservarlo.');
     } }, evo.label + ' → ' + vdGen(evo.to.n, d.genero)) : null;
+    // what gives it: the grant of the compendium, or one marked by hand (a free virtue of a variant the saga made up)
+    let porCtl = null;
+    if (gr) porCtl = h('span', { class: 'vd-por', text: 'Otorgada por «' + vdLabel(gr.parent.x, d.genero) + '»' + (gr.g.opc ? ' (opcional)' : '') });
+    // (only for one that is free here but costs in the book: El Don or a free status need no one to give them)
+    else if (named && (x.por || (x.valor === 'Gratuita' && fxk !== 'don' && !(canon && canon.valor === 'Gratuita')))) {
+      const myRef = vdRef(x, clase);
+      const others = [];
+      [['virtudes', 'virtud'], ['defectos', 'defecto']].forEach(([k2, cl2]) => d[k2].forEach(y => {
+        if (y === x || !y || !String(y.n || '').trim()) return;
+        const r = vdRef(y, cl2);
+        if (y.por === myRef || others.some(o => o[0] === r)) return; // not what it gives itself
+        others.push([r, vdLabel(y, d.genero)]);
+      }));
+      if (x.por && !others.some(o => o[0] === x.por)) others.push([x.por, x.por.replace(/^[^:]*:/, '')]);
+      porCtl = h('label', { class: 'vd-por' }, ['Otorgada por ', sel([['', '— ninguna —']].concat(others), x.por || '', v => {
+        if (v) x.por = v; else delete x.por;
+        delete x.og;
+        afterVd({ k: k, i: d[k].indexOf(x), el: 'name' });
+      }, { 'aria-label': 'Otorgada por' })]);
+    }
+    // what this one gives that the player took out
+    const lost = (x.sinOtorgar || []).length ? h('button', { type: 'button', class: 'lnk vd-evo', onclick: () => { delete x.sinOtorgar; afterVd(); } }, 'Volver a añadir lo que otorga') : null;
     const full = canon && canon.desc ? canon.desc : '';
     const desc = full.length > 220 ? full.slice(0, 218) + '…' : full;
     const row = h('div', { class: 'lrow vd' + (locked ? ' locked' : '') + (kind || slots.length ? '' : ' noobj') }, [
       h('label', { class: 'cell vd-t', 'data-l': 'Tipo' }, tipoSel),
-      h('div', { class: 'cell vd-n', 'data-l': clase === 'virtud' ? 'Virtud' : 'Defecto' }, [nameSel, other, evoBtn]),
+      h('div', { class: 'cell vd-n', 'data-l': clase === 'virtud' ? 'Virtud' : 'Defecto' }, [nameSel, other, evoBtn, lost, porCtl]),
       objCell,
       h('label', { class: 'cell vd-v', 'data-l': 'Valor' }, valSel),
       h('label', { class: 'cell vd-nota', 'data-l': 'Nota' }, notaIn),
       pts,
-      locked ? h('span', { class: 'lock', title: 'Obligatorio para los magos', text: 'oblig.' }) : h('button', { type: 'button', class: 'x', 'aria-label': 'Quitar ' + (vdLabel(x) || 'fila'), onclick: () => { vdMutate(() => { d[k].splice(i, 1); }); afterVd(); } }, '×'),
+      locked ? h('span', { class: 'lock', title: 'Obligatorio para los magos', text: 'oblig.' }) : h('button', { type: 'button', class: 'x', 'aria-label': 'Quitar ' + (vdLabel(x) || 'fila'), onclick: () => { vdMutate(() => { dropGranted(x); d[k].splice(i, 1); }); afterVd(); } }, '×'),
       desc || eff || asTxt ? h('p', { class: 'vd-desc', title: full.length > 220 ? full : null }, [asTxt ? h('i', { text: asTxt }) : null, desc ? document.createTextNode(desc + (eff ? ' ' : '')) : null, eff ? h('b', { text: eff }) : null]) : null]);
     if (focus && focus.el !== 'obj') setTimeout(() => { const t = focus.el === 'other' ? other : focus.el === 'valor' ? valSel : nameSel; if (t && !t.disabled) t.focus(); }, 0);
     return row;
   }
+  /* a granted one taken out by hand stays out (the one that grants it remembers it) */
+  function dropGranted(y) {
+    const gr = vdGrantOf(d, y);
+    if (gr) gr.parent.x.sinOtorgar = [...new Set((gr.parent.x.sinOtorgar || []).concat([y.og]))];
+  }
   function drawVd(focus) {
+    // what the virtues and flaws grant comes with them, and goes with them
+    const beforeCar = vdEffects(d).car;
+    if (vdGrantSync(d)) vdCarSync(beforeCar);
     vdBox.innerHTML = '';
+    const tree = vdNest(d, true);
     [['virtudes', 'Virtudes', 'virtud'], ['defectos', 'Defectos', 'defecto']].forEach(([k, t, clase]) => {
       const n = d[k].filter(x => String(x.n || '').trim()).length;
       const list = h('div', { class: 'rowlist' }, [h('h4', { text: t + (n ? ' · ' + n : '') })]);
-      if (d[k].length) list.appendChild(h('div', { class: 'lrow vd head', 'aria-hidden': 'true' }, ['Tipo', clase === 'virtud' ? 'Virtud' : 'Defecto', 'Se aplica a', 'Valor', 'Nota', 'Pts.', ''].map(s => h('span', { text: s }))));
-      d[k].forEach((x, i) => list.appendChild(vdRow(k, clase, x, i, focus && focus.k === k && focus.i === i ? focus : null)));
+      if (tree[clase].length) list.appendChild(h('div', { class: 'lrow vd head', 'aria-hidden': 'true' }, ['Tipo', clase === 'virtud' ? 'Virtud' : 'Defecto', 'Se aplica a', 'Valor', 'Nota', 'Pts.', ''].map(s => h('span', { text: s }))));
+      // each one with what it grants under it, even a flaw under a virtue (it still counts as a flaw)
+      tree[clase].forEach(it => {
+        const k2 = it.clase === 'virtud' ? 'virtudes' : 'defectos', i2 = d[k2].indexOf(it.x);
+        const row = vdRow(k2, it.clase, it.x, i2, focus && focus.k === k2 && focus.i === i2 ? focus : null);
+        if (it.depth) {
+          row.classList.add('sub');
+          row.style.setProperty('--depth', String(Math.min(it.depth, 3)));
+          const nc = row.querySelector('.vd-n');
+          if (it.clase !== clase && nc) nc.insertBefore(h('span', { class: 'vd-kind', text: it.clase === 'virtud' ? 'Virtud' : 'Defecto' }), nc.firstChild);
+        }
+        list.appendChild(row);
+      });
       list.appendChild(h('button', { type: 'button', class: 'lnk', onclick: () => { d[k].push({ n: '', cat: '', valor: '', nota: '' }); drawVd({ k: k, i: d[k].length - 1, el: 'name' }); } }, clase === 'virtud' ? '+ Añadir virtud' : '+ Añadir defecto'));
       vdBox.appendChild(list);
     });
@@ -322,6 +381,7 @@ function viewEditor(id, override) {
   const vdKind = clase => clase === 'virtud' ? 'virtudes' : 'defectos';
   const sameVd = (x, e) => { const xe = String(x.n || '').trim() ? vdEntry(x, e.clase) : null; return !!xe && xe.dk === e.dk; };
   const vdTab = {
+    pjId: id || null, // to tell this character apart from the saved ones that also have a virtue of the saga
     genero: () => d.genero,
     chosen: e => d[vdKind(e.clase)].some(x => sameVd(x, e)),
     locked: e => e.clase === 'virtud' && vdFx({ n: e.n, en: e.en, valor: e.valor }, 'virtud') === 'don' && isMagic(CLASE[d.tipo]),
@@ -333,7 +393,7 @@ function viewEditor(id, override) {
         vdMutate(() => { d[kind].push({ n: e.n, en: e.en, cat: e.cat, valor: e.valor, nota: vdNota(e) }); });
       } else {
         if (vdTab.locked(e)) return;
-        vdMutate(() => { d[kind] = d[kind].filter(x => !sameVd(x, e)); });
+        vdMutate(() => { d[kind].filter(x => sameVd(x, e)).forEach(dropGranted); d[kind] = d[kind].filter(x => !sameVd(x, e)); });
       }
       afterVd();
     },
@@ -566,9 +626,11 @@ function viewEditor(id, override) {
   }
   f.addEventListener('input', refresh);
   f.addEventListener('change', refresh);
+  // the virtues and flaws as stored: what they grant is added on the first drawing, and that is a change to save
+  const vd0 = orig ? clone({ virtudes: d.virtudes, defectos: d.defectos }) : null;
   drawVd(); drawHab(); drawArts(); drawSp();
   // the sheet as this form opened it: on save, what the form did not change is taken from the latest copy instead
-  const start = orig ? clone(d) : null;
+  const start = orig ? Object.assign(clone(d), vd0) : null;
   save.addEventListener('click', async () => {
     const name = String(d.nombre || '').trim();
     if (!name) { toast('El personaje necesita un nombre.'); const n = document.getElementById('pj-nombre'); if (n) n.focus(); return; }

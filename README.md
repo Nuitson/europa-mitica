@@ -28,7 +28,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/pjfile.js        exportar un personaje a un archivo e importarlo (en esta saga o en otra)
   creation/rules.js     compendio de virtudes y defectos y reglas de creación
   creation/editor.js    el editor de personajes
-  creation/vdtab.js     la pestaña para elegir virtudes y defectos: buscador, filtros, descripciones y casillas
+  creation/vdtab.js     la pestaña para elegir virtudes y defectos: buscador, filtros, páginas, casillas y las propias de la saga
   creation/generos.js   las virtudes y defectos en femenino (el neutro, en -e, sale de ahí), según el género de la ficha
   master.js             la pantalla del máster (miembros de la saga, de quién es cada personaje, copias de seguridad)
   info.js               descripciones al pulsar un hechizo, una virtud o un defecto
@@ -48,6 +48,7 @@ Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar 
 
 - **Imprimir:** la ficha (la pestaña que está abierta) y la pantalla del máster tienen un botón «Imprimir». Sale en el tema claro, sin el índice, las pestañas ni los botones; también sirve para guardarla en PDF.
 - **Exportar e importar personajes:** la página de cada personaje tiene «Exportar», que descarga un archivo `.json` con la ficha, todas sus estaciones y el retrato. En «Personajes», «Importar personaje» lee ese archivo, enseña lo que trae y lo crea como un personaje **nuevo**, a nombre de quien lo importa; nunca cambia los que ya hay (si ya existe uno con el mismo nombre, se avisa y quedan los dos). Sirve para pasar un personaje de una saga a otra o para guardar una copia suya. La copia de la saga entera sigue en la pantalla del máster.
+- **Virtudes y defectos propios de la saga:** en la pestaña «Elegir virtudes y defectos» del editor, «Crear virtud o defecto» añade uno nuevo (nombre, virtud o defecto, valor, tipo y descripción). Se guarda en la saga (`virtudes/{id}`), sale en «Libros» como «Propias de la saga», se elige como cualquier otro y su descripción se ve en las fichas. Solo existe en esa saga: no entra en el compendio común (`data/ayudas.json`) ni en las sagas que se creen después; sí va en la copia de seguridad de la saga. Lo cambia o lo borra quien lo creó o un máster. Cuando ya lo tiene algún personaje, el nombre no se puede cambiar (las fichas lo encuentran por el nombre).
 - **Tiradas:** la descripción de cada hechizo de una ficha tiene «Tirar dado de estrés». Suma el dado de estrés de ArM5 al total de lanzamiento (con el aura de la escena) y dice si sale, si cuesta fatiga o si falla. Con un 0 tira los dados de pifia: uno, más uno por punto de aura de otro reino y menos uno por punto de maestría.
 
 ## Sin conexión
@@ -86,7 +87,7 @@ php api/usuarios.php contrasena <usuario>         pone una contraseña nueva al 
 
 ## El servidor
 
-Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos) y las cuentas viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON. Las acciones de cuenta son `registrar`, `entrar`, `perfil`, `actualizarPerfil`, `cambiarPassword`, `cerrarSesiones`, `recuperar`, `restablecer`, `contenido` y `crear`. Las de una saga (llevan `token` y `saga`) son `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar`, `miembros`, `anadirMiembro`, `cambiarRol`, `quitarMiembro`, `asignar` y `autores`. El servidor comprueba siempre el rol de la cuenta en la saga.
+Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos, virtudes y defectos propios) y las cuentas viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON. Las acciones de cuenta son `registrar`, `entrar`, `perfil`, `actualizarPerfil`, `cambiarPassword`, `cerrarSesiones`, `recuperar`, `restablecer`, `contenido` y `crear`. Las de una saga (llevan `token` y `saga`) son `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar`, `miembros`, `anadirMiembro`, `cambiarRol`, `quitarMiembro`, `asignar` y `autores`. El servidor comprueba siempre el rol de la cuenta en la saga.
 
 Necesita PHP 8.1 o superior con la extensión PDO MySQL (en Plesk: «Selector PHP»).
 

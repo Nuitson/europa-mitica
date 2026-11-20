@@ -10,7 +10,7 @@ const ESQUEMA = '2';
 const DIAS_SESION = 120;
 const MAX_DOC = 2500000;        // un retrato reducido cabe de sobra
 const MAX_AVATAR = 200000;      // caracteres del avatar (la web lo reduce a 256 px)
-const RUTA_OK = '#^(personajes|avance|vis|tesoreria|retratos)/[A-Za-z0-9_.\-]{1,120}$|^saga/estado$#';
+const RUTA_OK = '#^(personajes|avance|vis|tesoreria|retratos|virtudes)/[A-Za-z0-9_.\-]{1,120}$|^saga/estado$#';
 const JSON_OUT = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION;
 
 /* ============================================================== utilidades */

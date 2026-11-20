@@ -6,7 +6,7 @@ import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toas
 import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
-import { GENERO_TXT, vdLabel } from '../creation/rules.js';
+import { GENERO_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
 import { spellInfo, vdInfo } from '../info.js';
@@ -119,9 +119,12 @@ function viewPj(id, tab) {
     const pts = l => l.reduce((s, x) => s + (x.valor === 'Mayor' ? 3 : x.valor === 'Menor' ? 1 : 0), 0);
     const V = pj.virtudes || [], D = pj.defectos || [];
     content.appendChild(R.stats({ items: [{ l: 'Virtudes', v: String(V.length), s: pts(V) + ' puntos' }, { l: 'Defectos', v: String(D.length), s: pts(D) + ' puntos' }] }));
-    [['Virtudes', V], ['Defectos', D]].forEach(([t, l]) => {
+    const tree = vdNest(pj);
+    [['Virtudes', 'virtud'], ['Defectos', 'defecto']].forEach(([t, col]) => {
       content.appendChild(h('h3', { text: t }));
-      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(x => [vdLabel(x, pj.genero), x.cat || '', x.valor || '', x.nota || '']), fcl: true, info: i => vdInfo(l[i], t === 'Virtudes' ? 'virtud' : 'defecto', pj.genero) }));
+      // under each one, what it grants (a flaw given by a virtue goes under the virtue)
+      const l = tree[col];
+      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(it => [vdSub(it) + vdLabel(it.x, pj.genero), (it.x.cat || '') + (it.clase !== col ? ' (' + it.clase + ')' : ''), it.x.valor || '', it.x.nota || '']), fcl: true, info: i => vdInfo(l[i].x, l[i].clase, pj.genero) }));
       else content.appendChild(h('p', { class: 'note', text: 'Ninguno.' }));
     });
     const fa = formaActiva(pj);
@@ -248,14 +251,16 @@ function sheetPers(pj) {
   sec.appendChild(ledger('sh-pers', pers.map(t => ({ l: String(t.n), v: sgn(numv(t.v)), neg: numv(t.v) < 0 ? 1 : 0 }))));
   return sec;
 }
+/* «↳ » before what another virtue or flaw grants, once per level */
+const vdSub = it => it.depth ? ' '.repeat(it.depth - 1) + '↳ ' : '';
 function sheetVd(pj, id) {
   const sec = h('section', { class: 'sh-sec s-vd', 'aria-label': 'Virtudes y defectos' });
   const cols = h('div', { class: 'sh-vdcols' });
-  [['Virtudes', pj.virtudes, 'Ninguna.', 'sh-v'], ['Defectos', pj.defectos, 'Ninguno.', 'sh-d']].forEach(([t, l, none, k]) => {
-    const L = (Array.isArray(l) ? l : []).filter(x => x && String(x.n || '').trim());
-    const clase = t === 'Virtudes' ? 'virtud' : 'defecto';
+  const tree = vdNest(pj);
+  [['Virtudes', 'virtud', 'Ninguna.', 'sh-v'], ['Defectos', 'defecto', 'Ninguno.', 'sh-d']].forEach(([t, col, none, k]) => {
+    const L = tree[col];
     cols.appendChild(h('div', { class: 'sh-vdcol' }, [shHead(k, t),
-      L.length ? ledger('sh-vd', L.map(x => ({ l: vdLabel(x, pj.genero), s: String(x.valor || '').toLowerCase(), title: [x.cat, x.nota].filter(Boolean).join(' — ') || null, info: () => vdInfo(x, clase, pj.genero) })))
+      L.length ? ledger('sh-vd', L.map(it => { const x = it.x; return { l: vdSub(it) + vdLabel(x, pj.genero), s: String(x.valor || '').toLowerCase() + (it.clase !== col ? ' · ' + it.clase : ''), title: [x.cat, x.nota].filter(Boolean).join(' — ') || null, info: () => vdInfo(x, it.clase, pj.genero) }; }))
         : h('p', { class: 'sh-aside', text: none })]));
   });
   sec.appendChild(cols);

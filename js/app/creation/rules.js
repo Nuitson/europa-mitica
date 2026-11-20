@@ -1,6 +1,6 @@
 /* Creación de personajes: el compendio de virtudes y defectos y las reglas de creación. */
 import { artOf, ARTS, ARTS_F, ARTS_T, DATA, DOCS, esc, norm } from '../base.js';
-import { ABIL_STD, CASAS, CHARS, KEYP, tkey, VD_CATS } from '../saga/state.js';
+import { ABIL_STD, CASAS, CHARS, KEYP, S, tkey, VD_CATS } from '../saga/state.js';
 import { abCost, abLvl, afXp, artLvl, curSeason, guessCat, numv, sgn } from '../saga/rules.js';
 import { GEN_F } from './generos.js';
 
@@ -95,35 +95,46 @@ const G_TXT = { Marciales: 'marciales', 'Académicas': 'académicas', Arcanas: '
 const G_HOW = { Marciales: 'Guerrero, Caballero, Capitán mercenario o Infancia Privilegiada', 'Académicas': 'Instruido, Letrado, Sacerdote, Magister in Artibus o Infancia Privilegiada', Arcanas: 'Conocimiento arcano, Sabio, Aprendiz Fracasado o Boina Roja' };
 
 /* ---------- the compendium as an index */
+// the saga's own virtues and flaws (virtudes/{id}, in S.vd) join the shared compendium as one more book, «Propias de la
+// saga»; they live in this saga alone. Each snapshot of them is a new object, so the index is built again when they change
+const PROPIAS = 'Propias de la saga';
 let VD_IDX = null;
 function vdIndex() {
-  if (VD_IDX) return VD_IDX;
-  VD_IDX = { list: [], byKey: new Map(), core: [], canon: new Map(), cats: { virtud: [], defecto: [] } };
+  const own = S.vd || {};
+  if (VD_IDX && VD_IDX.own === own) return VD_IDX;
+  VD_IDX = { own: own, list: [], byKey: new Map(), core: [], canon: new Map(), cats: { virtud: [], defecto: [] } };
+  Object.keys(VD_OPTS).forEach(k => { delete VD_OPTS[k]; }); // the options point at places in the list
+  function add(e) {
+    if (!String(e.n || '').trim()) return;
+    e.i = VD_IDX.list.length;
+    const ge = GEN.get(tkey(e.n));
+    e.key = norm([e.n, e.en, e.cat, e.desc].concat(ge ? [ge.f, ge.n] : []).join(' ')); // «compasiva» finds «Compasivo»
+    e.core = e.libro === 'Core Rulebook';
+    // one option per virtue: the same rule from several books (or two Spanish names of it) shows once, from the core book if it is there;
+    // the saga's own are always apart
+    e.dk = e.propia ? 'propia|' + e.propia : e.clase + '|' + tkey(e.en || e.n) + '|' + e.valor + '|' + tkey(e.cat);
+    VD_IDX.list.push(e);
+    if (e.core) VD_IDX.core.push(e);
+    const c = VD_IDX.canon.get(e.dk);
+    if (!c || (e.core && !c.core)) VD_IDX.canon.set(e.dk, e);
+    if (e.cat && !VD_IDX.cats[e.clase].includes(e.cat)) VD_IDX.cats[e.clase].push(e.cat);
+    [tkey(e.n), e.en ? 'en:' + tkey(e.en) : null].forEach(k => {
+      if (!k) return;
+      const kk = k + '|' + e.clase;
+      if (!VD_IDX.byKey.has(kk)) VD_IDX.byKey.set(kk, []);
+      VD_IDX.byKey.get(kk).push(e);
+    });
+  }
   const doc = DOCS['virtudes-defectos'];
   if (doc) doc.sheets.slice(0, 2).forEach((s, si) => s.blocks.forEach(b => {
     if (b.t !== 'table') return;
-    b.rows.forEach(r => {
-      const e = { clase: si === 0 ? 'virtud' : 'defecto', n: r[0], en: r[1] || '', cat: r[2] || '', valor: r[3] || '', libro: r[4] || '', pag: r[5] || '', desc: r[6] || '' };
-      if (!String(e.n || '').trim()) return;
-      e.i = VD_IDX.list.length;
-      const ge = GEN.get(tkey(e.n));
-      e.key = norm([e.n, e.en, e.cat, e.desc].concat(ge ? [ge.f, ge.n] : []).join(' ')); // «compasiva» finds «Compasivo»
-      e.core = e.libro === 'Core Rulebook';
-      // one option per virtue: the same rule from several books (or two Spanish names of it) shows once, from the core book if it is there
-      e.dk = e.clase + '|' + tkey(e.en || e.n) + '|' + e.valor + '|' + tkey(e.cat);
-      VD_IDX.list.push(e);
-      if (e.core) VD_IDX.core.push(e);
-      const c = VD_IDX.canon.get(e.dk);
-      if (!c || (e.core && !c.core)) VD_IDX.canon.set(e.dk, e);
-      if (e.cat && !VD_IDX.cats[e.clase].includes(e.cat)) VD_IDX.cats[e.clase].push(e.cat);
-      [tkey(e.n), e.en ? 'en:' + tkey(e.en) : null].forEach(k => {
-        if (!k) return;
-        const kk = k + '|' + e.clase;
-        if (!VD_IDX.byKey.has(kk)) VD_IDX.byKey.set(kk, []);
-        VD_IDX.byKey.get(kk).push(e);
-      });
-    });
+    b.rows.forEach(r => add({ clase: si === 0 ? 'virtud' : 'defecto', n: r[0], en: r[1] || '', cat: r[2] || '', valor: r[3] || '', libro: r[4] || '', pag: r[5] || '', desc: r[6] || '' }));
   }));
+  Object.keys(own).sort().forEach(id => {
+    const x = own[id];
+    if (!x || (x.clase !== 'virtud' && x.clase !== 'defecto')) return;
+    add({ clase: x.clase, n: String(x.n || '').trim(), en: '', cat: String(x.cat || ''), valor: String(x.valor || ''), libro: PROPIAS, pag: '', desc: String(x.desc || ''), propia: id, autor: x.autor || null });
+  });
   // the feminine and neutral forms find the same entries as the masculine: «Compasiva» written by hand is «Compasivo»
   GEN.forEach((g, k) => ['virtud', 'defecto'].forEach(cl => {
     const arr = VD_IDX.byKey.get(tkey(g.m) + '|' + cl);
@@ -143,8 +154,8 @@ function vdFind(name, clase, valor) {
 }
 function vdEntry(x, clase) { return x ? vdFind(x.en, clase, x.valor) || vdFind(x.n, clase, x.valor) : null; }
 const vdKeyOf = (x, clase, e) => { e = e === undefined ? vdEntry(x, clase) : e; return tkey((e && e.en) || x.en || (e && e.n) || x.n); };
-const vdNota = e => e ? (e.pag || (e.core ? '' : e.libro)) : '';
-const bookAbbr = e => (String(e.pag || '').split(/\s+/)[0] || e.libro || '').replace(/[,;]$/, '');
+const vdNota = e => e ? (e.propia ? 'Propia de la saga' : e.pag || (e.core ? '' : e.libro)) : '';
+const bookAbbr = e => e.propia ? 'propia de la saga' : (String(e.pag || '').split(/\s+/)[0] || e.libro || '').replace(/[,;]$/, '');
 /* older sheets name the target inside the virtue: «Afinidad con Vim», «Maña con Concentración» */
 function legacyObj(name) {
   const m = String(name || '').trim().match(/^(afinidad|ma[ñn]a)\s+con\s+\(?\s*([^()]+?)\s*\)?$/i);
@@ -187,6 +198,99 @@ function vdEvolve(x, clase) {
   const ev = EVOLVE[tkey(e ? (e.en || e.n) : (x.en || x.n))] || (tkey(x.n) === 'aprendiz-hermetico' ? EVOLVE.apprentice : null);
   const to = ev && vdFind(ev[0], 'virtud');
   return to ? { to: to, label: ev[1], nota: ev[2], magus: ev[0] === 'Hermetic Magus' } : null;
+}
+/* virtues and flaws that come with others at no cost, by the original name of the one that grants them (plus «|value»
+   when only one version grants). Each grant: c, its class; en, the original name, or the names to choose from; or, with no
+   names, cat and valor narrow the list to choose from (libre: any of that class). obj fills its bracket, nota adds to its note;
+   opc: the book says it «may» be taken. Each one is added as Gratuita with por (the reference of the one that grants it) and
+   og (which grant it is), and shown under it */
+const GRANTS = {
+  'virtud:mythic-blood-zmey': [{ c: 'virtud', en: ['Minor Magical Focus'], nota: 'Tormentas' }, { c: 'defecto', en: ['Meddler', 'Lecherous', 'Proud'], valor: 'Menor' }],
+  'virtud:hyperborean-descent|Mayor': [{ c: 'virtud', en: ['Hyperborean Descent'], valor: 'Menor' }, { c: 'defecto', en: ['Dutybound'], nota: 'Código de Apolo' }],
+  'virtud:faerie-doctor': [{ c: 'virtud', en: ['Dowsing'] }],
+  'virtud:spirit-votary': [{ c: 'virtud', en: ['Second Sight'] }],
+  'virtud:strong-faerie-blood': [{ c: 'virtud', en: ['Second Sight'] }],
+  'virtud:maestro': [{ c: 'virtud', en: ['Affinity with Ability', 'Puissant (Ability)', 'Free Expression', 'Inspirational'] }],
+  'virtud:commander': [{ c: 'virtud', en: ['Temporal Influence'] }],
+  'virtud:leper-magus': [{ c: 'virtud', en: ['Life Boost'] }],
+  'virtud:mythic-mimicry': [{ c: 'virtud', en: ["Messenger's Memory"] }],
+  'virtud:vis-sensitivity': [{ c: 'virtud', en: ['Magic Sensitivity'], opc: true }],
+  'virtud:olympian-pact': [{ c: 'defecto', cat: 'Personalidad', valor: 'Mayor' }],
+  'defecto:a-deal-with-the-devil': [{ c: 'defecto', en: ['Plagued by Supernatural Entity'] }],
+  'defecto:warped-by-magic': [{ c: 'defecto', valor: 'Menor', libre: true }]
+};
+/* «virtud:mythic-blood»: what por points at */
+const vdRef = (x, clase) => clase + ':' + vdKeyOf(x, clase);
+function vdGrants(x, clase) {
+  if (!x || !String(x.n || x.en || '').trim()) return null;
+  const k = vdRef(x, clase);
+  return GRANTS[k + '|' + valorOf(x, clase)] || GRANTS[k] || null;
+}
+/* the compendium entries a grant may be (one: it is filled in by itself; several: the player chooses; none: any, by cat/valor) */
+const grantOpts = g => (g.en || []).map(n => vdFind(n, g.c, g.valor)).filter(Boolean);
+function grantItem(g, ref, gi) {
+  const o = grantOpts(g), e = o.length === 1 ? o[0] : null;
+  const x = { n: e ? e.n : '', en: e ? e.en : '', cat: e ? e.cat : (g.cat || ''), valor: 'Gratuita', nota: '', por: ref, og: gi };
+  if (g.obj) x.obj = g.obj;
+  x.nota = [g.nota, e ? vdNota(e) : ''].filter(Boolean).join(' · ');
+  return x;
+}
+/* adds what the virtues and flaws on the sheet grant, and takes out what was granted by one no longer there; true if it changed.
+   A grant the player took out is kept out (sinOtorgar on the one that grants it) */
+function vdGrantSync(d) {
+  const lists = { virtud: d.virtudes || (d.virtudes = []), defecto: d.defectos || (d.defectos = []) };
+  const present = new Set();
+  let ch = false;
+  ['virtud', 'defecto'].forEach(cl => lists[cl].slice().forEach(x => {
+    const G = vdGrants(x, cl);
+    if (!G) return;
+    const ref = vdRef(x, cl);
+    if (present.has(ref)) return;
+    present.add(ref);
+    G.forEach((g, gi) => {
+      if ((x.sinOtorgar || []).includes(gi)) return;
+      if (lists[g.c].some(y => y && y.por === ref && y.og === gi)) return;
+      lists[g.c].push(grantItem(g, ref, gi));
+      ch = true;
+    });
+  }));
+  ['virtud', 'defecto'].forEach(cl => {
+    const L = lists[cl];
+    for (let i = L.length - 1; i >= 0; i--) {
+      const y = L[i];
+      if (y && y.og != null && !present.has(y.por)) { L.splice(i, 1); ch = true; }
+    }
+  });
+  return ch;
+}
+/* the grant behind a granted virtue or flaw: {g, parent: {x, clase}} or null */
+function vdGrantOf(d, y) {
+  if (!y || y.og == null || !y.por) return null;
+  let parent = null;
+  [['virtudes', 'virtud'], ['defectos', 'defecto']].some(([k, cl]) => (d[k] || []).some(x => { if (x && x !== y && String(x.n || '').trim() && vdRef(x, cl) === y.por) { parent = { x: x, clase: cl }; return true; } return false; }));
+  const G = parent && vdGrants(parent.x, parent.clase);
+  return G && G[y.og] ? { g: G[y.og], parent: parent, opts: grantOpts(G[y.og]) } : null;
+}
+/* the virtues and flaws as a tree: each column (virtud, defecto) with its own, and under each one what it grants or what
+   was marked as given by it (por), whatever its class: [{x, clase, depth, parent}]. all: also the rows still without a name */
+function vdNest(pj, all) {
+  const items = [];
+  [['virtudes', 'virtud'], ['defectos', 'defecto']].forEach(([k, cl]) => (Array.isArray(pj && pj[k]) ? pj[k] : []).forEach(x => {
+    if (x && typeof x === 'object' && (all || String(x.n || '').trim())) items.push({ x: x, clase: cl, depth: 0, parent: null });
+  }));
+  const byRef = new Map();
+  items.forEach(it => { if (String(it.x.n || '').trim()) { const r = vdRef(it.x, it.clase); if (!byRef.has(r)) byRef.set(r, it); } });
+  items.forEach(it => { const p = it.x.por ? byRef.get(it.x.por) : null; it.parent = p && p !== it ? p : null; });
+  items.forEach(it => { let p = it.parent, n = 0; while (p && n++ < 20) { if (p === it) { it.parent = null; break; } p = p.parent; } });
+  const out = { virtud: [], defecto: [] }, done = new Set();
+  const put = (col, it, depth) => {
+    if (done.has(it)) return;
+    done.add(it); it.depth = depth; out[col].push(it);
+    items.filter(y => y.parent === it).forEach(y => put(col, y, depth + 1));
+  };
+  items.filter(it => !it.parent).forEach(it => put(it.clase, it, 0));
+  items.forEach(it => { if (!done.has(it)) put(it.clase, it, 0); });
+  return out;
 }
 /* what the player fills in for this virtue or flaw: [{k: kind, w: the bracket's word}] — the target of a Maña,
    Afinidad or Característica Notable/Mediocre (stored in obj), or each bracket of the name (obj, then obj2) */
@@ -500,4 +604,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdIndex, vdLabel, vdNormalize, vdEvolve, vdNota, vdOptionsHtml, vdSlots, vdTarget };
+export { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };

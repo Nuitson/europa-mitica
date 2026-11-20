@@ -4,7 +4,7 @@ import { page } from '../views.js';
 import { CAT_OF, KEYP, S, SEASONS, tkey } from './state.js';
 import { dbWrite, localPut, stamp } from './core.js';
 import { ledger, shHead } from './characters.js';
-import { vdEffects, vdLabel } from '../creation/rules.js';
+import { vdEffects, vdLabel, vdNest } from '../creation/rules.js';
 import { spellCat, vdInfo } from '../info.js';
 import { route } from '../main.js';
 
@@ -109,12 +109,17 @@ function formaButtons(id, pj) {
   return formasOf(pj).filter(f => !act || act.id === f.id).map(f => h('button', { type: 'button', class: 'btn ghost forma-btn', 'data-forma': f.id,
     onclick: async e => { const b = e.currentTarget; b.disabled = true; if (!(await setForma(id, act ? null : f.id))) b.disabled = false; } }, act ? 'Volver a forma humana' : 'Transformarse en ' + f.n.toLowerCase()));
 }
-// g: the character's gender, for the names («Compasiva»)
-function vdCards(list, clase, g) {
+// g: the character's gender, for the names («Compasiva»); depth(x): how deep it goes under the one that grants it
+function vdCards(list, clase, g, depth) {
   const L = (Array.isArray(list) ? list : []).filter(x => x && String(x.n || '').trim());
-  return h('ul', { class: 'm-vd' }, L.map(x => h('li', null, [
+  return h('ul', { class: 'm-vd' }, L.map(x => h('li', depth && depth(x) ? { class: 'sub', style: '--depth:' + Math.min(depth(x), 3) } : null, [
     h('div', { class: 'm-vd-h' }, [clase ? h('button', { type: 'button', class: 'info-btn', onclick: () => vdInfo(x, typeof clase === 'function' ? clase(x) : clase, g) }, h('b', { text: vdLabel(x, g) })) : h('b', { text: vdLabel(x, g) }), h('span', { class: 'xt', text: [x.cat, x.valor].filter(Boolean).join(' · ') })]),
     x.nota ? h('div', { class: 'm-vd-n', text: x.nota }) : null])));
+}
+/* one column of a character's virtues or flaws (col: 'virtud' or 'defecto') as cards, each with what it grants under it */
+function vdTreeCards(pj, col) {
+  const T = vdNest(pj)[col], m = new Map(T.map(t => [t.x, t]));
+  return vdCards(T.map(t => t.x), x => m.get(x).clase, pj.genero, x => m.get(x).depth);
 }
 function formaBlock(pj, c, f) {
   const car = pjCar(pj, f), ab = f.hab || 'Pelea';
@@ -235,4 +240,4 @@ function traitLevel(c, name) {
   return hb ? { lv: abLvl(hb.xp), xp: hb.xp } : { lv: 0, xp: 0, nuevo: true };
 }
 
-export { edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards };
+export { edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };

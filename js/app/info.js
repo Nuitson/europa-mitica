@@ -211,9 +211,10 @@ function vdInfo(x, clase, g) {
   body.push(head);
   if (e && e.desc) body.push(h('div', { class: 'info-cat' }, paras(e.desc)));
   else body.push(h('p', { class: 'note', text: 'No está en el compendio de virtudes y defectos.' }));
-  if (x.nota) body.push(h('p', { class: 'info-nota' }, [h('i', { text: 'En la ficha: ' }), String(x.nota)]));
+  // the saga's own (creation/vdtab.js) carry «Propia de la saga» as their note: said once, below
+  if (x.nota && !(e && e.propia && String(x.nota) === 'Propia de la saga')) body.push(h('p', { class: 'info-nota' }, [h('i', { text: 'En la ficha: ' }), String(x.nota)]));
   if (e) {
-    const src = [e.en && tkey(e.en) !== tkey(e.n) ? '«' + e.en + '»' : '', e.libro, e.pag].filter(Boolean).join(', ');
+    const src = e.propia ? 'Propia de esta saga: no está en los libros' : [e.en && tkey(e.en) !== tkey(e.n) ? '«' + e.en + '»' : '', e.libro, e.pag].filter(Boolean).join(', ');
     if (src) body.push(h('p', { class: 'info-src', text: src + '.' }));
   }
   const close = openModal(vdLabel(x, g), body, [h('a', { class: 'btn ghost', href: '#virtudes-defectos--' + (clase === 'defecto' ? 'defectos' : 'virtudes'), onclick: () => { close(); }, text: 'Compendio' })]);

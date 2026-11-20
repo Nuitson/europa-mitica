@@ -3,7 +3,7 @@ import { ABBR, artOf, esc, h, load, R, store, toNum } from './base.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
 import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
-import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards } from './saga/rules.js';
+import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards, vdTreeCards } from './saga/rules.js';
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 import { GENERO_TXT } from './creation/rules.js';
@@ -162,7 +162,7 @@ function masterCard(p, compact) {
     const L = (Array.isArray(l) ? l : []).filter(x => x && String(x.n || '').trim());
     const pts = L.reduce((s, x) => s + (x.valor === 'Mayor' ? 3 : x.valor === 'Menor' ? 1 : 0), 0);
     card.appendChild(h('h3', { class: 'm-sub', text: t + (L.length ? ' · ' + L.length + ' (' + pts + ' puntos)' : '') }));
-    if (L.length) card.appendChild(vdCards(L, t === 'Virtudes' ? 'virtud' : 'defecto', p.genero));
+    if (L.length) card.appendChild(vdTreeCards(p, t === 'Virtudes' ? 'virtud' : 'defecto'));
     else card.appendChild(h('p', { class: 'note', text: 'Ninguno.' }));
   });
   if (fa && (fa.virtudes || []).concat(fa.defectos || []).length) {
