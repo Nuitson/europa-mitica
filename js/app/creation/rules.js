@@ -99,6 +99,7 @@ const G_HOW = { Marciales: 'Guerrero, Caballero, Capitán mercenario o Infancia 
 // saga»; they live in this saga alone. Each snapshot of them is a new object, so the index is built again when they change
 const PROPIAS = 'Propias de la saga';
 let VD_IDX = null;
+const vdReset = () => { VD_IDX = null; }; // an administrator edited the compendium: the index is built again on the next use
 function vdIndex() {
   const own = S.vd || {};
   if (VD_IDX && VD_IDX.own === own) return VD_IDX;
@@ -711,4 +712,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { AFIN_POR, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };
+export { vdReset, AFIN_POR, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };

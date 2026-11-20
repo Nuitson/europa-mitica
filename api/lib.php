@@ -6,7 +6,7 @@
 declare(strict_types=1);
 
 const VERSION = '2026-11-19';
-const ESQUEMA = '2';
+const ESQUEMA = '3';
 const DIAS_SESION = 120;
 const MAX_DOC = 2500000;        // un retrato reducido cabe de sobra
 const MAX_AVATAR = 200000;      // caracteres del avatar (la web lo reduce a 256 px)
@@ -97,6 +97,7 @@ function crearTablas(): void {
         hash VARCHAR(100) NOT NULL,
         avatar MEDIUMTEXT NULL,
         crea_sagas INT NOT NULL DEFAULT 0,
+        admin INT NOT NULL DEFAULT 0,
         gen INT NOT NULL DEFAULT 1,
         creado BIGINT NOT NULL,
         UNIQUE (usuario),
@@ -132,6 +133,7 @@ function crearTablas(): void {
     $db->exec('CREATE TABLE IF NOT EXISTS fallos (clave VARCHAR(80) NOT NULL PRIMARY KEY, n INT NOT NULL, hasta BIGINT NOT NULL)' . $fin);
     // de la versión con códigos de saga a la de cuentas
     if (!tieneColumna('docs', 'autor')) $db->exec('ALTER TABLE docs ADD COLUMN autor VARCHAR(20) NULL');
+    if (!tieneColumna('usuarios', 'admin')) $db->exec('ALTER TABLE usuarios ADD COLUMN admin INT NOT NULL DEFAULT 0');
     foreach (['hj', 'hm', 'gen'] as $col) if (tieneColumna('sagas', $col)) $db->exec("ALTER TABLE sagas DROP COLUMN $col");
     $db->exec("DELETE FROM ajustes WHERE clave = 'crear'");
     ponerAjuste('esquema', ESQUEMA);
@@ -267,15 +269,17 @@ function entrar(array $p): array {
     return ['token' => token($u), 'perfil' => perfil($u)];
 }
 
-function sagasDe(string $uid): array {
-    $l = consulta('SELECT s.id, s.nombre, s.alianza, m.rol FROM miembros m JOIN sagas s ON s.id = m.saga WHERE m.usuario = ?', [$uid])->fetchAll();
+function sagasDe(string $uid, bool $admin = false): array {
+    // un administrador ve todas las sagas, con el rol de máster (o el suyo, si es más alto: no lo hay)
+    $l = $admin ? consulta("SELECT id, nombre, alianza, 'master' AS rol FROM sagas")->fetchAll()
+        : consulta('SELECT s.id, s.nombre, s.alianza, m.rol FROM miembros m JOIN sagas s ON s.id = m.saga WHERE m.usuario = ?', [$uid])->fetchAll();
     usort($l, fn($a, $b) => strcmp(mb_strtolower($a['nombre']), mb_strtolower($b['nombre'])));
     return $l;
 }
 
 function perfil(array $u): array {
     return ['id' => $u['id'], 'usuario' => $u['usuario'], 'nombre' => $u['nombre'], 'email' => $u['email'], 'avatar' => $u['avatar'] ?: null,
-        'creaSagas' => (bool) $u['crea_sagas'], 'sagas' => sagasDe($u['id'])];
+        'creaSagas' => (bool) $u['crea_sagas'] || (bool) $u['admin'], 'admin' => (bool) $u['admin'], 'sagas' => sagasDe($u['id'], (bool) $u['admin'])];
 }
 
 function actualizarPerfil(array $u, array $p): array {
@@ -368,6 +372,7 @@ function acceso(array $p, ?string $rolMinimo = null): array {
     $u = sesion($p['token'] ?? '');
     $saga = sagaPorId((string) ($p['saga'] ?? ''));
     $rol = $saga ? rolEn($saga['id'], $u['id']) : null;
+    if ($saga && !$rol && $u['admin']) $rol = 'master';   // el administrador entra en cualquier saga como máster
     if (!$saga || !$rol) throw new Fallo('saga', 'No tienes acceso a esa saga.');
     if ($rolMinimo === 'master' && $rol !== 'master') throw new Fallo('permiso', 'Solo el máster puede hacer esto.');
     return [$saga, $rol, $u];
@@ -403,7 +408,7 @@ function nuevaSaga(string $nombre, string $alianza, int $anio, int $est, int $au
 }
 
 function crear(array $u, array $p): array {
-    if (!$u['crea_sagas']) throw new Fallo('permiso', 'Tu cuenta no puede crear sagas. Pídeselo a quien administra la web.');
+    if (!$u['crea_sagas'] && !$u['admin']) throw new Fallo('permiso', 'Tu cuenta no puede crear sagas. Pídeselo a quien administra la web.');
     $nombre = trim((string) preg_replace('/\s+/', ' ', (string) ($p['nombre'] ?? '')));
     if (mb_strlen($nombre) < 3) throw new Fallo('nombre', 'Ponle un nombre a la saga.');
     $nombre = mb_substr($nombre, 0, 80);
@@ -602,6 +607,44 @@ function importar(array $saga, array $u, array $p): array {
     });
 }
 
+/* ============================================================== ayudas de juego: ediciones de los administradores
+   Las ayudas (data/ayudas.json) son iguales para todas las sagas; un administrador puede cambiar cualquier celda de sus tablas.
+   Los cambios se guardan aparte (aquí) y la web los aplica encima de los datos al cargar, también para los invitados. */
+const SAGA_GLOBAL = '_global';
+const RUTA_AYUDAS = 'ayudas/ediciones';
+
+function ayudasLeer(): Crudo {
+    $d = consulta('SELECT datos FROM docs WHERE saga = ? AND ruta = ?', [SAGA_GLOBAL, RUTA_AYUDAS])->fetchColumn();
+    return new Crudo($d === false ? '{"e":{}}' : (string) $d);
+}
+
+/* cambios: [{k: «documento|hoja|tabla», i: fila, n: nombre original de la fila, c: columna, v: texto nuevo (null: quitar el cambio)}] */
+function ayudasEscribir(array $u, array $p): array {
+    if (!$u['admin']) throw new Fallo('permiso', 'Solo un administrador puede editar las ayudas de juego.');
+    $cambios = $p['cambios'] ?? null;
+    if (!is_array($cambios) || !$cambios) throw new Fallo('peticion', 'No hay nada que guardar.');
+    if (count($cambios) > 100) throw new Fallo('peticion', 'Demasiados cambios a la vez.');
+    foreach ($cambios as $c) {
+        $k = (string) ($c->k ?? ''); $col = (string) ($c->c ?? '');
+        $v = $c->v ?? null;
+        if (!preg_match('#^[A-Za-z0-9._|-]{1,120}$#', $k) || $col === '' || mb_strlen($col) > 40 || !is_int($c->i ?? null) || $c->i < 0 || $c->i > 20000
+            || mb_strlen((string) ($c->n ?? '')) > 300 || ($v !== null && (!is_string($v) || mb_strlen($v) > 30000)))
+            throw new Fallo('peticion', 'Cambio no válido.');
+    }
+    $t = ahora();
+    return transaccion(function () use ($u, $cambios, $t) {
+        $d = consulta('SELECT datos FROM docs WHERE saga = ? AND ruta = ?', [SAGA_GLOBAL, RUTA_AYUDAS])->fetchColumn();
+        $e = $d === false ? [] : ((json_decode((string) $d, true)['e'] ?? []) ?: []);
+        foreach ($cambios as $c) {
+            $clave = $c->k . '|' . $c->i . '|' . $c->c;
+            if (($c->v ?? null) === null) { unset($e[$clave]); continue; }
+            $e[$clave] = ['k' => $c->k, 'i' => $c->i, 'n' => (string) ($c->n ?? ''), 'c' => $c->c, 'v' => $c->v, 'por' => $u['id'], 't' => $t];
+        }
+        guardarDoc(SAGA_GLOBAL, RUTA_AYUDAS, json_encode(['e' => (object) $e, 't' => $t], JSON_OUT), $t, $u['id']);
+        return ['ok' => true, 'n' => count($e), 't' => $t];
+    });
+}
+
 /* $p: lo que manda la web; los valores sueltos son texto, número o lista, y los objetos son stdClass (así {} sigue siendo {}) */
 function atender(array $p) {
     try {
@@ -617,6 +660,9 @@ function atender(array $p) {
             case 'cerrarSesiones': return cerrarSesiones(sesion($p['token'] ?? ''));
             case 'contenido': return contenido(sesion($p['token'] ?? ''));
             case 'crear': return crear(sesion($p['token'] ?? ''), $p);
+            // ayudas de juego (las leen todos, también sin cuenta; las escribe un administrador)
+            case 'ayudasLeer': return ayudasLeer();
+            case 'ayudasEscribir': return ayudasEscribir(sesion($p['token'] ?? ''), $p);
             // una saga
             case 'info': [$s, $rol] = acceso($p); return ['saga' => publica($s), 'rol' => $rol];
             case 'leer': [$s] = acceso($p); return leer($s, $p);

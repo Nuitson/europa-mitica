@@ -3,6 +3,8 @@
      php api/usuarios.php listar                          cuentas y sagas, con sus miembros
      php api/usuarios.php master <usuario> <saga>         hace máster de esa saga a esa cuenta (la añade si no estaba)
      php api/usuarios.php miembro <usuario> <saga> [rol]  la añade como jugador (o como master)
+     php api/usuarios.php admin <usuario> [si|no]         hace administrador a esa cuenta (o le quita el nivel): ve y edita todas las sagas
+                                                          y puede cambiar cualquier celda de las ayudas de juego
      php api/usuarios.php crea-sagas <usuario> [si|no]    permite (o no) a esa cuenta crear sagas
      php api/usuarios.php contrasena <usuario>            pone una contraseña nueva al azar y la muestra (cierra sus sesiones)
    Los usuarios se escriben como en la web (sin importar mayúsculas). */
@@ -30,7 +32,7 @@ $cmd = $argv[1] ?? '';
 switch ($cmd) {
     case 'listar':
         foreach (consulta('SELECT * FROM usuarios ORDER BY creado')->fetchAll() as $u)
-            echo "- {$u['usuario']} ({$u['nombre']}, {$u['email']})" . ($u['crea_sagas'] ? ' [puede crear sagas]' : '') . "\n";
+            echo "- {$u['usuario']} ({$u['nombre']}, {$u['email']})" . ($u['admin'] ? ' [ADMIN]' : '') . ($u['crea_sagas'] ? ' [puede crear sagas]' : '') . "\n";
         foreach (consulta('SELECT * FROM sagas ORDER BY nombre')->fetchAll() as $s) {
             echo "\n{$s['id']} — {$s['nombre']}\n";
             foreach (consulta('SELECT u.usuario, m.rol FROM miembros m JOIN usuarios u ON u.id = m.usuario WHERE m.saga = ?', [$s['id']]) as $m) echo "    {$m['usuario']}: {$m['rol']}\n";
@@ -41,6 +43,12 @@ switch ($cmd) {
         $rol = $argv[4] ?? 'jugador';
         if (!in_array($rol, ['master', 'jugador'], true)) { fwrite(STDERR, "El rol es master o jugador.\n"); exit(1); }
         ponerRol(cuenta($argv[2] ?? ''), saga($argv[3] ?? ''), $rol);
+        break;
+    case 'admin':
+        $u = cuenta($argv[2] ?? '');
+        $si = ($argv[3] ?? 'si') !== 'no';
+        consulta('UPDATE usuarios SET admin = ?, crea_sagas = ? WHERE id = ?', [$si ? 1 : 0, $si ? 1 : (int) $u['crea_sagas'], $u['id']]);
+        echo "{$u['usuario']} " . ($si ? 'es ahora administrador' : 'ya no es administrador') . ".\n";
         break;
     case 'crea-sagas':
         $u = cuenta($argv[2] ?? '');

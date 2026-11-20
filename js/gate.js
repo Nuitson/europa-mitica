@@ -6,7 +6,7 @@
 (function () {
 'use strict';
 const CFG = window.EM_CONFIG || {};
-const K_SES = 'em:sesion', K_ARC = 'em:archivo:', K_MSG = 'em:aviso', K_ZONA = 'em:zona', K_LAST = 'em:ultima';
+const K_ED = 'em:ayudas-ediciones', K_SES = 'em:sesion', K_ARC = 'em:archivo:', K_MSG = 'em:aviso', K_ZONA = 'em:zona', K_LAST = 'em:ultima';
 const POLL_MS = 15000;
 const APP = new URL('app/main.js', document.currentScript.src).href; // the app's modules, next to this script
 const CUENTA = new URL('cuenta.js', document.currentScript.src).href; // the account screens, loaded when needed
@@ -45,6 +45,35 @@ async function api(accion, datos) {
 
 /* ---------- the shared aids, the spell catalogue and the image list: static files served next to the page */
 const STATIC = { data: 'data/ayudas.json', img: 'data/imagenes.json', hech: 'data/hechizos.json', hb: 'data/homebrew/index.json', libros: 'data/libros.json' };
+/* the changes administrators made to the aids' tables (api: ayudasLeer, readable without an account): applied over the files' data.
+   The last ones read are kept in this browser, for when there is no connection. */
+async function loadEdits() {
+  if (CFG.backend) {
+    try {
+      const res = await fetch(CFG.backend, { method: 'POST', body: JSON.stringify({ accion: 'ayudasLeer' }) });
+      const o = res.ok ? await res.json() : null;
+      if (o && o.e && !o.error) { lsSet(K_ED, JSON.stringify(o.e)); return o.e; }
+    } catch (e) { /* offline: the copy below */ }
+  }
+  try { return JSON.parse(lsGet(K_ED) || '{}') || {}; } catch (e) { return {}; }
+}
+// a row is found by its position and the name it had in the files (r._n0: kept in memory only, so the page can send it back when editing)
+function applyEdits(D, edits) {
+  const tables = {};
+  (D.docs || []).forEach(doc => (doc.sheets || []).forEach(sh => (sh.blocks || []).forEach((b, bi) => { if (b.t === 'table') tables[doc.id + '|' + sh.id + '|' + (b.id || bi)] = b; })));
+  Object.keys(edits || {}).forEach(key => {
+    const x = edits[key], b = tables[x.k];
+    if (!b) return;
+    const ci = b.cols.indexOf(x.c);
+    if (ci < 0) return;
+    const nom = r => (r._n0 !== undefined ? r._n0 : r[0]);
+    let r = b.rows[x.i];
+    if (!r || nom(r) !== x.n) r = b.rows.find(q => nom(q) === x.n);
+    if (!r) return;
+    if (r._n0 === undefined) Object.defineProperty(r, '_n0', { value: r[0], writable: true, enumerable: false });
+    r[ci] = x.v;
+  });
+}
 let staticLoad = null;
 function loadStatic() {
   if (!staticLoad) {
@@ -52,9 +81,10 @@ function loadStatic() {
       const res = await fetch(STATIC[k]);
       if (!res.ok) throw new Error(STATIC[k] + ': ' + res.status);
       return [k, await res.json()];
-    })).then(pairs => {
+    })).then(async pairs => {
       const o = {};
       pairs.forEach(([k, v]) => { o[k] = v; });
+      applyEdits(o.data, await loadEdits());
       return o;
     }).catch(() => {
       staticLoad = null; // let «Reintentar» fetch them again
@@ -257,6 +287,7 @@ function merge(ses, arc, st) {
   const s = ses.saga;
   const node = { f: s.nombre, saga: true, glance: [], children: [] }; // saga: true = exclusive to this saga (the rest of the tree is shared by all)
   if (arc && Array.isArray(arc.docs)) {
+    arc.docs.forEach(d => { d.saga = true; }); // the saga's own spreadsheets: not part of the shared aids
     D.docs = D.docs.concat(arc.docs);
     Object.assign(I, arc.img || {});
     node.children = arc.tree || [];
@@ -301,7 +332,7 @@ function sessionStrip(ses) {
   const box = el('div', { class: 'sess' }, [
     el('div', { class: 'sess-s', text: ses.saga.nombre }),
     p ? el('div', { class: 'sess-u' }, [avatar(p, 22), el('span', { text: p.nombre })]) : null,
-    el('div', { class: 'sess-r' }, [el('span', { text: (ses.rol === 'master' ? 'Máster' : 'Jugador') + (ses.offline ? ' · sin conexión' : '') }),
+    el('div', { class: 'sess-r' }, [el('span', { text: (p && p.admin ? 'Administrador' : ses.rol === 'master' ? 'Máster' : 'Jugador') + (ses.offline ? ' · sin conexión' : '') }),
       el('button', { type: 'button', class: 'sess-out', text: 'Mi zona', onclick: () => aZona() })])]);
   brand.insertAdjacentElement('afterend', box);
 }

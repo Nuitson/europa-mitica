@@ -1404,3 +1404,9 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim { display: 
 .vdt-d { white-space: pre-line; }
 .dt.multi td.long { min-width: 200px; max-width: 320px; }
 .dt.multi td.name { min-width: 130px; }
+
+/* edición de celdas por administradores */
+.dt-edit.on { background: var(--blood-ink); color: var(--paper); border-color: var(--blood-ink); }
+.dt.editing td.ed { cursor: pointer; outline: 1px dashed transparent; outline-offset: -2px; }
+.dt.editing td.ed:hover { outline-color: var(--blood-ink); background: color-mix(in srgb, var(--blood-ink) 8%, transparent); }
+.dt.editing td.ed * { pointer-events: none; }

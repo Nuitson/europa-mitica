@@ -1,6 +1,7 @@
 /* Los bloques de las ayudas de juego: texto, tablas, registro de vis y gráficos (R). */
 import { LIBROS, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, esc, fmt, h, ICON, IMG, inertOthers, load, norm, opify, R, signed, store, toNum } from './base.js';
-import { cell, sel } from './saga/core.js';
+import { cell, field, openModal, sel, toast } from './saga/core.js';
+import { resetIndex } from './search.js';
 import { canWrite } from './saga/rules.js';
 import { liveStats, liveStock, visDbRows } from './saga/home.js';
 import { openVisEditor } from './saga/seasons.js';
@@ -298,8 +299,12 @@ R.artstock = b => { const vals = b.live ? liveStock(b.v) : b.v; return h('div', 
 })); };
 
 /* ---------------------------------------------------------------- data table */
-R.table = (b) => {
+R.table = (b, ctx) => {
   const st = { q: '', f: {}, sort: null, dir: 1 };
+  const W = window.EM_WEB;
+  // administrators can change any cell of the shared aids' tables (the changes are kept on the server: api «ayudasEscribir»)
+  const canEdit = !!(W && W.user && W.user.admin && !W.offline && ctx && ctx.doc && !ctx.doc.web && !ctx.doc.saga);
+  let editing = false;
   const wrap = h('div', { class: 'dt' + (b.long && b.long.length > 1 ? ' multi' : '') }); // several long columns: narrower, so the table fits
   const tools = h('div', { class: 'dt-tools' });
   const count = h('span', { class: 'dt-count' });
@@ -323,6 +328,11 @@ R.table = (b) => {
   });
   const clear = h('button', { type: 'button', class: 'dt-clear', hidden: true, onclick: () => { st.q = ''; st.f = {}; if (input) input.value = ''; selects.forEach(s => { s.value = ''; }); draw(); } }, 'Quitar filtros');
   tools.appendChild(clear);
+  if (canEdit) {
+    const eb = h('button', { type: 'button', class: 'btn ghost dt-edit', 'aria-pressed': 'false', title: 'Cambiar cualquier celda: pulsa una celda y escribe' }, 'Editar celdas');
+    eb.addEventListener('click', () => { editing = !editing; eb.setAttribute('aria-pressed', String(editing)); eb.classList.toggle('on', editing); wrap.classList.toggle('editing', editing); draw(); });
+    tools.appendChild(eb);
+  }
   tools.appendChild(count);
   wrap.appendChild(tools);
   const tw = h('div', { class: 'tw' });
@@ -345,6 +355,35 @@ R.table = (b) => {
     if (!x && y) return 1;
     if (x && !y) return -1;
     return String(x).localeCompare(String(y), 'es') * st.dir;
+  }
+  const tkey = (ctx && ctx.doc && ctx.sheet) ? ctx.doc.id + '|' + ctx.sheet.id + '|' + (b.id || ctx.sheet.blocks.indexOf(b)) : '';
+  function editCell(o, ci) {
+    const row = o.r, col = b.cols[ci];
+    const ta = h('textarea', { rows: long.has(ci) ? '10' : '3', 'aria-label': col, spellcheck: 'true' });
+    ta.value = row[ci] == null ? '' : String(row[ci]);
+    const err = h('p', { class: 'note', role: 'alert', hidden: true });
+    const save = h('button', { type: 'button', class: 'btn' }, 'Guardar');
+    const cancel = h('button', { type: 'button', class: 'btn ghost' }, 'Cancelar');
+    const close = openModal((row[0] || 'Fila') + ' · ' + col, [field(col, ta, 'Se guarda para todas las sagas y también lo ven los invitados.'), err], [cancel, save]);
+    cancel.addEventListener('click', () => close());
+    setTimeout(() => ta.focus(), 30);
+    save.addEventListener('click', async () => {
+      const v = ta.value;
+      if (v === String(row[ci] == null ? '' : row[ci])) { close(); return; }
+      save.disabled = true;
+      try {
+        const n = row._n0 !== undefined ? row._n0 : row[0]; // the name the row has in the files: how the server finds it again
+        await W.api('ayudasEscribir', { cambios: [{ k: tkey, i: o.i, n: n, c: col, v: v }] });
+        if (row._n0 === undefined) Object.defineProperty(row, '_n0', { value: row[0], writable: true, enumerable: false });
+        row[ci] = v;
+        o.n = norm(row.join(' '));
+        resetIndex();
+        import('./creation/rules.js').then(m => { if (m.vdReset) m.vdReset(); }).catch(() => {});
+        close();
+        draw();
+        toast('Guardado');
+      } catch (e) { save.disabled = false; err.textContent = e.message || 'No se ha podido guardar.'; err.hidden = false; }
+    });
   }
   function draw() {
     const terms = st.q.split(/\s+/).filter(Boolean);
@@ -375,6 +414,10 @@ R.table = (b) => {
         else if (ci === 0 && auto.has(o.i)) td.appendChild(h('i', { title: 'Traducción automática', text: v }));
         else if (num.has(ci) && isFinite(toNum(v))) td.textContent = String(v).replace(/^-/, '−');
         else td.innerHTML = br(v);
+        if (editing) {
+          td.classList.add('ed');
+          td.addEventListener('click', e => { if (e.target.closest('a')) return; e.preventDefault(); e.stopPropagation(); editCell(o, ci); });
+        }
         tr.appendChild(td);
       });
       frag.appendChild(tr);
