@@ -4,7 +4,7 @@ import { page } from '../views.js';
 import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../saga/state.js';
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
-import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
+import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, ensureHouse, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdReinoFijo, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
 import { openVdTab } from './vdtab.js';
 
@@ -80,7 +80,7 @@ function viewEditor(id, override) {
     field('Tipo', sel(TIPOS, d.tipo, v => { d.tipo = v; ensureGift(d); drawVd(); drawHab(); if (artSec) artSec.hidden = !showArts(); if (eaField) eaField.hidden = !isMagic(CLASE[d.tipo]); }, { id: 'pj-tipo' })),
     // the gender of the names of the virtues and flaws on the sheet: «Compasivo», «Compasiva», «Compasive»
     field('Género', sel(GENERO, d.genero || 'm', v => { d.genero = v; drawVd(); }, { id: 'pj-genero' }), 'Para los nombres de virtudes y defectos; el neutro, en -e.'),
-    field('Casa', inp(d.casa, v => { d.casa = v; }, { list: casaDl, autocomplete: 'off' })),
+    field('Casa', inp(d.casa, v => { d.casa = v; if (ensureHouse(d)) { drawVd(); drawHab(); } }, { list: casaDl, autocomplete: 'off' }), 'Un mago recibe gratis la virtud de su casa.'),
     field('Jugador', inp(d.jugador, v => { d.jugador = v; })),
     h('label', { class: 'fld' }, [h('span', { class: 'fl', text: 'Año de nacimiento' }), inp(d.nacimiento, v => { d.nacimiento = parseInt(v, 10) || ''; drawAge(); drawHab(); }, { type: 'number', inputmode: 'numeric', id: 'pj-nac' }), ageNote]),
     field('En juego', h('span', { class: 'chk' }, [h('input', { type: 'checkbox', checked: d.activo !== false ? true : null, onchange: ev => { d.activo = ev.target.checked; } }), h('span', { text: 'Activo en la saga' })])),
@@ -278,7 +278,8 @@ function viewEditor(id, override) {
       if (focus && focus.el === 'obj') setTimeout(() => ctl[0].focus(), 0);
     } else objCell = h('span', { class: 'cell vd-o none', 'aria-hidden': 'true' });
     // a virtue that grants a supernatural Ability: the realm it belongs to (the aura adds to or takes from its rolls)
-    const sobHab = vdSobHab(x, clase);
+    // (not when the virtue's own rule fixes it: Magia Sagrada is Divine)
+    const sobHab = vdReinoFijo(x) ? '' : vdSobHab(x, clase);
     if (sobHab) {
       const rs = sel([['', '— Elige el reino —']].concat(REINO_POW), x.reino || '', v => { if (v) x.reino = v; else delete x.reino; rs.classList.toggle('need', !v); refresh(); },
         { 'aria-label': 'Reino de ' + sobHab, title: 'Reino de la habilidad sobrenatural ' + sobHab + ': el aura le suma o le resta según él', class: x.reino ? null : 'need' });

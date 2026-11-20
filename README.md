@@ -10,7 +10,8 @@ servir.bat / .ps1    arranca la web en local (activa las extensiones de PHP en W
 config.js             la dirección del servidor (api/api.php)
 api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.php es el punto de entrada, instalar.php prepara la base de datos,
                         usuarios.php gestiona cuentas desde la línea de órdenes)
-herramientas/         migrar_desde_drive.py: pasa una saga del servidor antiguo (Drive) al nuevo
+herramientas/         migrar_desde_drive.py: pasa una saga del servidor antiguo (Drive) al nuevo;
+                        homebrew_csv.py: convierte los CSV de material de blogs en data/homebrew/
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 css/styles.css        los estilos
 js/gate.js            la entrada: abre la cuenta y la saga, carga los datos y arranca la aplicación
@@ -24,6 +25,8 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/core.js          carga y suscripciones, escrituras, avisos, ventanas y controles de formulario
   saga/rules.js         reglas de ArM5 para las fichas: formas, heridas, fatiga, hechizos, experiencia
   saga/home.js          la saga en la barra lateral, en el inicio y en las cifras vivas de las hojas
+  saga/homebrew.js      reglas caseras y material de blogs que el máster activa (pestaña «Homebrew» de su pantalla)
+  saga/hbview.js        las páginas del material homebrew: #hb, cada grupo de tipo y autor y cada entrada
   saga/seasons.js       estaciones: reparto de experiencia, vis y tesorería
   saga/characters.js    personajes y sus fichas
   saga/pjfile.js        exportar un personaje a un archivo e importarlo (en esta saga o en otra)
@@ -36,6 +39,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
 data/ayudas.json      las ayudas de juego compartidas (guías, virtudes y defectos, pantalla del jugador…)
 data/hechizos.json    el catálogo de hechizos
 data/imagenes.json    la lista de imágenes de las ayudas (id → archivo)
+data/homebrew/        material fanmade de blogs por tipo y autor (index.json y un archivo por grupo), de herramientas/homebrew_csv.py
 img/                  las imágenes de las ayudas
 ```
 
@@ -50,6 +54,7 @@ Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar 
 - **Imprimir:** la ficha (la pestaña que está abierta) y la pantalla del máster tienen un botón «Imprimir». Sale en el tema claro, sin el índice, las pestañas ni los botones; también sirve para guardarla en PDF.
 - **Exportar e importar personajes:** la página de cada personaje tiene «Exportar», que descarga un archivo `.json` con la ficha, todas sus estaciones y el retrato. En «Personajes», «Importar personaje» lee ese archivo, enseña lo que trae y lo crea como un personaje **nuevo**, a nombre de quien lo importa; nunca cambia los que ya hay (si ya existe uno con el mismo nombre, se avisa y quedan los dos). Sirve para pasar un personaje de una saga a otra o para guardar una copia suya. La copia de la saga entera sigue en la pantalla del máster.
 - **Virtudes y defectos propios de la saga:** en la pestaña «Elegir virtudes y defectos» del editor, «Crear virtud o defecto» añade uno nuevo (nombre, virtud o defecto, valor, tipo y descripción). Se guarda en la saga (`virtudes/{id}`), sale en «Libros» como «Propias de la saga», se elige como cualquier otro y su descripción se ve en las fichas. Solo existe en esa saga: no entra en el compendio común (`data/ayudas.json`) ni en las sagas que se creen después; sí va en la copia de seguridad de la saga. Lo cambia o lo borra quien lo creó o un máster. Cuando ya lo tiene algún personaje, el nombre no se puede cambiar (las fichas lo encuentran por el nombre).
+- **Homebrew:** la pantalla del máster tiene la pestaña «Homebrew». Arriba, las reglas caseras con una casilla cada una (por ejemplo, el lanzamiento con atributos afines). Debajo, el material de blogs (magos, aprendices, alianzas, objetos mágicos y hechizos) con un botón por tipo y autor, como «Teotimus · Hechizos». Lo añadido sale para toda la saga en la barra lateral, en «Homebrew», y sus hechizos entran en el catálogo de las fichas. Se guarda en el estado de la saga (`saga/estado`, campo `homebrew`). Para cambiar el material: `python herramientas/homebrew_csv.py <los CSV>`.
 - **Tiradas:** la descripción de cada hechizo de una ficha tiene «Tirar dado de estrés». Suma el dado de estrés de ArM5 al total de lanzamiento (con el aura de la escena) y dice si sale, si cuesta fatiga o si falla. Con un 0 tira los dados de pifia: uno, más uno por punto de aura de otro reino y menos uno por punto de maestría.
 
 ## Sin conexión

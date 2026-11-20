@@ -1,9 +1,10 @@
 /* La pantalla del máster. */
-import { ABBR, artOf, esc, h, load, R, store, toNum } from './base.js';
+import { ABBR, artOf, esc, h, load, R, scrollHint, store, toNum } from './base.js';
+import { castCarTxt, HB_KEY, hbActive, hbGroups, hbOn, HOMEBREW, homebrewOf, homebrewOn } from './saga/homebrew.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
 import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
-import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards, vdTreeCards } from './saga/rules.js';
+import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards, vdTreeCards, impioToggle, magiaAura, magiaAuraTxt } from './saga/rules.js';
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 import { GENERO_TXT } from './creation/rules.js';
@@ -16,23 +17,98 @@ import { GENERO_TXT } from './creation/rules.js';
    de personalidad, virtudes y defectos de cualquier personaje, y sus hechizos con el aura elegida. */
 const MST = { tipo: null, nivel: null, lugar: null, redraw: null };
 
-function viewMaster() {
+const M_TABS = [['escena', 'Escena'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew']];
+
+function viewMaster(tab) {
   page.innerHTML = '';
+  MST.redraw = null; MST.drawAura = null;
   page.appendChild(sagaCrumbs([['Pantalla del máster', null]]));
   page.appendChild(h('h1', { class: 'doc-title', text: 'Pantalla del máster' }));
+  document.title = 'Pantalla del máster — Europa Mítica';
+  const cur = M_TABS.some(t => t[0] === tab) ? tab : 'escena';
+  if (S.owner === true) {
+    const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de la pantalla del máster' },
+      M_TABS.map(([k, t]) => h('a', { class: 'tab', href: k === 'escena' ? '#master' : '#master--' + k, 'aria-current': k === cur ? 'page' : null,
+        text: t + (k === 'homebrew' && hbCount() ? ' · ' + hbCount() : '') })));
+    page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
+    scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
+  }
   const content = h('div', { class: 'content fx' });
   page.appendChild(content);
-  document.title = 'Pantalla del máster — Europa Mítica';
   const note = statusNote(); if (note) content.appendChild(note);
   if (S.owner !== true) {
     content.appendChild(h('p', { class: 'note', text: window.EM_WEB.offline ? 'Sin conexión: la pantalla del máster necesita el servidor de la saga.' : S.owner == null && S.db ? 'Comprobando quién eres…' : 'Esta pantalla es solo para el máster: entra en la saga con el código de máster.' }));
     return;
   }
+  if (cur === 'saga') { content.appendChild(masterWeb()); return; }
+  if (cur === 'homebrew') { content.appendChild(masterHomebrew()); content.appendChild(masterHbContent()); return; }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   content.appendChild(masterAura());
-  content.appendChild(masterWeb());
   content.appendChild(masterPjs());
+}
+
+/* ---------- homebrew: fanmade rules the master switches on for the whole saga (saga/estado → homebrew) */
+const hbCount = () => HOMEBREW.filter(r => homebrewOn(r.k)).length + hbActive().length;
+/* the material from blogs: one button per type and author («Teotimus · Hechizos») adds it to the saga or takes it out */
+function masterHbContent() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-hbc-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-hbc-h', text: 'Material de blogs' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Magos, aprendices, alianzas, objetos mágicos y hechizos fanmade, por tipo y autor. Lo que añadas sale en la barra lateral, en «Homebrew», para toda la saga; los hechizos entran además en el catálogo de las fichas.' }));
+  const groups = hbGroups();
+  if (!groups.length) { sec.appendChild(h('p', { class: 'note', text: 'No hay material de blogs en la web (data/homebrew/).' })); return sec; }
+  const tipos = [];
+  groups.forEach(g => { if (!tipos.includes(g.tipo)) tipos.push(g.tipo); });
+  tipos.forEach(t => {
+    const row = h('div', { class: 'hb-row', role: 'group', 'aria-label': t });
+    groups.filter(g => g.tipo === t).forEach(g => {
+      const on = hbOn(g.k);
+      const n = [g.textos ? g.textos + (g.textos === 1 ? ' entrada' : ' entradas') : '', g.hechizos ? g.hechizos + ' hechizos' : ''].filter(Boolean).join(' · ');
+      const b = h('button', { type: 'button', class: 'hb-tog', 'aria-pressed': on ? 'true' : 'false', disabled: canWrite() ? null : true,
+        title: (on ? 'Quitar de la saga: ' : 'Añadir a la saga: ') + g.autor + ' · ' + t + ((g.blogs || []).length ? ' (' + g.blogs.join(', ') + ')' : '') },
+        [h('span', { class: 'hb-tog-i', 'aria-hidden': 'true', text: on ? '✓' : '+' }), h('b', { text: g.autor + ' · ' + t }), h('small', { text: n })]);
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        const next = Object.assign({}, homebrewOf());
+        if (on) delete next[HB_KEY(g.k)]; else next[HB_KEY(g.k)] = true;
+        if (!await writeEstado({ homebrew: next }, (on ? 'Quitado de la saga: ' : 'Añadido a la saga: ') + g.autor + ' · ' + t)) b.disabled = !canWrite();
+      });
+      row.appendChild(h('span', { class: 'hb-item' }, [b, h('a', { class: 'lnk hb-see', href: '#hb--' + g.k, text: on ? 'Ver' : 'Vista previa' })]));
+    });
+    sec.appendChild(h('h3', { class: 'm-sub', text: t }));
+    sec.appendChild(row);
+  });
+  if (!canWrite()) sec.appendChild(h('p', { class: 'note', text: 'Sin permiso para guardar: no se puede cambiar.' }));
+  return sec;
+}
+function masterHomebrew() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-hb-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-hb-h', text: 'Reglas caseras' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Reglas fanmade que no son de los libros de Ars Magica. Las que actives aquí se aplican a todas las fichas de la saga; las desactivadas no cambian nada.' }));
+  if (!HOMEBREW.length) {
+    sec.appendChild(h('p', { class: 'note', text: 'Todavía no hay reglas caseras. Cuando se añadan, aparecerán aquí para activarlas o desactivarlas.' }));
+    return sec;
+  }
+  const on = homebrewOf();
+  const list = h('div', { class: 'hb-list', role: 'list' });
+  HOMEBREW.forEach(r => {
+    const id = 'hb-' + r.k;
+    const cb = h('input', { type: 'checkbox', id: id, checked: on[r.k] === true ? true : null, disabled: canWrite() ? null : true });
+    cb.addEventListener('change', async () => {
+      cb.disabled = true;
+      const next = Object.assign({}, homebrewOf(), { [r.k]: cb.checked });
+      if (!next[r.k]) delete next[r.k];
+      if (!await writeEstado({ homebrew: next }, (cb.checked ? 'Regla casera activada: ' : 'Regla casera desactivada: ') + r.n)) cb.checked = !cb.checked;
+      cb.disabled = !canWrite();
+    });
+    list.appendChild(h('div', { class: 'hb-rule', role: 'listitem' }, [
+      h('label', { class: 'chk', for: id }, [cb, h('b', { text: r.n })]),
+      r.desc ? h('p', { class: 'hb-desc', text: r.desc }) : null,
+      r.fuente ? h('small', { class: 'xt', text: 'Fuente: ' + r.fuente }) : null]));
+  });
+  sec.appendChild(list);
+  if (!canWrite()) sec.appendChild(h('p', { class: 'note', text: 'Sin permiso para guardar: no se pueden cambiar.' }));
+  return sec;
 }
 
 /* ---------- the scene aura */
@@ -171,7 +247,8 @@ function masterCard(p, compact) {
   }
   const sp = (p.hechizos || []).filter(x => x && String(x.n || '').trim());
   if (sp.length) {
-    const m = realmMod(MST.tipo, MST.nivel, 'magica'), cer = ceremonialOn() && canCeremony(c);
+    // the aura as this magus's magic takes it (Magia Sagrada, Verdadera Comprensión de los Reinos)
+    const ma = magiaAura(p, c, { tipo: MST.tipo, nivel: MST.nivel }), m = ma.mod, cer = ceremonialOn() && canCeremony(c);
     const rows = sp.map(x => {
       const tot = spellTotal(p, c, x, m, cer), lv = toNum(x.nivel);
       return { x: x, r: [x.n, [x.tec, x.forma].filter(Boolean).map(a => ABBR[artOf(a)] || a).join(''), x.nivel != null ? String(x.nivel) : '', tot == null ? '' : String(tot),
@@ -182,10 +259,12 @@ function masterCard(p, compact) {
     });
     const body = rows.map(o => o.r);
     const wrap = h('details', { class: 'm-spells', open: compact ? null : true });
-    wrap.appendChild(h('summary', null, [h('span', { class: 'm-sub', text: 'Hechizos con el aura elegida · ' + sp.length }), h('small', { text: auraTxt(MST.tipo, MST.nivel) + ': ' + sgn(m) })]));
+    wrap.appendChild(h('summary', null, [h('span', { class: 'm-sub', text: 'Hechizos con el aura elegida · ' + sp.length }), h('small', { text: magiaAuraTxt(ma) })]));
     wrap.appendChild(ceremonyToggle(c, refocusCer));
+    const imp = impioToggle(p, refocusCer);
+    if (imp) wrap.appendChild(imp);
     wrap.appendChild(R.grid({ _k: 'm-sp-' + id, head: ['Hechizo', 'Arte', 'Nivel', 'Lanzamiento', 'Margen'], body: body, fcl: true, info: i => spellInfo(id, (p.hechizos || []).indexOf(rows[i].x)) }));
-    wrap.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + Vitalidad + aura' + (sp.some(x => numv(x.maestria) > 0) ? ' + maestría' : '') + (malusOf(p) ? ' + malus por heridas y fatiga (' + sgn(malusOf(p)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial, 15 min por magnitud)' : sp.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + ', sin dado. Margen: lanzamiento menos nivel; con el dado, si llega a 0 el hechizo sale sin fatiga, y hasta −10 sale gastando un nivel de fatiga.' }));
+    wrap.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + ' + castCarTxt() + ' + aura' + (sp.some(x => numv(x.maestria) > 0) ? ' + maestría' : '') + (malusOf(p) ? ' + malus por heridas y fatiga (' + sgn(malusOf(p)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial, 15 min por magnitud)' : sp.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + ', sin dado. Margen: lanzamiento menos nivel; con el dado, si llega a 0 el hechizo sale sin fatiga, y hasta −10 sale gastando un nivel de fatiga.' }));
     card.appendChild(wrap);
   }
   return card;
