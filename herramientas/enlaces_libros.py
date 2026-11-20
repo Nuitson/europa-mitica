@@ -6,10 +6,10 @@
 Qué hace:
   1. Comprueba, libro a libro, que el número de página del compendio es la página del PDF en inglés (busca el
      nombre inglés de cada entrada y mide el desfase; tiene que salir 0).
-  2. Para los libros que están en castellano, busca en qué página del PDF en castellano está cada entrada (la
-     paginación cambia según la entrada, no hay un desfase fijo): nombre en castellano + palabras de la descripción,
-     dentro de una ventana, y descarta lo que no sigue la tendencia del libro. Lo que no se puede asegurar se
-     queda sin página en castellano y la web enlaza al PDF en inglés.
+  2. Para los libros que están en castellano, lee el PDF y busca la página donde empieza cada entrada (la
+     paginación cambia según la entrada, no hay un desfase fijo): el encabezado «Nombre / Valor, Tipo» y, donde
+     se comprobó que acierta, nombre + valor/tipo cerca dentro de una ventana. Lo que no se puede asegurar se
+     queda sin página en castellano y la web enlaza solo al PDF en inglés.
   3. Con --copiar, copia los PDF a libros/en/ y libros/es/ (nombres sin espacios) y escribe data/libros.json.
 
 Necesita pdftotext (poppler). Las carpetas por defecto son las de Dropbox del equipo.
@@ -118,38 +118,90 @@ def palabras(desc):
     return {w for w in norm(desc).split() if len(w) >= 6 and w not in STOP}
 
 
-def resolver_es(pgs, ents):
-    """página del PDF en castellano de cada entrada (o None), por nombre + descripción dentro de una ventana"""
-    # desfase típico del libro, con las entradas de nombre único
-    c = collections.Counter()
-    for e in ents:
-        nn = nombre_buscable(e['es'])
-        if len(nn) < 6: continue
-        hits = [i + 1 for i, t in enumerate(pgs) if re.search(r'\b' + re.escape(nn) + r'\b', t)]
-        if len(hits) <= 3:
-            for h in hits: c[round((h - e['ref']) / 5) * 5] += 1
-    if not c: return {}
-    centro = c.most_common(1)[0][0]
+def paginas_crudas(ruta):
+    """texto del PDF en orden de lectura (sin maquetar en columnas): cada entrada aparece como «Nombre / Valor, Tipo / texto»"""
+    os.makedirs(CACHE, exist_ok=True)
+    f = os.path.join(CACHE, 'raw_' + re.sub(r'\W', '_', os.path.basename(ruta)) + '.txt')
+    if not os.path.exists(f):
+        subprocess.run(['pdftotext', '-enc', 'UTF-8', ruta, f], check=True)
+    return [norm(x) for x in open(f, encoding='utf8', errors='ignore').read().split('\f')]
+
+
+def cabeceras(pgs, e):
+    """páginas donde aparece el encabezado de la entrada: «Nombre Valor Tipo» (o solo «Nombre Valor»)"""
+    nombres = [norm(e['es'])]
+    sin = norm(re.sub(r'\(.*?\)|\[.*?\]', ' ', e['es']))
+    if len(sin) >= 4 and sin != nombres[0]: nombres.append(sin)
+    val = norm(e['valor'])
+    tipo = (norm(e['tipo']).split() or [''])[0]
+    for nm in nombres:
+        for con_tipo in (True, False):
+            v = re.escape(val) if val else '(?:mayor|menor|libre|especial)'
+            pat = r'\b' + re.escape(nm) + ' ' + v + ((' ' + re.escape(tipo)) if con_tipo and tipo else '') + r'\b'
+            hits = [i + 1 for i, t in enumerate(pgs) if re.search(pat, t)]
+            if hits: return hits
+    return []
+
+
+def tendencia(anclas, ref):
+    cerca = [p - r for r, p in anclas if abs(r - ref) <= 25]
+    if len(cerca) < 3: cerca = [p - r for r, p in sorted(anclas, key=lambda a: abs(a[0] - ref))[:5]]
+    return statistics.median(cerca) if cerca else None
+
+
+# qué métodos valen en cada libro (medido contra entradas con encabezado seguro):
+#   cab = encabezado exacto; ven = nombre + valor/tipo cerca, en una ventana alrededor de la tendencia del libro;
+#   desc = nombre + palabras de la descripción. En los libros donde «ven» fallaba demasiado, solo «cab».
+METODOS = {'ArM': ('cab', 'ven'), 'HoH:MC': ('cab', 'ven'), 'RoP:M': ('cab', 'ven'), 'App': ('cab', 'ven'),
+           'RoP:F': ('cab',), 'HoH:S': ('cab',), 'BCoC': ('cab', 'ven', 'desc')}
+
+
+def resolver_es(pgs, ents, ab):
+    """página del PDF en castellano de cada entrada (índice -> página); lo que no se puede asegurar no sale"""
+    metodos = METODOS.get(ab, ('cab',))
+    cand = {k: cabeceras(pgs, e) for k, e in enumerate(ents)}
+    unicas = [(ents[k]['ref'], h[0], k) for k, h in cand.items() if len(h) == 1]
     res = {}
+    for k, h in cand.items():
+        if not h: continue
+        otras = [(r, p) for r, p, kk in unicas if kk != k]
+        t = tendencia(otras, ents[k]['ref'])
+        if t is None:
+            if len(h) == 1: res[k] = h[0]   # el único encabezado del libro: sin con qué compararlo, pero es un encabezado exacto
+            continue
+        mejor = min(h, key=lambda p: abs(p - (ents[k]['ref'] + t)))
+        if abs(mejor - (ents[k]['ref'] + t)) <= 8: res[k] = mejor
+    anclas = [(ents[k]['ref'], p) for k, p in res.items()]
+    if 'cab' not in metodos: res = {}
+    glob = None
+    if not anclas and len(metodos) > 1:   # ningún encabezado exacto: desfase típico del libro, con los nombres que salen una o dos veces
+        c = collections.Counter()
+        for e in ents:
+            nm = nombre_buscable(e['es'])
+            if len(nm) < 6: continue
+            hits = [i + 1 for i, t in enumerate(pgs) if re.search(r'\b' + re.escape(nm) + r'\b', t)]
+            if len(hits) <= 2:
+                for h in hits: c[round((h - e['ref']) / 6) * 6] += 1
+        if c: glob = c.most_common(1)[0][0]
+    if (not anclas and glob is None) or len(metodos) == 1: return res
     for k, e in enumerate(ents):
-        nn = nombre_buscable(e['es'])
+        if k in res: continue
+        t = tendencia(anclas, e['ref']) if anclas else glob
+        nm = nombre_buscable(e['es'])
+        if t is None or len(nm) < 4: continue
+        val = norm(e['valor']); tipo = (norm(e['tipo']).split() or [''])[0]
         pal = palabras(e['desc'])
         mejor = None
-        for p in range(max(1, e['ref'] + centro - 45), min(len(pgs), e['ref'] + centro + 60) + 1):
-            t = pgs[p - 1]
-            # el encabezado de la entrada es «Nombre Valor, Tipo» (Menor/Mayor/Libre/Especial); una simple mención no vale
-            cab = r'\b' + re.escape(nn) + r'\b.{0,50}?\b' + (re.escape(norm(e['valor'])) if e['valor'] else '(mayor|menor|libre|especial)') + r'\b'
-            if not re.search(cab, t): continue
-            punt =3 + (3 * sum(1 for w in pal if w in t) / len(pal) if pal else 0)
-            if mejor is None or punt > mejor[0]: mejor = (punt, p)
-        if mejor and mejor[0] >= 3.6: res[k] = mejor[1]
-    # tendencia: dentro del libro, castellano e inglés avanzan juntos; se descarta lo que se aparta
-    pts = sorted((ents[k]['ref'], p, k) for k, p in res.items())
-    ok = {}
-    for i, (r, p, k) in enumerate(pts):
-        vec = [pp - rr for rr, pp, kk in pts[max(0, i - 6):i + 7] if kk != k]
-        if len(vec) >= 3 and abs((p - r) - statistics.median(vec)) <= 6: ok[k] = p
-    return ok
+        for p in range(max(1, int(e['ref'] + t) - 10), min(len(pgs), int(e['ref'] + t) + 10) + 1):
+            m = re.search(r'\b' + re.escape(nm) + r'\b', pgs[p - 1])
+            if not m: continue
+            ctx = pgs[p - 1][m.end():m.end() + 80]
+            cerca = bool((val and val in ctx) or (tipo and tipo in ctx))
+            ov = sum(1 for w in pal if w in pgs[p - 1]) / len(pal) if pal else 0
+            punt = (2 if cerca else 0) + ov * 3 - abs(p - (e['ref'] + t)) * 0.05
+            if mejor is None or punt > mejor[0]: mejor = (punt, p, cerca, ov)
+        if mejor and ((mejor[2] and 'ven' in metodos) or (mejor[3] >= 0.35 and 'desc' in metodos)): res[k] = mejor[1]
+    return res
 
 
 def main():
@@ -169,7 +221,7 @@ def main():
         if not off or off[0][0] != 0 or off[0][1] < max(2, 0.3 * n): problemas.append(ab)
         info = {'slug': slug, 'nombre': nombre, 'en': 'libros/en/%s.pdf' % slug, '_en': en_f, '_es': esf}
         if esf:
-            ok = resolver_es(paginas(os.path.join(ES, esf)), ents)
+            ok = resolver_es(paginas_crudas(os.path.join(ES, esf)), ents, ab)
             info['es'] = 'libros/es/%s.pdf' % slug
             for k, p in ok.items(): paginas_es['%s|%s|%s' % (ab, ents[k]['es'], ents[k]['pag'])] = p
             linea += '   %d de %d' % (len(ok), len(ents))
