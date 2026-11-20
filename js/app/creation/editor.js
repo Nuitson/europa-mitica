@@ -4,7 +4,7 @@ import { page } from '../views.js';
 import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../saga/state.js';
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
-import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
+import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
 import { openVdTab } from './vdtab.js';
 
@@ -277,6 +277,14 @@ function viewEditor(id, override) {
       objCell = h('div', { class: 'cell vd-o' + (ctl.length > 1 ? ' two' : ''), 'data-l': 'Se aplica a' }, ctl);
       if (focus && focus.el === 'obj') setTimeout(() => ctl[0].focus(), 0);
     } else objCell = h('span', { class: 'cell vd-o none', 'aria-hidden': 'true' });
+    // a virtue that grants a supernatural Ability: the realm it belongs to (the aura adds to or takes from its rolls)
+    const sobHab = vdSobHab(x, clase);
+    if (sobHab) {
+      const rs = sel([['', '— Elige el reino —']].concat(REINO_POW), x.reino || '', v => { if (v) x.reino = v; else delete x.reino; rs.classList.toggle('need', !v); refresh(); },
+        { 'aria-label': 'Reino de ' + sobHab, title: 'Reino de la habilidad sobrenatural ' + sobHab + ': el aura le suma o le resta según él', class: x.reino ? null : 'need' });
+      if (objCell.classList.contains('none')) objCell = h('label', { class: 'cell vd-o', 'data-l': 'Reino' }, rs);
+      else { objCell.classList.add('two'); objCell.appendChild(rs); }
+    }
     // value: the compendium's, or another (a House's free virtue); the same name may exist as major and minor
     const valSel = sel([['', '—'], ['Mayor', 'Mayor (3)'], ['Menor', 'Menor (1)'], ['Gratuita', 'Gratuita'], ['Especial', 'Especial']], x.valor || '', v => {
       const alt = canon ? vdFind(canon.en || canon.n, clase, v) : null;
@@ -333,7 +341,7 @@ function viewEditor(id, override) {
     const lost = (x.sinOtorgar || []).length ? h('button', { type: 'button', class: 'lnk vd-evo', onclick: () => { delete x.sinOtorgar; afterVd(); } }, 'Volver a añadir lo que otorga') : null;
     const full = canon && canon.desc ? canon.desc : '';
     const desc = full.length > 220 ? full.slice(0, 218) + '…' : full;
-    const row = h('div', { class: 'lrow vd' + (locked ? ' locked' : '') + (kind || slots.length ? '' : ' noobj') }, [
+    const row = h('div', { class: 'lrow vd' + (locked ? ' locked' : '') + (kind || slots.length || sobHab ? '' : ' noobj') }, [
       h('label', { class: 'cell vd-t', 'data-l': 'Tipo' }, tipoSel),
       h('div', { class: 'cell vd-n', 'data-l': clase === 'virtud' ? 'Virtud' : 'Defecto' }, [nameSel, other, evoBtn, lost, porCtl]),
       objCell,

@@ -292,6 +292,33 @@ function vdNest(pj, all) {
   items.forEach(it => { if (!done.has(it)) put(it.clase, it, 0); });
   return out;
 }
+/* ---------- supernatural Abilities and their realm: a Virtue that grants one («Da la habilidad sobrenatural Segunda
+   vista 1…», in the compendium) is aligned with a realm the player chooses (x.reino), and the aura of the place adds to
+   or takes from the Ability's rolls as it does to that realm's powers (AURA_X in saga/rules.js) */
+const REINO_POW = [['magica', 'Magia'], ['feerica', 'Feérico'], ['divina', 'Divino'], ['infernal', 'Infernal']];
+const REINO_POW_TXT = { magica: 'mágico', feerica: 'feérico', divina: 'divino', infernal: 'infernal' };
+/* the supernatural Ability this virtue grants (its name), or '' — a hand-written supernatural virtue grants one of its own name */
+function vdSobHab(x, clase) {
+  if (clase !== 'virtud' || !x || !String(x.n || '').trim()) return '';
+  const e = vdEntry(x, 'virtud');
+  if (!e) return norm(x.cat || '') === 'sobrenatural' ? String(x.n).trim() : '';
+  const m = String(e.desc || '').match(/habilidad sobrenatural\s+(?:de\s+)?(.+?)\s*(?:\d|:|;|,|\(|\.|$)/i);
+  return m ? m[1].replace(/^«|»$/g, '').trim() : '';
+}
+/* the same Ability written another way: «Augurio» / «Augurios», «Segunda vista» / «Clarividencia» (the virtue's name) */
+const habKey = s => tkey(s).replace(/s$/, '');
+/* the realm of one of the character's Abilities ('' when no supernatural virtue of the sheet grants it, or none was chosen) */
+function habReino(pj, habName) {
+  const k = habKey(habName);
+  if (!k) return '';
+  const x = (Array.isArray(pj && pj.virtudes) ? pj.virtudes : []).find(v => {
+    const sh = vdSobHab(v, 'virtud');
+    if (!sh) return false;
+    const ge = GEN.get(tkey(v.n));
+    return [sh, v.n, v.en, vdLabel(v)].concat(ge ? [ge.f, ge.n] : []).some(n => n && habKey(n) === k);
+  });
+  return x && REINO_POW_TXT[x.reino] ? x.reino : '';
+}
 /* what the player fills in for this virtue or flaw: [{k: kind, w: the bracket's word}] — the target of a Maña,
    Afinidad or Característica Notable/Mediocre (stored in obj), or each bracket of the name (obj, then obj2) */
 function vdSlots(x, clase) {
@@ -418,6 +445,8 @@ function creationCheck(d) {
     if (seenObj.has(k) && F[i] !== 'carGrande' && F[i] !== 'carPobre') twice.push(vdLabel(Object.assign({}, x, { obj: t })));
     seenObj.add(k);
   }));
+  const noReino = V.filter(x => vdSobHab(x, 'virtud') && !REINO_POW_TXT[x.reino]).map(x => '«' + x.n + '»');
+  if (noReino.length) avisos.push('Elige el reino de ' + noReino.join(', ') + ': su habilidad sobrenatural suma o resta el aura según el reino.');
   if (noObj.length) avisos.push('Elige a qué se aplica' + (noObj.length > 1 ? 'n ' : ' ') + noObj.join(', ') + ' (columna «Se aplica a»).');
   if (twice.length) avisos.push('Solo se puede coger una vez para lo mismo: ' + twice.join(', ') + '.');
   lines.push({ k: 'vd', l: 'Virtudes y defectos', s: 'Def.', short: pd + (vdCap != null ? '/' + vdCap : '') + ' · Virt. ' + pv + '/' + pd,
@@ -604,4 +633,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };
+export { habReino, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };

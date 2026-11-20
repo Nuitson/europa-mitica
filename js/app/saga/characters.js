@@ -3,10 +3,10 @@ import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, scrollH
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
-import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
+import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
-import { GENERO_TXT, vdLabel, vdNest } from '../creation/rules.js';
+import { GENERO_TXT, habReino, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
 import { spellInfo, vdInfo } from '../info.js';
@@ -124,7 +124,7 @@ function viewPj(id, tab) {
       content.appendChild(h('h3', { text: t }));
       // under each one, what it grants (a flaw given by a virtue goes under the virtue)
       const l = tree[col];
-      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(it => [vdSub(it) + vdLabel(it.x, pj.genero), (it.x.cat || '') + (it.clase !== col ? ' (' + it.clase + ')' : ''), it.x.valor || '', it.x.nota || '']), fcl: true, info: i => vdInfo(l[i].x, l[i].clase, pj.genero) }));
+      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(it => [vdSub(it) + vdLabel(it.x, pj.genero), (it.x.cat || '') + (REINO_POW_TXT[it.x.reino] ? ', ' + REINO_POW_TXT[it.x.reino] : '') + (it.clase !== col ? ' (' + it.clase + ')' : ''), it.x.valor || '', it.x.nota || '']), fcl: true, info: i => vdInfo(l[i].x, l[i].clase, pj.genero) }));
       else content.appendChild(h('p', { class: 'note', text: 'Ninguno.' }));
     });
     const fa = formaActiva(pj);
@@ -260,7 +260,7 @@ function sheetVd(pj, id) {
   [['Virtudes', 'virtud', 'Ninguna.', 'sh-v'], ['Defectos', 'defecto', 'Ninguno.', 'sh-d']].forEach(([t, col, none, k]) => {
     const L = tree[col];
     cols.appendChild(h('div', { class: 'sh-vdcol' }, [shHead(k, t),
-      L.length ? ledger('sh-vd', L.map(it => { const x = it.x; return { l: vdSub(it) + vdLabel(x, pj.genero), s: String(x.valor || '').toLowerCase() + (it.clase !== col ? ' · ' + it.clase : ''), title: [x.cat, x.nota].filter(Boolean).join(' — ') || null, info: () => vdInfo(x, it.clase, pj.genero) }; }))
+      L.length ? ledger('sh-vd', L.map(it => { const x = it.x; return { l: vdSub(it) + vdLabel(x, pj.genero), s: String(x.valor || '').toLowerCase() + (it.clase !== col ? ' · ' + it.clase : '') + (REINO_POW_TXT[x.reino] ? ' · ' + REINO_POW_TXT[x.reino] : ''), title: [x.cat, x.nota].filter(Boolean).join(' — ') || null, info: () => vdInfo(x, it.clase, pj.genero) }; }))
         : h('p', { class: 'sh-aside', text: none })]));
   });
   sec.appendChild(cols);
@@ -394,14 +394,20 @@ function sheetAbil(c, id, pj, fa) {
   const note = h('p', { class: 'sh-aside hab-roll', 'aria-live': 'polite' });
   const block = h('div');
   const bar = h('div', { class: 'hab-cars', role: 'group', 'aria-label': 'Sumar una característica a las habilidades' });
+  // supernatural Abilities belong to a realm (chosen on the virtue that grants them): the aura of the place adds or takes
+  // as it does to that realm's powers
+  const an = auraNow();
+  const sob = n => { const r = habReino(pj, n); return r ? { reino: r, aura: realmMod(an.tipo, an.nivel, r) } : null; };
+  const anySob = c.hab.some(x => habLv(c, x) >= 1 && sob(x.n));
   const draw = () => {
     const cv = habCar ? numv(car[habCar]) : 0;
     note.hidden = !habCar;
     note.textContent = !habCar ? '' : 'Tiradas con ' + habCar + ' (' + sgn(cv) + ')'
       + (e.total ? ' y el malus por heridas y fatiga (' + sgn(e.total) + ')' : ', sin malus por heridas ni fatiga')
       + ': nivel + característica' + (e.total ? ' + malus' : '') + ', sin el dado.' + (e.fuera ? ' ' + e.fuera + '.' : '')
+      + (anySob ? ' Las sobrenaturales suman además el aura según su reino (' + (an.escena && an.lugar ? an.lugar + ', ' : '') + 'aura ' + auraTxt(an.tipo, an.nivel) + ').' : '')
       + ' Pulsa ' + CAR_INI[habCar] + ' otra vez para ver solo los niveles.';
-    block.replaceChildren(abilBlock(c, habCar ? cv + e.total : null));
+    block.replaceChildren(abilBlock(c, habCar ? cv + e.total : null, sob));
     bar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.car === habCar)));
   };
   CHARS.forEach(n => bar.appendChild(h('button', { type: 'button', class: 'hab-car', 'data-car': n, title: n + ' ' + sgn(numv(car[n])), 'aria-label': 'Sumar ' + n + ' (' + sgn(numv(car[n])) + ')',
@@ -412,14 +418,16 @@ function sheetAbil(c, id, pj, fa) {
 }
 // the sheet lists the Abilities of level 1 or more; the ones still on their way to level 1 are in Avance (pjAvance).
 // With mod (a Characteristic plus the malus), the figure is the roll and the level goes in small type.
-function abilBlock(c, mod) {
+// sob(name): {reino, aura} for a supernatural Ability; its roll adds the aura as its realm takes it
+function abilBlock(c, mod, sob) {
   const groups = {};
   c.hab.forEach(x => { if (habLv(c, x) >= 1) (groups[x.cat || 'Otras'] = groups[x.cat || 'Otras'] || []).push(x); });
   const order = ABIL_CATS.filter(g => groups[g]).concat(Object.keys(groups).filter(g => !ABIL_CATS.includes(g)));
   return h('div', { class: 'abil' + (mod == null ? '' : ' roll') }, order.map(g => h('section', null, [h('h4', { text: g })].concat(groups[g].sort((x, y) => x.n.localeCompare(y.n, 'es')).map(x => {
-    const L = abLvl(x.xp), need = abCost(L + 1) - x.xp, b = manaHab(c, x.n), lv = L + b, roll = mod == null ? null : lv + mod;
-    const tags = [b ? 'Maña ' + sgn(b) : '', x.af ? 'Afinidad' : ''].filter(Boolean);
-    return h('div', { 'data-base': String(L), title: fmt(x.xp) + ' px · faltan ' + fmt(need) + ' para el nivel ' + (L + 1) + (b ? ' · ' + L + ' + ' + b + ' de Maña' : '') }, [
+    const L = abLvl(x.xp), need = abCost(L + 1) - x.xp, b = manaHab(c, x.n), lv = L + b, so = sob ? sob(x.n) : null;
+    const roll = mod == null ? null : lv + mod + (so ? so.aura : 0);
+    const tags = [b ? 'Maña ' + sgn(b) : '', x.af ? 'Afinidad' : '', so ? REINO_POW_TXT[so.reino] + (mod == null ? '' : ' · aura ' + sgn(so.aura)) : ''].filter(Boolean);
+    return h('div', { 'data-base': String(L), title: fmt(x.xp) + ' px · faltan ' + fmt(need) + ' para el nivel ' + (L + 1) + (b ? ' · ' + L + ' + ' + b + ' de Maña' : '') + (so ? ' · reino ' + REINO_POW_TXT[so.reino] + ': el aura le da ' + sgn(so.aura) : '') }, [
       h('span', { html: esc(x.n) + (x.esp ? ' <em>(' + esc(x.esp) + ')</em>' : '') + tags.map(t => ' <small class="vtag">' + esc(t) + '</small>').join('') }),
       h('span', { class: 'ab-r' }, [h('small', { text: roll == null ? fmt(x.xp) + ' px' : 'nivel ' + lv }), h('b', { class: roll != null && roll < 0 ? 'neg' : null, text: roll == null ? String(lv) : sgn(roll) })])]);
   })))));
