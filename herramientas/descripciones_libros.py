@@ -157,8 +157,59 @@ def descripciones(ab, ents):
     return res
 
 
+def renombrar():
+    """aplica herramientas/nombres_libros.json (nombres que el libro en castellano llama de otra forma, revisados a mano)
+    a data/ayudas.json: la fila pasa a llamarse como el libro; si «Original» estaba mal puesta («Mágico», «Feérico», vacía), se
+    queda con el nombre de antes (que era el inglés). Los nombres viejos se guardan como alias para que las fichas que los
+    usan sigan encontrando la entrada."""
+    ruta = os.path.join(L.RAIZ, 'data', 'ayudas.json')
+    raw = open(ruta, encoding='utf8', newline='').read()
+    d = json.loads(raw)
+    doc = next(x for x in d['docs'] if x['id'] == 'virtudes-defectos')
+    lista = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nombres_libros.json'), encoding='utf8'))
+    por = {(x['ab'], x['es'], x['pag'], x['en'], x['tipo'], x['valor']): x['nuevo'] for x in lista}
+    alias = doc.setdefault('alias', {})
+    por_pag = {(x['ab'], x['es'], x['pag']): x['nuevo'] for x in lista}
+    n = 0
+    for sh in doc['sheets']:
+        for b in sh['blocks']:
+            if b['t'] != 'table': continue
+            if sh['id'] in ('animales', 'seres-sobrenaturales'):
+                # hojas con los nombres en inglés y sin columna «Original»: se añade (en segunda posición) para no perder el término inglés
+                if 'Original' not in b['cols']:
+                    b['cols'].insert(1, 'Original')
+                    for r in b['rows']: r.insert(1, '')
+                    b['filters'] = [i + 1 for i in b.get('filters', [])]
+                    b['long'] = [i + 1 for i in b.get('long', [])]
+                    if 'nw' in b: b['nw'] = [i + 1 for i in b['nw']]
+                pi = next(i for i, c in enumerate(b['cols']) if c.startswith('P') and 'g' in c)
+                for r in b['rows']:
+                    ab = r[pi].split(' ')[0] if r[pi] else ''
+                    nuevo = por_pag.get((ab, r[0], r[pi]))
+                    if not nuevo or nuevo == r[0]: continue
+                    if not r[1]: r[1] = r[0]
+                    r[0] = nuevo
+                    n += 1
+                continue
+            if sh['id'] not in ('virtudes', 'defectos'): continue
+            for r in b['rows']:
+                ab = r[5].split(' ')[0] if r[5] else ''
+                nuevo = por.get((ab, r[0], r[5], r[1], r[2], r[3]))
+                if not nuevo or nuevo == r[0]: continue
+                if r[1] in ('', 'Mágico', 'Feérico'): r[1] = r[0]
+                if L.norm(r[0]) != L.norm(nuevo): alias[r[0]] = nuevo
+                r[0] = nuevo
+                n += 1
+    if n:
+        fin = raw[len(raw.rstrip('\r\n')):]
+        with open(ruta, 'w', encoding='utf8', newline='') as fh:
+            fh.write(json.dumps(d, ensure_ascii=False, separators=(',', ':')) + fin)
+    print('renombradas %d filas (alias: %d)' % (n, len(alias)))
+
+
 def main():
     escribir = '--escribir' in sys.argv
+    if escribir: renombrar()
     todas = L.entradas()
     por = collections.defaultdict(list)
     for e in todas: por[e['ab']].append(e)

@@ -140,6 +140,12 @@ function vdIndex() {
     const arr = VD_IDX.byKey.get(tkey(g.m) + '|' + cl);
     if (arr && !VD_IDX.byKey.has(k + '|' + cl)) VD_IDX.byKey.set(k + '|' + cl, arr);
   }));
+  // names the compendium used to have (before they were matched to the Spanish books): sheets that still use them find the entry
+  const al = (doc && doc.alias) || {};
+  Object.keys(al).forEach(old => ['virtud', 'defecto'].forEach(cl => {
+    const arr = VD_IDX.byKey.get(tkey(al[old]) + '|' + cl), k = tkey(old) + '|' + cl;
+    if (arr && !VD_IDX.byKey.has(k)) VD_IDX.byKey.set(k, arr);
+  }));
   const ord = c => { const i = VD_CATS.indexOf(c); return i < 0 ? 99 : i; };
   Object.values(VD_IDX.cats).forEach(l => l.sort((a, b) => ord(a) - ord(b) || a.localeCompare(b, 'es')));
   return VD_IDX;

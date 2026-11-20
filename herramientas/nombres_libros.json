@@ -1,0 +1,452 @@
+[
+ {
+  "ab": "RoP:M",
+  "es": "Instinto de orientación",
+  "pag": "RoP:M 44",
+  "en": "Homing Instinct",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Querencia"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Voz del (terreno)",
+  "pag": "RoP:M 47",
+  "en": "Voice of the (Land)",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "La voz del (Tipo de Terreno)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Atlante desterrado",
+  "pag": "RoP:M 48",
+  "en": "Exiled Atlantian",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Atlante exiliado"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Depresivo",
+  "pag": "RoP:M 48",
+  "en": "Deteriorating Power",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Poder degenerativo"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Magic Animal",
+  "pag": "RoP:M 31-32, 45",
+  "en": "Mágico",
+  "tipo": "Virtud",
+  "valor": "Especial",
+  "nuevo": "Animal Mágico"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Magic Spirit",
+  "pag": "RoP:M 33, 45",
+  "en": "Mágico",
+  "tipo": "Virtud",
+  "valor": "Especial",
+  "nuevo": "Espíritu Mágico"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Magical Champion",
+  "pag": "RoP:M 46",
+  "en": "Mágico",
+  "tipo": "Virtud",
+  "valor": "Estatus Social",
+  "nuevo": "Campeón mágico"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Fatigue Mastery",
+  "pag": "RoP:M 37",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Maestría de la Fatiga"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Gentle Air",
+  "pag": "RoP:M 37",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Aire Apacible"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Gifted",
+  "pag": "RoP:M 37",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Dotado"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Magical Meditation",
+  "pag": "RoP:M 39",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Meditación Mágica"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Natural Appearance",
+  "pag": "RoP:M 39-40",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Apariencia Natural"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Ritual Power",
+  "pag": "RoP:M 40",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Poder Ritual"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Vis Mastery",
+  "pag": "RoP:M 40",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Maestría de la Vis"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "(Form) Resistance",
+  "pag": "RoP:M 40",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Resistencia a (Forma)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Gift of Speech",
+  "pag": "RoP:M 40",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "El Don de la Palabra"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Improved Fatigue",
+  "pag": "RoP:M 40-41",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Fatiga Mejorada"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Improved Initiative",
+  "pag": "RoP:M 41",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Iniciativa Mejorada"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Improved Recovery",
+  "pag": "RoP:M 41",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Recuperación Mejorada"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Lesser Power",
+  "pag": "RoP:M 41",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Poder Menor"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Acclimation Prone",
+  "pag": "RoP:M 41",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Tendencia a la Aclimatación"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Miniature",
+  "pag": "RoP:M 41-42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Minúsculo"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Monstrous Appearance",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Apariencia Monstruosa"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Reduced (Characteristic)",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "(Característica) Reducida"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Temporary Might",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Poder Temporal"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Limited Speech",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Habla Limitada"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Minor Flaw",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Defecto Menor"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Reduced Fatigue",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Fatiga Reducida"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Reduced Initiative",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Iniciativa Reducida"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Susceptible to Deprivation",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Vulnerable a las Carencias"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Hablar con los Silenciosos",
+  "pag": "HoH:MC 73",
+  "en": "Speech with the Silent",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Hablar con los que Callan"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Olfato Fino",
+  "pag": "HoH:MC 37",
+  "en": "Keen Sense of Smell",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Sentido del Olfato Agudizado"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Gorgiastic",
+  "pag": "HoH:MC 73",
+  "en": "",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Gorgiasista"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Improvisación de Hechizos",
+  "pag": "HoH:MC 87",
+  "en": "Spell Improvisation",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Hechizos Improvisados"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estigma predictivo",
+  "pag": "HoH:MC 73",
+  "en": "Predictive Stigmata",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Estigmas Proféticos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estigma predictivo",
+  "pag": "HoH:MC 73",
+  "en": "Predictive Stigmata",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Estigmas Proféticos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Herramientas de lanzamiento consumidas",
+  "pag": "HoH:MC 136",
+  "en": "Consumed Casting Tools",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Herramientas de Lanzamiento Fungibles"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Herramientas de Lanzamiento Enlazadas",
+  "pag": "HoH:MC 136",
+  "en": "Bound Casting Tools",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Herramientas de Lanzamiento Vinculadas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia Inofensiva",
+  "pag": "HoH:MC 87",
+  "en": "Harmless Magic",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Magia Inofensiva"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Legado de las hadas",
+  "pag": "RoP:F 112",
+  "en": "Faerie Legacy",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Legado feérico"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Gran Amuleto",
+  "pag": "RoP:F 115",
+  "en": "Greater Charm",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Amuleto mayor"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Mago homúnculo",
+  "pag": "RoP:F 115",
+  "en": "Homunculus Wizard",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Hechicero homúnculo"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Mago homúnculo",
+  "pag": "RoP:F 115",
+  "en": "Homunculus Wizard",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Hechicero homúnculo"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Artista Brutal",
+  "pag": "HoH:S 56",
+  "en": "Brutal Artist",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Artista atroz"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Belleza Envidiada",
+  "pag": "HoH:S 56",
+  "en": "Envied Beauty",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Belleza envidiada"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Poderes Defectuosos",
+  "pag": "HoH:S 107",
+  "en": "Flawed Powers",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Poderes defectuosos"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Querido Rival",
+  "pag": "HoH:S 94",
+  "en": "Beloved Rival",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Rival amado"
+ },
+ {
+  "ab": "App",
+  "es": "Característica hábil",
+  "pag": "App 11",
+  "en": "Deft Characteristic",
+  "tipo": "Infantil",
+  "valor": "Menor",
+  "nuevo": "Característica depurada"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Greater Power",
+  "pag": "RoP:M 38",
+  "en": "Mágico",
+  "tipo": "Cualidad",
+  "valor": "Cualidad",
+  "nuevo": "Poder Mayor"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Reduced Power",
+  "pag": "RoP:M 42",
+  "en": "Mágico",
+  "tipo": "Inferioridad",
+  "valor": "Inferioridad",
+  "nuevo": "Poderes Mermados"
+ }
+]

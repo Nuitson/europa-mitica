@@ -13,7 +13,8 @@ api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.ph
 herramientas/         migrar_desde_drive.py: pasa una saga del servidor antiguo (Drive) al nuevo;
 libros/en, libros/es  los PDF de los libros (en inglés y en castellano) a los que enlaza la columna «Pág.» del compendio; data/libros.json es el índice
                         (herramientas/enlaces_libros.py lo genera: comprueba las páginas y copia los PDF desde Dropbox)
-                        herramientas/descripciones_libros.py rellena la columna «Descripción» del compendio con el texto de los libros en castellano)
+                        herramientas/descripciones_libros.py rellena la columna «Descripción» del compendio con el texto de los libros en castellano y
+                        aplica herramientas/nombres_libros.json, los nombres que el libro llama de otra forma, revisados a mano)
                         homebrew_csv.py: convierte los CSV de material de blogs en data/homebrew/
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 css/styles.css        los estilos
