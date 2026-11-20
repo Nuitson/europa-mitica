@@ -44,7 +44,7 @@ const CAT_OF = {};
 Object.keys(ABIL_STD).forEach(c => ABIL_STD[c].forEach(n => { CAT_OF[tkey(n)] = c; }));
 
 /* js/gate.js sets window.EM_WEB (saga, role, database) before starting the page; keys in this browser carry the saga */
-const KEYP = window.EM_WEB.saga.id + ':';
+const KEYP = (window.EM_WEB.saga ? window.EM_WEB.saga.id : 'invitado') + ':';
 const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, estado: null, seen: {}, fresh: {}, timer: null };
 const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['saga/estado', 'estado']];
 

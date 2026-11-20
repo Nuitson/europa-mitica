@@ -10,8 +10,10 @@ const page = document.getElementById('page');
 let pendingFocus = null;
 
 function crumbs(docId) {
-  const c = h('div', { class: 'crumbs' }, [h('a', { href: '#inicio', text: DATA.root.short })]);
-  (PATH[docId] || []).forEach(f => { c.appendChild(h('span', { class: 'sep', text: '/' })); c.appendChild(h('span', { text: f.f })); });
+  const trail = PATH[docId] || [];
+  const inSaga = trail[0] && trail[0].saga;
+  const c = h('div', { class: 'crumbs' }, [h('a', { href: inSaga ? '#saga' : '#inicio', text: inSaga ? 'La saga' : DATA.root.short })]);
+  (inSaga ? trail.slice(1) : trail).forEach(f => { c.appendChild(h('span', { class: 'sep', text: '/' })); c.appendChild(h('span', { text: f.f })); });
   return c;
 }
 
@@ -76,6 +78,38 @@ function docCard(d, path) {
   return a;
 }
 
+/* the cards of one folder of the tree (its documents and those of its subfolders) */
+function folderSection(top) {
+  const s = h('section', { class: 'folder-sec' });
+  s.appendChild(h('div', { class: 'folder-h' }, [h('h2', { text: top.f }), top.about ? h('span', { class: 'path', text: top.about }) : null]));
+  if (top.glance && top.glance.length) s.appendChild(glanceNode(top.glance));
+  const grid = h('div', { class: 'docs' });
+  (function walk(node, trail) {
+    (node.children || []).forEach(c => { if (c.d) grid.appendChild(docCard(DOCS[c.d], trail.join(' / '))); });
+    (node.children || []).forEach(c => { if (!c.d) walk(c, trail.concat([c.f])); });
+  })(top, []);
+  if (grid.children.length) s.appendChild(grid);
+  return s;
+}
+
+/* the saga's own page: what belongs to this saga only (season, characters, its vis and treasury, its spreadsheets) */
+function viewSaga() {
+  page.innerHTML = '';
+  const saga = DATA.tree.find(n => n.saga);
+  const name = (window.EM_WEB && window.EM_WEB.saga && window.EM_WEB.saga.nombre) || (saga && saga.f) || 'La saga';
+  page.appendChild(h('div', { class: 'crumbs' }, [h('a', { href: '#inicio', text: DATA.root.short }), h('span', { class: 'sep', text: '/' }), h('span', { text: 'La saga' })]));
+  page.appendChild(h('header', { class: 'home-hero saga-hero' }, h('div', null, [
+    h('div', { class: 'k', text: 'Tu saga' }), h('h1', { text: name }), h('p', { class: 'lead', text: DATA.sagaLead || '' })])));
+  page.appendChild(homeSaga());
+  if (saga) {
+    const sec = folderSection(Object.assign({}, saga, { f: 'Documentos de la saga', about: 'Solo los ve esta saga' }));
+    if (sec.querySelector('.dcard') || sec.querySelector('.glance')) page.appendChild(sec);
+  }
+  document.title = name + ' — Europa Mítica';
+  window.scrollTo(0, 0);
+}
+
+/* the start page: the same for every saga (search and the shared game aids), with a way into your saga */
 function viewHome(q) {
   page.innerHTML = '';
   const hero = h('header', { class: 'home-hero' });
@@ -97,29 +131,20 @@ function viewHome(q) {
   page.appendChild(results);
   const folders = h('div');
   page.appendChild(folders);
-  folders.appendChild(homeSaga());
-  function sec(node, trail) {
-    const docsHere = [];
-    const subs = [];
-    (node.children || []).forEach(c => { if (c.d) docsHere.push(c.d); else subs.push(c); });
-    return { docsHere, subs };
+  const W = window.EM_WEB && window.EM_WEB.saga;
+  if (window.EM_WEB && window.EM_WEB.guest) {
+    folders.appendChild(h('div', { class: 'saga-banner' }, [
+      h('div', null, [h('div', { class: 'k', text: 'Invitado' }), h('div', { class: 'sb-t', text: '¿Juegas en una saga?' }), h('div', { class: 'sb-s', text: 'Entra con tu cuenta para abrir tu saga: personajes, estaciones, vis y tesorería.' })]),
+      h('button', { type: 'button', class: 'btn', onclick: () => window.EM_WEB.entrar() }, 'Entrar o crear cuenta')]));
+  } else if (W) {
+    folders.appendChild(h('a', { class: 'saga-banner', href: '#saga' }, [
+      h('div', null, [h('div', { class: 'k', text: 'Tu saga' }), h('div', { class: 'sb-t', text: W.nombre }), h('div', { class: 'sb-s', text: DATA.sagaLead || '' })]),
+      h('span', { class: 'sb-go', text: 'Abrir la saga →' })]));
   }
-  DATA.tree.forEach(top => {
-    const s = h('section', { class: 'folder-sec' });
-    const head = h('div', { class: 'folder-h' }, [h('h2', { text: top.f })]);
-    s.appendChild(head);
-    if (top.glance) s.appendChild(glanceNode(top.glance));
-    const grid = h('div', { class: 'docs' });
-    let count = 0;
-    (function walk(node, trail) {
-      const { docsHere, subs } = sec(node, trail);
-      docsHere.forEach(id => { count++; grid.appendChild(docCard(DOCS[id], trail.join(' / '))); });
-      subs.forEach(sub => walk(sub, trail.concat([sub.f])));
-    })(top, []);
-    grid.dataset.n = count;
-    s.appendChild(grid);
-    folders.appendChild(s);
-  });
+  folders.appendChild(h('div', { class: 'home-intro' }, [
+    h('h2', { text: 'Ayudas de juego' }),
+    h('p', { text: 'Material de consulta compartido por todas las sagas: guías para diseñar hechizos, maleficios y ritos feéricos, el compendio de virtudes y defectos, la pantalla del jugador y las tablas de artesanía.' })]));
+  DATA.tree.filter(n => !n.saga).forEach(top => folders.appendChild(folderSection(top)));
   function run() {
     const v = input.value.trim();
     results.innerHTML = '';
@@ -168,4 +193,4 @@ function focusPending() {
   });
 }
 
-export { focusPending, page, pendingFocus, viewDoc, viewHome };
+export { focusPending, page, pendingFocus, viewDoc, viewHome, viewSaga };

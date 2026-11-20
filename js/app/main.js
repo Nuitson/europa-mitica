@@ -2,7 +2,7 @@
 import { DOCS } from './base.js';
 import { currentRaw } from './saga/rules.js';
 import { renderTree } from './tree.js';
-import { focusPending, pendingFocus, viewDoc, viewHome } from './views.js';
+import { focusPending, pendingFocus, viewDoc, viewHome, viewSaga } from './views.js';
 import { sagaInit } from './saga/core.js';
 import { renderSagaSide } from './saga/home.js';
 import { sagaRoute } from './saga/characters.js';
@@ -25,7 +25,9 @@ function route(keep) {
   const doc = DOCS[parts[0]];
   document.querySelectorAll('#tree .t-doc').forEach(a => a.setAttribute('aria-current', doc && a.dataset.doc === doc.id ? 'page' : 'false'));
   renderSagaSide();
-  if (!doc && sagaRoute(raw)) {
+  const guest = window.EM_WEB.guest;
+  if (!doc && !guest && raw === 'saga') { viewSaga(); return; }
+  if (!doc && !guest && sagaRoute(raw)) {
     if (keep) requestAnimationFrame(() => window.scrollTo(0, y));
     else if (!pendingFocus) window.scrollTo(0, 0);
     focusPending();

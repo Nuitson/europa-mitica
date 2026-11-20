@@ -51,12 +51,13 @@ function crear(ctx) {
     const go = el('button', { type: 'submit', class: 'gbtn', text: 'Entrar' });
     const nueva = el('button', { type: 'button', class: 'glink', text: 'Crear una cuenta', onclick: () => registro() });
     const olvido = el('button', { type: 'button', class: 'glink', text: 'He olvidado mi contraseña', onclick: () => recuperar() });
+    const invitado = el('button', { type: 'button', class: 'glink', text: 'Seguir como invitado', onclick: () => ctx.invitado() });
     const n = aviso() || (nota ? el('p', { class: 'gate-note', role: 'status', text: nota }) : null);
     const form = el('form', { class: 'gate-form', novalidate: true }, [
       el('h2', { class: 'gate-h', text: 'Entrar' }), n,
       fld('a-usuario', 'Usuario o correo', u), c.box,
       el('label', { class: 'gate-chk', for: 'a-rem' }, [rem, ' Recordarme en este navegador']),
-      err, el('div', { class: 'gate-act' }, [go, nueva, olvido])]);
+      err, el('div', { class: 'gate-act' }, [go, nueva, olvido, invitado])]);
     enviar(form, go, err, 'Comprobando…', async () => {
       if (!u.value.trim()) { u.focus(); throw new Error('Escribe tu usuario o tu correo.'); }
       if (!c.input.value) { c.input.focus(); throw new Error('Escribe tu contraseña.'); }

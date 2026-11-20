@@ -10,9 +10,14 @@ function renderSagaSide() {
   const box = document.getElementById('sagaside');
   if (!box) return;
   box.innerHTML = '';
+  if (window.EM_WEB.guest) {
+    box.appendChild(h('div', { class: 'guest-side' }, [h('p', { text: 'Estás como invitado: ves las ayudas públicas. Entra para abrir tu saga, tus personajes y las estaciones.' }),
+      h('button', { type: 'button', class: 'btn', onclick: () => window.EM_WEB.entrar() }, 'Entrar o crear cuenta')]));
+    return;
+  }
   const raw = currentRaw();
   const [a, e] = curSeason();
-  box.appendChild(h('div', { class: 't-folder', html: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2 9.6 6h5l-4 3 1.5 4.8L8 10.9l-4.1 2.9L5.4 9l-4-3h5z"/></svg><span>Saga en curso</span>' }));
+  box.appendChild(h('a', { class: 't-folder', href: '#saga', html: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2 9.6 6h5l-4 3 1.5 4.8L8 10.9l-4.1 2.9L5.4 9l-4-3h5z"/></svg><span>Saga en curso</span>' }));
   const u = h('ul');
   u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#estaciones', 'aria-current': /^estaciones/.test(raw) ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg><span>Estaciones <small>' + esc(sname(a, e)) + '</small></span>' })));
   const li = h('li', null, h('a', { class: 't-doc', href: '#personajes', 'aria-current': raw === 'personajes' || raw === 'pj-nuevo' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 14c.6-3 2.7-4.6 5.2-4.6s4.6 1.6 5.2 4.6"/></svg><span>Personajes</span>' }));

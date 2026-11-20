@@ -76,7 +76,10 @@ function putSession(s, remember) {
 // sign out, or go back to «Mi zona» (the page reloads: the next start shows what was asked for)
 function salir(msg) { putSession(null); if (msg) lsSet(K_MSG, msg, true); location.hash = ''; location.reload(); }
 function aZona(msg) { if (msg) lsSet(K_MSG, msg, true); lsSet(K_ZONA, '1', true); location.hash = ''; location.reload(); }
-function sessionLost(msg) { salir(msg || 'Tu sesión ha caducado. Vuelve a entrar.'); }
+function sessionLost(msg) { putSession(null); lsSet(K_MSG, msg || 'Tu sesión ha caducado. Vuelve a entrar.', true); location.hash = '#entrar'; location.reload(); }
+// guests browse the public part; «Entrar» (or the sign-in link) asks for the account
+function aEntrar() { location.hash = '#entrar'; location.reload(); }
+function comoInvitado() { location.hash = ''; location.reload(); }
 
 /* ================================================================== the gate */
 const gate = el('div', { id: 'gate', class: 'gate', role: 'main' });
@@ -108,7 +111,7 @@ async function cuenta() {
   return cuentaMod;
 }
 const CTX = { el: el, api: api, showGate: showGate, busy: busy, errBox: errBox, showErr: showErr, lsGet: lsGet, lsSet: lsSet, avatar: avatar,
-  K_MSG: K_MSG, K_LAST: K_LAST, putSession: putSession, salir: salir, openSaga: (ses, id) => openSaga(ses, id), continuar: ses => continuar(ses),
+  K_MSG: K_MSG, K_LAST: K_LAST, invitado: () => comoInvitado(), putSession: putSession, salir: salir, openSaga: (ses, id) => openSaga(ses, id), continuar: ses => continuar(ses),
   sessionLost: sessionLost, offlineButton: e => offlineButton(e), retry: () => gateStart() };
 
 /* the entry: without a session, sign in or sign up; with one, straight into the last saga (or «Mi zona» if there is none, or it was asked for) */
@@ -116,7 +119,11 @@ async function gateStart() {
   const rec = /^#recuperar=([0-9a-f]{64})$/.exec(location.hash);
   if (rec) { putSession(null); (await cuenta()).auth({ recuperar: rec[1] }); return; }
   const ses = getSession();
-  if (!ses) { (await cuenta()).auth(); return; }
+  if (!ses) {
+    if (location.hash === '#entrar') (await cuenta()).auth(); else openGuest();
+    return;
+  }
+  if (location.hash === '#entrar') history.replaceState(null, '', location.pathname + location.search);
   busy('Abriendo tu cuenta…');
   try { ses.perfil = (await api('perfil', { token: ses.token })).perfil; }
   catch (e) {
@@ -135,6 +142,26 @@ async function continuar(ses) {
   const last = lsGet(K_LAST);
   const id = sagas.some(s => s.id === last) ? last : sagas.length === 1 ? sagas[0].id : null;
   if (id) openSaga(ses, id); else (await cuenta()).zona(ses);
+}
+
+/* ================================================================== guests: the public part, with no account and no saga */
+async function openGuest() {
+  busy('Abriendo Europa Mítica…');
+  let st;
+  try { st = await loadStatic(); }
+  catch (e) {
+    showGate([el('p', { class: 'gate-err', role: 'alert', text: e.message }), el('div', { class: 'gate-act' }, [
+      el('button', { type: 'button', class: 'gbtn', text: 'Reintentar', onclick: () => location.reload() }),
+      el('button', { type: 'button', class: 'glink', text: 'Entrar con mi cuenta', onclick: aEntrar })])]);
+    return;
+  }
+  st.data.tree = st.data.tree.slice();
+  st.data.saga = { anio: 1220, est: 1, aura: 0 };
+  window.EM_DATA = st;
+  const none = () => Promise.reject(new ApiError('sesion', 'Entra con tu cuenta para ver la saga.'));
+  window.EM_WEB = { guest: true, saga: null, rol: null, uid: null, user: null, db: null, assets: null, api: none, blobUrl: () => null,
+    salir: salir, entrar: aEntrar, session: () => ({ guest: true }), setToken: () => {}, refresh: () => Promise.resolve() };
+  startApp({ guest: true });
 }
 
 /* ================================================================== opening a saga */
@@ -202,7 +229,7 @@ async function openOffline(off) {
 async function startApp(ses) {
   gate.remove();
   document.body.classList.remove('gate-on');
-  document.title = ses.saga.nombre + ' — Europa Mítica';
+  document.title = ses.saga ? ses.saga.nombre + ' — Europa Mítica' : 'Europa Mítica';
   // importing the app starts it (js/app/main.js reads window.EM_DATA and window.EM_WEB as it loads)
   try { await import(APP); }
   catch (e) {
@@ -228,7 +255,7 @@ async function loadArchive(ses) {
 function merge(ses, arc, st) {
   const D = st.data, I = st.img;
   const s = ses.saga;
-  const node = { f: s.nombre, glance: [], children: [] };
+  const node = { f: s.nombre, saga: true, glance: [], children: [] }; // saga: true = exclusive to this saga (the rest of the tree is shared by all)
   if (arc && Array.isArray(arc.docs)) {
     D.docs = D.docs.concat(arc.docs);
     Object.assign(I, arc.img || {});
@@ -245,7 +272,7 @@ function merge(ses, arc, st) {
   }
   D.tree = D.tree.concat([node]);
   D.saga = { anio: Number(s.anio) || 1220, est: Number(s.est) || 1, aura: Number(s.aura) || 0 };
-  D.lead = 'La ' + s.nombre.replace(/^saga/i, 'saga') + ', que crece cada estación, y las ayudas de juego de la carpeta compartida.';
+  D.sagaLead = 'La ' + s.nombre.replace(/^saga/i, 'saga') + ', que crece cada estación: personajes, estaciones, vis y tesorería.';
   return st;
 }
 function alianzaWeb(s) {
@@ -266,6 +293,11 @@ function sessionStrip(ses) {
   const brand = side && side.querySelector('.brand');
   if (!brand) return;
   const p = ses.perfil;
+  if (ses.guest) {
+    brand.insertAdjacentElement('afterend', el('div', { class: 'sess' }, [el('div', { class: 'sess-s', text: 'Invitado' }),
+      el('div', { class: 'sess-r' }, [el('span', { text: 'Solo ayudas públicas' }), el('button', { type: 'button', class: 'sess-out', text: 'Entrar', onclick: aEntrar })])]));
+    return;
+  }
   const box = el('div', { class: 'sess' }, [
     el('div', { class: 'sess-s', text: ses.saga.nombre }),
     p ? el('div', { class: 'sess-u' }, [avatar(p, 22), el('span', { text: p.nombre })]) : null,

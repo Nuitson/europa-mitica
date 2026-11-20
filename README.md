@@ -6,6 +6,7 @@ Web de las sagas de Ars Magica de Europa Mítica: fichas, estaciones, reparto de
 
 ```
 index.html            la página: solo el marco (barra lateral y zona de contenido)
+servir.bat / .ps1    arranca la web en local (activa las extensiones de PHP en Windows y crea api/config.php)
 config.js             la dirección del servidor (api/api.php)
 api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.php es el punto de entrada, instalar.php prepara la base de datos,
                         usuarios.php gestiona cuentas desde la línea de órdenes)
@@ -117,25 +118,15 @@ winget install PHP.PHP.8.3
 
 Cierra y abre la terminal para que encuentre `php`. En macOS: `brew install php`; en Linux, el paquete `php-cli` con `php-sqlite3` y `php-mbstring`.
 
-**2. Activar las extensiones.** Solo en Windows: PHP viene sin ellas. Crea un archivo `php.ini` (en cualquier carpeta fuera del proyecto) con estas líneas, cambiando la ruta de `extension_dir` por la carpeta `ext` de tu instalación de PHP. Para saber dónde está: `(Get-Command php).Source`, y la carpeta `ext` está junto a `php.exe` (suele estar en `%LOCALAPPDATA%\Microsoft\WinGet\Packages\PHP.PHP.8.3_…`).
+**2. Arrancar.** Desde la carpeta del proyecto, en Windows:
 
 ```
-extension_dir="C:\ruta\a\php\ext"
-extension=pdo_sqlite
-extension=sqlite3
-extension=mbstring
-extension=openssl
-```
-Comprueba que salen las cuatro con `php -c C:\ruta\al\php.ini -m`. En el resto de comandos, `php` se escribe `php -c C:\ruta\al\php.ini`. (Si ya tienes un `php.ini` global con esas extensiones, no hace falta el `-c`.)
-Comprueba que salen las cuatro con `php -c C:
-
-**3. Configurar la base de datos.** Desde la carpeta del proyecto:
-
-```
-copy api\config.ejemplo.php api\config.php
+servir.bat
 ```
 
-y sustituye todo el contenido de `api/config.php` por esto:
+(o `.\servir.ps1` en PowerShell; admite un puerto: `servir.bat 9000`). Abre <http://localhost:8080> y deja la terminal abierta (se para con Ctrl+C): sirve la web y el servidor a la vez. El script se ocupa de lo que PHP en Windows trae sin hacer: activa las extensiones que hacen falta (`mbstring`, `pdo_sqlite`, `sqlite3`, `openssl`) con un `php.ini` temporal, sin tocar tu instalación, y crea `api/config.php` (SQLite, no se sube a git) si no existe.
+
+En macOS y Linux no hace falta el script: con las extensiones instaladas (`php-sqlite3`, `php-mbstring`), copia `api/config.ejemplo.php` a `api/config.php`, déjalo con este contenido y arranca con `php -S localhost:8080`:
 
 ```php
 <?php
@@ -146,23 +137,13 @@ return [
 ];
 ```
 
-`config.php` es de cada uno y no se sube a git.
-
-**4. Arrancar.**
-
-```
-php -S localhost:8080
-```
-
-Abre <http://localhost:8080> (deja la terminal abierta; se para con Ctrl+C). `php -S` sirve la web y el servidor a la vez.
-
 La base de datos del equipo ya trae las cuentas y sagas que haya (ver «La base de datos compartida en git»). Si todavía no tienes cuenta, créala en la entrada («Crear una cuenta»); para que un máster te añada a su saga, dale tu usuario. Si necesitas empezar de cero (por ejemplo, para pruebas), borra `datos/europa.sqlite`: se crea vacía en la primera petición; la primera cuenta que registres podrá crear sagas.
 
 En local no hay servidor de correo: con el modo `archivo` de arriba, «He olvidado mi contraseña» no envía nada, sino que escribe el mensaje (con el enlace) en `datos/correo.log`, que git ignora.
 
 **Si la web sigue mostrando otra cosa** (por ejemplo, la versión anterior): el navegador guarda copias de la página (`sw.js`). Abre las herramientas de desarrollo (F12) → Application → Storage → «Clear site data» (con «Unregister service workers») y recarga con Ctrl+F5.
 
-**Si falla:** el registro de errores de PHP sale en la terminal donde corre `php -S`. El error «could not find driver» significa que falta activar `pdo_sqlite` (paso 2).
+**Si falla:** el registro de errores de PHP sale en la terminal donde corre `php -S`. Si la web dice que a PHP le faltan extensiones (o el error es «could not find driver»), no estás arrancándola con `servir.bat` (paso 2).
 
 ## La base de datos compartida en git
 

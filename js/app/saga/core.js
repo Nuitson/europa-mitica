@@ -12,6 +12,7 @@ let modalOpen = false, pendingRerender = false;
 /* ---------- loading: subscribe once per collection, time-limit the wait */
 function sagaInit() {
   const W = window.EM_WEB;
+  if (W.guest) return; // no saga to load
   if (!W.db) { S.status = 'off'; sagaChanged(); return; }
   S.db = W.db; S.assets = W.assets; S.uid = W.uid;
   S.canWrite = true; // the server decides what each role may write

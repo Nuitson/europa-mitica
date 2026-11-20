@@ -1342,3 +1342,19 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim { display: 
   input, select, textarea { border: 0 !important; background: none !important; color: inherit; -webkit-appearance: none; appearance: none; }
   .info-btn { all: unset; }
 }
+
+/* ---- inicio genérico y página de la saga */
+.saga-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 26px 0 0; padding: 18px 22px; background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--blood-ink); border-radius: 8px; text-decoration: none; color: var(--ink); }
+.saga-banner:hover { border-color: var(--blood-ink); }
+.saga-banner .k { font: 500 11.5px/1.2 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+.saga-banner .sb-t { font: 400 28px/1.2 var(--f-display); color: var(--blood-ink); margin: 4px 0; }
+.saga-banner .sb-s { font: italic 400 16px/1.4 var(--f-body); color: var(--ink-2); }
+.saga-banner .sb-go { font: 500 14px/1 var(--f-ui); color: var(--blood-ink); white-space: nowrap; }
+.home-intro { padding: 30px 0 0; }
+.home-intro h2 { font: 400 30px/1.2 var(--f-display); margin: 0 0 6px; }
+.home-intro p { font: 400 17px/1.5 var(--f-body); color: var(--ink-2); max-width: 70ch; margin: 0; }
+.saga-hero { grid-template-columns: 1fr; }
+.saga-hero h1 { font-size: clamp(40px, 6vw, 68px); }
+@media (max-width: 600px) { .saga-banner { flex-direction: column; align-items: flex-start; } }
+.guest-side { padding: 12px 14px; font: 400 14px/1.45 var(--f-ui); color: var(--ink-2); }
+.guest-side p { margin: 0 0 10px; }
