@@ -1358,3 +1358,13 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim { display: 
 @media (max-width: 600px) { .saga-banner { flex-direction: column; align-items: flex-start; } }
 .guest-side { padding: 12px 14px; font: 400 14px/1.45 var(--f-ui); color: var(--ink-2); }
 .guest-side p { margin: 0 0 10px; }
+
+/* celdas largas con flecha para desplegar y plegar */
+.clamp-w { position: relative; padding-right: 22px; }
+.clamp-btn { position: absolute; top: 1px; right: 0; width: 20px; height: 20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--rule); border-radius: 50%; background: var(--card); color: var(--ink-3); cursor: pointer; }
+.clamp-btn[hidden] { display: none; }
+.clamp-btn:hover { color: var(--blood-ink); border-color: var(--blood-ink); }
+.clamp-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.clamp-btn svg { width: 11px; height: 11px; transition: transform .15s; }
+.clamp-w.is-open .clamp-btn svg { transform: rotate(180deg); }
+.clamp-w:has(.clamp-btn[hidden]) { padding-right: 0; }

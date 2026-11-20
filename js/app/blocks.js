@@ -369,7 +369,7 @@ R.table = (b) => {
         if (nw.has(ci)) cls.push('nw');
         const td = h('td', { class: cls.join(' ') || null });
         if (art.has(ci) && artOf(v)) td.appendChild(artChip(v));
-        else if (long.has(ci) && v) { td.className = 'long'; const d = h('div', { class: 'clamp', title: 'Pulsa para ver entero', html: br(v) }); d.addEventListener('click', () => d.classList.toggle('open')); td.appendChild(d); }
+        else if (long.has(ci) && v) { td.className = 'long'; td.appendChild(clampCell(v)); }
         else if (ci === 0 && b.info) td.appendChild(h('button', { type: 'button', class: 'info-btn', title: 'Ver la descripción', onclick: () => b.info(o.i) }, v));
         else if (ci === 0 && auto.has(o.i)) td.appendChild(h('i', { title: 'Traducción automática', text: v }));
         else if (num.has(ci) && isFinite(toNum(v))) td.textContent = String(v).replace(/^-/, '−');
@@ -543,6 +543,27 @@ function niceStep(raw) {
   const p = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-9))));
   const f = raw / p;
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+
+/* a long cell: three lines and an arrow (▾ folded, ▴ open) that unfolds and folds it back; no arrow if it all fits */
+function clampCell(v) {
+  const txt = h('div', { class: 'clamp', html: br(v) });
+  const btn = h('button', { type: 'button', class: 'clamp-btn', 'aria-expanded': 'false', 'aria-label': 'Ver la descripción entera', title: 'Ver entera', html: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>' });
+  const box = h('div', { class: 'clamp-w' }, [txt, btn]);
+  const toggle = () => {
+    const open = !txt.classList.contains('open');
+    txt.classList.toggle('open', open);
+    box.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? 'Plegar la descripción' : 'Ver la descripción entera');
+    btn.title = open ? 'Plegar' : 'Ver entera';
+  };
+  btn.addEventListener('click', toggle);
+  txt.addEventListener('click', toggle);
+  // only offer the arrow when the text is cut (measured once laid out, and again if the width changes)
+  const check = () => { if (txt.classList.contains('open') || !txt.clientHeight) return; btn.hidden = txt.scrollHeight <= txt.clientHeight + 1; txt.style.cursor = btn.hidden ? 'default' : ''; };
+  if (window.ResizeObserver) new ResizeObserver(check).observe(txt); else requestAnimationFrame(check);
+  return box;
 }
 
 export { renderBlocks };
