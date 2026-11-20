@@ -210,6 +210,28 @@ td.fcl, th.fcl { font-weight: 600; }
 .grid.calc td:nth-child(2), .grid.calc td:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
 .grid.calc td:nth-child(3) { color: var(--ink-3); }
 
+/* phone: a table marked «stack» (R.grid) shows each row as a card, with the column name before each value, so nothing is cut off */
+@media (max-width: 560px) {
+  .tw:has(table.stack) { border: 0; background: none; overflow: visible; }
+  table.stack, table.stack tbody, table.stack tr, table.stack th, table.stack td { display: block; width: auto; }
+  table.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  table.stack tr { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; }
+  table.stack th, table.stack td { border: 0; padding: 3px 0; }
+  table.stack tbody tr:last-child > * { border-bottom: 0; }
+  table.stack th[scope="row"] { font-size: 17px; background: none; text-transform: none; letter-spacing: 0; color: var(--ink); }
+  table.stack td[data-l]:not(:empty)::before { content: attr(data-l); display: block; font: 500 10.5px/1.2 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-top: 4px; }
+  table.stack td[data-l]:empty { display: none; }
+  /* the compendium's data tables */
+  .dt table.stack tr.grp { background: var(--paper-2); padding: 4px 12px; }
+  .dt table.stack tr.grp td { padding: 4px 0; }
+  .dt table.stack td.sub { display: none; }
+  .dt table.stack td.name { min-width: 0; font-size: 18px; }
+  .dt table.stack td.long { min-width: 0; max-width: none; }
+  .dt table.stack td.num { text-align: left; white-space: normal; }
+  .dt table.stack td.nw { white-space: normal; }
+  .dt-sort { display: block; }
+}
+
 /* level tables */
 table.lv { font-size: 15.5px; }
 table.lv th.lvl {
@@ -241,6 +263,7 @@ table.lv.one td { min-width: 0; }
 .dt th[aria-sort] button::after { content: "↕"; opacity: .35; font-size: 11px; }
 .dt th[aria-sort="ascending"] button::after { content: "↑"; opacity: 1; }
 .dt th[aria-sort="descending"] button::after { content: "↓"; opacity: 1; }
+.dt-sort { display: none; }
 .dt td.long { min-width: 260px; max-width: 520px; }
 .dt td.nw { white-space: nowrap; }
 .clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }

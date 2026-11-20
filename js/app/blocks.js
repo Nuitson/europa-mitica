@@ -77,7 +77,7 @@ R.levels = (b) => {
 R.grid = b => {
   const narrow = /narrow|calc/.test(b.cls || '');
   const wrap = h('div', { class: 'tw' + (narrow ? ' fit' : '') });
-  const t = h('table', { class: 'grid ' + (b.cls || '') });
+  const t = h('table', { class: 'grid ' + (b.cls || '') + (b.stack ? ' stack' : '') });
   if (b.cap) t.appendChild(h('caption', { text: b.cap }));
   const ncol = Math.max(b.head ? b.head.length : 0, ...(b.body || []).map(r => r.length));
   const isNum = [];
@@ -94,7 +94,7 @@ R.grid = b => {
     for (let j = 0; j < ncol; j++) {
       const v = r[j] == null ? '' : r[j];
       const cls = [isNum[j] ? 'num' : '', (b.fcl && j === 0) ? 'fcl' : ''].filter(Boolean).join(' ');
-      const c = h(j === 0 && b.fcl ? 'th' : 'td', { class: cls || null, scope: j === 0 && b.fcl ? 'row' : null, html: j === 0 && b.info ? null : br(v) });
+      const c = h(j === 0 && b.fcl ? 'th' : 'td', { class: cls || null, scope: j === 0 && b.fcl ? 'row' : null, 'data-l': b.stack && b.head && j > 0 ? b.head[j] : null, html: j === 0 && b.info ? null : br(v) });
       if (j === 0 && b.info) c.appendChild(h('button', { type: 'button', class: 'info-btn', title: 'Ver la descripción', onclick: () => b.info(i) }, String(v)));
       tr.appendChild(c);
     }
@@ -333,10 +333,14 @@ R.table = (b, ctx) => {
     eb.addEventListener('click', () => { editing = !editing; eb.setAttribute('aria-pressed', String(editing)); eb.classList.toggle('on', editing); wrap.classList.toggle('editing', editing); draw(); });
     tools.appendChild(eb);
   }
+  // on a phone the column headers are hidden (the rows are cards), so the order is picked here
+  const sortSel = h('select', { class: 'dt-sort', 'aria-label': 'Ordenar por' }, [h('option', { value: '' }, 'Orden: el del libro')].concat(b.cols.map((c, ci) => h('option', { value: String(ci) }, 'Ordenar: ' + (c || ci + 1)))));
+  sortSel.addEventListener('change', () => { st.sort = sortSel.value === '' ? null : +sortSel.value; st.dir = 1; draw(); });
+  tools.appendChild(sortSel);
   tools.appendChild(count);
   wrap.appendChild(tools);
   const tw = h('div', { class: 'tw' });
-  const t = h('table');
+  const t = h('table', { class: 'stack' });
   const ths = b.cols.map((c, ci) => {
     const th = h('th', { scope: 'col', class: num.has(ci) ? 'num' : null, 'aria-sort': 'none' });
     th.appendChild(h('button', { type: 'button', onclick: () => { if (st.sort === ci) st.dir = -st.dir; else { st.sort = ci; st.dir = 1; } draw(); } }, c || ' '));
@@ -406,7 +410,7 @@ R.table = (b, ctx) => {
         if (num.has(ci)) cls.push('num');
         if (ci === 0 && !num.has(0)) cls.push('name');
         if (nw.has(ci)) cls.push('nw');
-        const td = h('td', { class: cls.join(' ') || null });
+        const td = h('td', { class: cls.join(' ') || null, 'data-l': ci === 0 ? null : (b.cols[ci] || null) });
         if (art.has(ci) && artOf(v)) td.appendChild(artChip(v));
         else if (refBook(b.cols[ci], v)) td.appendChild(refCell(v, o.r[0]));
         else if (long.has(ci) && v) { td.className = 'long'; td.appendChild(clampCell(v)); }

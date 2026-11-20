@@ -128,7 +128,7 @@ function viewPj(id, tab) {
       content.appendChild(h('h3', { text: t }));
       // under each one, what it grants (a flaw given by a virtue goes under the virtue)
       const l = tree[col];
-      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(it => [vdSub(it) + vdLabel(it.x, pj.genero), (it.x.cat || '') + (REINO_POW_TXT[it.x.reino] ? ', ' + REINO_POW_TXT[it.x.reino] : '') + (it.clase !== col ? ' (' + it.clase + ')' : ''), it.x.valor || '', it.x.nota || '']), fcl: true, info: i => vdInfo(l[i].x, l[i].clase, pj.genero) }));
+      if (l.length) content.appendChild(R.grid({ _k: 'vd-' + t, head: ['Nombre', 'Tipo', 'Valor', 'Nota'], body: l.map(it => [vdSub(it) + vdLabel(it.x, pj.genero), (it.x.cat || '') + (REINO_POW_TXT[it.x.reino] ? ', ' + REINO_POW_TXT[it.x.reino] : '') + (it.clase !== col ? ' (' + it.clase + ')' : ''), it.x.valor || '', it.x.nota || '']), fcl: true, stack: true, info: i => vdInfo(l[i].x, l[i].clase, pj.genero) }));
       else content.appendChild(h('p', { class: 'note', text: 'Ninguno.' }));
     });
     const fa = formaActiva(pj);
