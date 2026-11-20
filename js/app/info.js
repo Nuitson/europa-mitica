@@ -2,7 +2,7 @@
 import { artChip, artOf, h, toNum } from './base.js';
 import { S, tkey } from './saga/state.js';
 import { dbWrite, field, localPut, openModal, stamp, toast } from './saga/core.js';
-import { auraNow, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, entriesOf, isRitual, spellTotal } from './saga/rules.js';
+import { auraNow, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, entriesOf, isRitual, magiaAura, spellTotal } from './saga/rules.js';
 import { vdEntry, vdLabel } from './creation/rules.js';
 
 /* ================================================================== DESCRIPCIONES AL PULSAR
@@ -82,12 +82,11 @@ function castOutcome(total, lv, rit) {
 function castBox(pj, pjId, s) {
   const c = calc(pj, entriesOf(pjId));
   const cer = ceremonialOn() && canCeremony(c);
-  const tot = spellTotal(pj, c, s, castAura(), cer);
+  const tot = spellTotal(pj, c, s, castAura(pj, c), cer);
   if (tot == null) return null;
   const lv = toNum(s.nivel), rit = isRitual(s);
-  const an = auraNow();
-  // one botch die, plus one per point of an aura of another realm; each point of mastery takes one away
-  const bd = Math.max(0, 1 + botchDice(an.tipo, an.nivel, 'magica') - Math.max(0, Math.round(Number(s.maestria) || 0)));
+  // one botch die, plus one per point of an aura of another realm (for the realm of this magus's magic); each point of mastery takes one away
+  const bd = Math.max(0, 1 + magiaAura(pj, c).botch - Math.max(0, Math.round(Number(s.maestria) || 0)));
   const log = h('ol', { class: 'roll-log', 'aria-live': 'polite' });
   const roll = () => {
     const d = stressDie();
@@ -105,7 +104,7 @@ function castBox(pj, pjId, s) {
   };
   return h('section', { class: 'roll' }, [
     h('div', { class: 'info-lab', text: 'Lanzarlo' }),
-    h('p', { class: 'roll-tot' }, [h('b', { text: 'Lanzamiento ' + tot }), isFinite(lv) ? ' contra nivel ' + lv : '', ' · ' + castAuraTxt() + (cer ? ' · ceremonial' : '') + ' · ' + (bd ? bd + (bd === 1 ? ' dado' : ' dados') + ' de pifia' : 'sin dados de pifia')]),
+    h('p', { class: 'roll-tot' }, [h('b', { text: 'Lanzamiento ' + tot }), isFinite(lv) ? ' contra nivel ' + lv : '', ' · ' + castAuraTxt(pj, c) + (cer ? ' · ceremonial' : '') + ' · ' + (bd ? bd + (bd === 1 ? ' dado' : ' dados') + ' de pifia' : 'sin dados de pifia')]),
     h('div', { class: 'roll-act' }, [h('button', { type: 'button', class: 'btn', onclick: roll }, 'Tirar dado de estrés')]),
     log]);
 }

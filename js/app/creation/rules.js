@@ -317,7 +317,39 @@ function habReino(pj, habName) {
     const ge = GEN.get(tkey(v.n));
     return [sh, v.n, v.en, vdLabel(v)].concat(ge ? [ge.f, ge.n] : []).some(n => n && habKey(n) === k);
   });
-  return x && REINO_POW_TXT[x.reino] ? x.reino : '';
+  if (!x) return '';
+  return vdReinoFijo(x) || (REINO_POW_TXT[x.reino] ? x.reino : '');
+}
+/* the realm a virtue's own rule fixes (Magia Sagrada: Divine), so the player does not choose it */
+const vdReinoFijo = x => { const f = MAGIA_FX[vdKeyOf(x, 'virtud')] || {}; return f.hab || f.reino || ''; };
+/* ---------- virtues that tie a magus's magic to a realm (by their original name). Magia Sagrada and Magia karaita
+   (Realms of Power: The Divine): the magic is Divine and the Ability Magia sagrada takes the place of Teoría Mágica.
+   Verdadera Comprensión de los Reinos (Legends of Hermes p. 15): an aura of another realm counts as its level minus the
+   magus's Lore of that realm (not below 0) */
+const MAGIA_FX = {
+  'holy-magic': { reino: 'divina', teoria: 'Magia sagrada' },
+  'karaite-magic': { reino: 'divina', teoria: 'Magia sagrada' },
+  'true-understanding-of-the-realms': { comprension: true },
+  // Magia Ctónica (Realms of Power: The Infernal p. 123): attuned to Magic and Infernal auras, it has the benefits of both;
+  // its Ability may stand for Teoría Mágica in the lab for dark effects; a sinful act adds the lowest Art once more
+  'chthonic-magic': { ctonica: true, hab: 'infernal', afin: 'infernal' },
+  // Magia Feérica (ArM5 p. 42 and 148, the Merinita Outer Mystery): attuned to Magic and Faerie auras, it has the benefits of both
+  'faerie-magic': { afin: 'feerica' }
+};
+/* who makes an aura of another realm count as the magic's own */
+const AFIN_POR = { infernal: 'Magia Ctónica', feerica: 'Magia Feérica' };
+/* {reino, teoria, comprension, por: the virtues that change it} for a sheet */
+function magiaFx(pj) {
+  const o = { reino: 'magica', teoria: 'Teoría Mágica', comprension: false, ctonica: false, afines: [], por: [] };
+  (Array.isArray(pj && pj.virtudes) ? pj.virtudes : []).forEach(x => {
+    if (!x || !String(x.n || '').trim()) return;
+    const f = MAGIA_FX[vdKeyOf(x, 'virtud')];
+    if (!f) return;
+    Object.keys(f).forEach(k => { if (k !== 'afin' && k !== 'hab') o[k] = f[k]; });
+    if (f.afin && !o.afines.includes(f.afin)) o.afines.push(f.afin);
+    o.por.push(vdLabel(x, pj.genero));
+  });
+  return o;
 }
 /* what the player fills in for this virtue or flaw: [{k: kind, w: the bracket's word}] — the target of a Maña,
    Afinidad or Característica Notable/Mediocre (stored in obj), or each bracket of the name (obj, then obj2) */
@@ -371,8 +403,43 @@ function vdNormalize(x) {
 const valorOf = (x, clase) => x.valor || (vdEntry(x, clase) || {}).valor || '';
 const catOf = (x, clase) => x.cat || (vdEntry(x, clase) || {}).cat || '';
 function ensureGift(d) {
+  // the House's virtue comes and goes with the type too (only magi have it)
+  ensureHouse(d);
   if (!isMagic(CLASE[d.tipo])) return;
   if (!(d.virtudes || []).some(x => vdFx(x, 'virtud') === 'don')) d.virtudes.unshift({ n: 'El Don', en: 'The Gift', cat: 'Especial', valor: 'Gratuita', nota: 'ArM 68' });
+}
+/* ---------- the House's free virtue (ArM5, the Houses of Hermes): a magus of the House gains it at creation, at no cost.
+   By the House (its key in tkey of the name): the virtue by its original name, and the note for what the player picks */
+const CASA_VD = {
+  bjornaer: { en: 'Heartbeast' },
+  bonisagus: { en: 'Puissant (Ability)', nota: 'Teoría Mágica (rama teórica) o Intriga (rama política)' },
+  criamon: { en: 'The Enigma' },
+  guernicus: { en: 'Hermetic Prestige' },
+  merinita: { en: 'Faerie Magic' },
+  tytalus: { en: 'Self Confident' },
+  verditius: { en: 'Verditius Magic' }
+  // PENDIENTE: falta la virtud gratuita de estas casas (no está en el compendio ni en el Drive; añadirla cuando se tenga el texto):
+  // 'ex-miscellanea': …,
+  // flambeau: …,
+  // jerbiton: …,
+  // mercere: …,
+  // tremere: …
+};
+const casaKey = d => Object.keys(CASA_VD).find(k => tkey(d && d.casa).includes(k)) || '';
+const isMerinita = d => casaKey(d) === 'merinita';
+/* adds the House's free virtue to a magus who lacks it, and takes out the one of a House it no longer belongs to (casaGratis
+   marks it); true if it changed */
+function ensureHouse(d) {
+  const L = d.virtudes || (d.virtudes = []);
+  const k = CLASE[d.tipo] === 'mago' ? casaKey(d) : '';
+  let ch = false;
+  for (let i = L.length - 1; i >= 0; i--) if (L[i] && L[i].casaGratis && L[i].casaGratis !== k) { L.splice(i, 1); ch = true; }
+  const spec = CASA_VD[k], e = spec && vdFind(spec.en, 'virtud');
+  if (!e) return ch;
+  if (L.some(x => x && String(x.n || '').trim() && vdKeyOf(x, 'virtud') === vdKeyOf(e, 'virtud', e))) return ch;
+  const casa = String(d.casa || '').trim();
+  L.push({ n: e.n, en: e.en, cat: e.cat, valor: 'Gratuita', nota: ['Gratuita por la casa ' + casa, spec.nota, vdNota(e)].filter(Boolean).join(' · '), casaGratis: k });
+  return true;
 }
 function ageOf(d) { const [ca] = curSeason(); const n = parseInt(d.nacimiento, 10); return n ? ca - n : null; }
 function abilityCap(age) { return age == null || age < 30 ? 5 : age <= 35 ? 6 : age <= 40 ? 7 : age <= 45 ? 8 : 9; }
@@ -445,7 +512,10 @@ function creationCheck(d) {
     if (seenObj.has(k) && F[i] !== 'carGrande' && F[i] !== 'carPobre') twice.push(vdLabel(Object.assign({}, x, { obj: t })));
     seenObj.add(k);
   }));
-  const noReino = V.filter(x => vdSobHab(x, 'virtud') && !REINO_POW_TXT[x.reino]).map(x => '«' + x.n + '»');
+  // the Merinita Outer Mystery needs a character touched by faeries: without a faerie Virtue or Flaw, one Warping Point (ArM5 p. 148)
+  if (cls === 'mago' && isMerinita(d) && !V.concat(D).some(x => vdKeyOf(x, 'virtud') !== 'faerie-magic' && /feeric|faerie|hada/.test(tkey((x.en || '') + ' ' + x.n))) && numv(d.informidad) < 1)
+    avisos.push('Un Merinita sin virtud ni defecto feérico empieza con un punto de Informidad (sus maestros se lo dan para la Magia Feérica).');
+  const noReino = V.filter(x => vdSobHab(x, 'virtud') && !vdReinoFijo(x) && !REINO_POW_TXT[x.reino]).map(x => '«' + x.n + '»');
   if (noReino.length) avisos.push('Elige el reino de ' + noReino.join(', ') + ': su habilidad sobrenatural suma o resta el aura según el reino.');
   if (noObj.length) avisos.push('Elige a qué se aplica' + (noObj.length > 1 ? 'n ' : ' ') + noObj.join(', ') + ' (columna «Se aplica a»).');
   if (twice.length) avisos.push('Solo se puede coger una vez para lo mismo: ' + twice.join(', ') + '.');
@@ -564,8 +634,10 @@ function creationCheck(d) {
   // 5. each spell at most Technique + Form + Intelligence + Magic Theory + 3 (Arts as the sheet counts them, Puissant included)
   if (isMagic(cls)) {
     const intv = numv(d.car && d.car['Inteligencia']);
-    const mtRow = (d.hab || []).find(x => tkey(x.n) === 'teoria-magica');
-    const mt = (mtRow ? abLvl(afXp(numv(mtRow.base), fx.af.hab.has('teoria-magica'))) : 0) + (fx.mana.hab['teoria-magica'] || 0);
+    // Magia Sagrada: its Ability instead of Teoría Mágica
+    const teo = magiaFx(d).teoria, tk = tkey(teo);
+    const mtRow = (d.hab || []).find(x => tkey(x.n) === tk);
+    const mt = (mtRow ? abLvl(afXp(numv(mtRow.base), fx.af.hab.has(tk))) : 0) + (fx.mana.hab[tk] || 0);
     const artV = a => artLvl(afXp(numv(d.artes && d.artes[a]), fx.af.art.has(a))) + (fx.mana.art[a] || 0);
     const big = [];
     (d.hechizos || []).forEach(s => {
@@ -574,7 +646,7 @@ function creationCheck(d) {
       const lab = artV(t) + artV(f) + intv + mt + 3;
       if (lv > lab) big.push('«' + s.n + '» (' + lv + ', máximo ' + lab + ')');
     });
-    if (big.length) avisos.push('Hechizos por encima de Técnica + Forma + Inteligencia + Teoría Mágica + 3: ' + big.join(', ') + '.');
+    if (big.length) avisos.push('Hechizos por encima de Técnica + Forma + Inteligencia + ' + teo + ' + 3: ' + big.join(', ') + '.');
   }
   if (cls !== 'otro' && !(d.personalidad || []).some(t => String(t.n || '').trim())) avisos.push('Faltan los rasgos de personalidad: tres, con valores de −3 a +3.');
   return { cls, age, lines, errors, avisos, parts, xpBudget, xpSpent, spBudget, spSpent, shared, cBudget, cSpent, vdCap, pv, pd, cap, unknown, msXp, msBonus };
@@ -633,4 +705,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { habReino, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };
+export { AFIN_POR, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };

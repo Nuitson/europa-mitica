@@ -3,10 +3,10 @@ import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, scrollH
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
-import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
+import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
-import { GENERO_TXT, habReino, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
+import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
 import { spellInfo, vdInfo } from '../info.js';
@@ -93,7 +93,7 @@ function viewPj(id, tab) {
   if (cur === 'ficha') pjFicha(content, pj, c, id);
   else if (cur === 'avance') pjAvance(content, id, entries, c);
   else if (cur === 'hechizos') {
-    const aura = castAura(), cer = ceremonialOn() && canCeremony(c);
+    const aura = castAura(pj, c), cer = ceremonialOn() && canCeremony(c);
     const ms = s => Math.max(0, Math.round(numv(s.maestria)));
     const anyM = (pj.hechizos || []).some(s => ms(s) > 0);
     const rows = (pj.hechizos || []).map(s => {
@@ -106,12 +106,14 @@ function viewPj(id, tab) {
     });
     if (rows.length) {
       content.appendChild(ceremonyToggle(c, refocusCer));
+      const imp = impioToggle(pj, refocusCer);
+      if (imp) content.appendChild(imp);
       const cols = ['Hechizo', 'Técnica', 'Forma', 'Nivel', 'Lanzamiento', 'Alcance', 'Duración', 'Objetivo', 'Notas'];
       if (anyM) cols.splice(4, 0, 'Maestría');
       content.appendChild(R.table({ id: 'pjh-' + id, _k: 'pjh', cols: cols, rows: rows, filters: [1, 2], num: anyM ? [3, 4, 5] : [3, 4], art: [1, 2], sort: 3, search: rows.length > 8, info: i => spellInfo(id, i) }));
       content.appendChild(h('p', { class: 'fh info-hint', text: 'Pulsa el nombre de un hechizo para ver su descripción.' }));
-      const an = auraNow(), bd = botchDice(an.tipo, an.nivel, 'magica');
-      content.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + Vitalidad + aura (' + castAuraTxt() + ')' + (anyM ? ' + maestría' : '') + (malusOf(pj) ? ' + malus por heridas y fatiga (' + sgn(malusOf(pj)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial)' : rows.some((r, i) => isRitual(pj.hechizos[i])) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + ', sin dado. Un hechizo formulaico se lanza sin fatiga si el total más el dado iguala su nivel.' + (bd ? ' En esta aura se tiran ' + bd + ' dados de pifia más.' : '') }));
+      const bd = magiaAura(pj, c).botch;
+      content.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + Vitalidad + aura (' + castAuraTxt(pj, c) + ')' + (anyM ? ' + maestría' : '') + (malusOf(pj) ? ' + malus por heridas y fatiga (' + sgn(malusOf(pj)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial)' : rows.some((r, i) => isRitual(pj.hechizos[i])) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + (imp && impioOn() ? ' + el Arte más bajo otra vez (acto impío)' : '') + ', sin dado. Un hechizo formulaico se lanza sin fatiga si el total más el dado iguala su nivel.' + (bd ? ' En esta aura se tiran ' + bd + ' dados de pifia más.' : '') }));
       content.appendChild(h('p', { class: 'note', text: 'Ceremonial y rituales: 15 minutos por magnitud. En ArM5 el lanzamiento ceremonial es para hechizos espontáneos; con un formulaico hace falta la maestría Lanzamiento ceremonial (Houses of Hermes: Societates p. 60). La casilla se recuerda en este navegador.' }));
     } else content.appendChild(h('p', { class: 'note', text: 'Sin hechizos todavía.' }));
     if (canWrite()) content.appendChild(h('a', { class: 'btn ghost', href: '#pj--' + id + '--editar', style: 'align-self:flex-start', text: 'Añadir o cambiar hechizos' }));
@@ -271,14 +273,19 @@ function sheetVd(pj, id) {
 /* spontaneous casting (ArM5, Spontaneous Magic): with fatigue, (Casting Score + stress die) ÷ 2 and a Fatigue level;
    without, Casting Score ÷ 5 and no die. Ceremony adds Artes Liberales + Filosofía. The roll and the switches stay while
    the page is open. */
-const ESP = { fat: true, tirada: '', cer: false };
+const ESP = { fat: true, tirada: '', cer: false, oscuro: false };
 const decs = v => Number.isInteger(v) ? String(v) : (Math.round(v * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
 function sheetArts(pj, c, id) {
   const MODES = ['Lanzamiento', 'Espontáneo', 'Laboratorio'];
   let mode = load('castgrid:pj-cg');
   if (!MODES.includes(mode)) mode = 'Lanzamiento';
-  const tm = c.hab.find(x => tkey(x.n) === 'teoria-magica');
-  const mt = (tm ? abLvl(tm.xp) : 0) + manaHab(c, 'Teoría Mágica');
+  // Magia Sagrada: its Ability instead of Teoría Mágica, and the covenant's aura as Divine magic takes it
+  const mfx = magiaFx(pj), teo0 = mfx.teoria;
+  const habLvN = n => { const x = c.hab.find(y => tkey(y.n) === tkey(n)); return (x ? abLvl(x.xp) : 0) + manaHab(c, n); };
+  // Magia Ctónica: for a dark or sinister effect its Ability may stand for Teoría Mágica in the lab
+  const mtOf = () => ESP.oscuro && mfx.ctonica ? habLvN('Magia ctónica') : habLvN(teo0);
+  const teoOf = () => ESP.oscuro && mfx.ctonica ? 'Magia ctónica' : teo0;
+  const labA = magiaAura(pj, c, { tipo: 'magica', nivel: sagaAura() }), labAura = labA.mod;
   const car = pjCar(pj, formaActiva(pj)); // in another shape, its Characteristics
   const vit = numv(car['Vitalidad']), int = numv(car['Inteligencia']);
   const lv = a => artLvl(c.arts[a]) + manaArt(c, a);
@@ -286,7 +293,7 @@ function sheetArts(pj, c, id) {
   const ac = academic(c), canCer = ac.xp > 0;
   const sec = h('section', { class: 'sh-sec s-artes', 'aria-labelledby': 'sh-artes' });
   const seg = h('div', { class: 'cg-tools', role: 'group', 'aria-label': 'Totales que se muestran' });
-  const auraIn = h('input', { type: 'number', id: 'aura-in', value: String(castAura()), step: '1', inputmode: 'numeric', class: 'aura-in' });
+  const auraIn = h('input', { type: 'number', id: 'aura-in', value: String(castAura(pj, c)), step: '1', inputmode: 'numeric', class: 'aura-in' });
   const auraBox = h('label', { class: 'sh-aura', for: 'aura-in' }, ['Aura ', auraIn]);
   sec.appendChild(h('div', { class: 'sh-arts-h' }, [shHead('sh-artes', 'Artes'), h('div', { class: 'sh-arts-tools fx' }, [seg, auraBox])]));
   // under the buttons, for spontaneous spells: effort, the die and the ceremony
@@ -302,6 +309,12 @@ function sheetArts(pj, c, id) {
     onclick: () => { saveHurt(id, { fatiga: nextF }); toast('Fatiga marcada: ' + est.tr[nextF].n.toLowerCase() + '.'); } }, 'Marcar el nivel de fatiga') : null;
   const espBox = h('div', { class: 'sh-esp fx' }, [fatSeg, tirBox, cerBox, spend]);
   sec.appendChild(espBox);
+  // Magia Ctónica: the sinful act (every mode) and, in the lab, a dark effect
+  const impBox = impioToggle(pj, () => draw());
+  const oscIn = h('input', { type: 'checkbox', id: 'lab-oscuro', checked: ESP.oscuro ? true : null });
+  oscIn.addEventListener('change', () => { ESP.oscuro = oscIn.checked; draw(); });
+  const oscBox = mfx.ctonica ? h('label', { class: 'chk cer', for: 'lab-oscuro' }, [oscIn, h('span', { text: 'Efecto oscuro' }), h('small', { class: 'fh', text: 'Magia ctónica (' + habLvN('Magia ctónica') + ') en lugar de ' + teo0 + ' (' + habLvN(teo0) + ')' })]) : null;
+  if (impBox || oscBox) sec.appendChild(h('div', { class: 'sh-esp fx' }, [impBox, oscBox]));
   tirIn.addEventListener('input', () => { ESP.tirada = tirIn.value; draw(); });
   cerIn.addEventListener('change', () => { ESP.cer = cerIn.checked; draw(); });
   const head = a => {
@@ -329,10 +342,13 @@ function sheetArts(pj, c, id) {
     const aura = numv(auraIn.value);
     const cer = esp && ESP.cer && canCer ? ac.sum : 0;
     const roll = esp && ESP.fat ? numv(ESP.tirada) : 0;
-    const extra = lab ? int + mt + sagaAura() : vit + aura + cer + mal;
-    const parts = (t, f) => [t + ' ' + lv(t), f + ' ' + lv(f)].concat(lab ? ['Inteligencia ' + sgn(int), 'Teoría Mágica ' + mt, 'aura ' + sagaAura()]
+    const mt = mtOf(), teo = teoOf();
+    const imp = impBox && impioOn();
+    const low = (t, f) => imp ? Math.min(lv(t), lv(f)) : 0;
+    const extra = lab ? int + mt + labAura : vit + aura + cer + mal;
+    const parts = (t, f) => [t + ' ' + lv(t), f + ' ' + lv(f)].concat(imp ? ['acto impío ' + low(t, f)] : []).concat(lab ? ['Inteligencia ' + sgn(int), teo + ' ' + mt, 'aura ' + sgn(labAura)]
       : ['Vitalidad ' + sgn(vit), 'aura ' + sgn(aura)].concat(cer ? ['ceremonial ' + sgn(cer)] : [], mal ? ['malus ' + sgn(mal)] : [], esp && ESP.fat ? ['tirada ' + roll] : [])).join(' + ');
-    const val = (t, f) => { const sc = lv(t) + lv(f) + extra; return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
+    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra; return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
     const vals = ARTS_F.map(f => ARTS_T.map(t => val(t, f)));
     const all = [].concat(...vals), max = Math.max(...all), min = Math.min(...all);
     tb.innerHTML = '';
@@ -346,17 +362,19 @@ function sheetArts(pj, c, id) {
     fatSeg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', (x.dataset.f === '1') === ESP.fat ? 'true' : 'false'));
     auraBox.hidden = lab;
     espBox.hidden = !esp;
+    if (oscBox) oscBox.hidden = !lab;
     tirIn.disabled = !ESP.fat;
     if (spend) spend.hidden = !ESP.fat;
     const malTxt = mal ? ' + malus por heridas y fatiga (' + sgn(mal) + ')' : '';
-    const auraTxt = String(aura) === String(castAura()) ? castAuraTxt() : sgn(aura);
+    const auraTxt = String(aura) === String(castAura(pj, c)) ? castAuraTxt(pj, c) : sgn(aura);
     note.textContent = lab
-      ? 'Laboratorio: Técnica + Forma + Inteligencia (' + sgn(int) + ') + Teoría Mágica (' + mt + ') + aura de la alianza (' + sagaAura() + '). Incluye las Mañas; sin dado ni otras virtudes.'
+      ? 'Laboratorio: Técnica + Forma + Inteligencia (' + sgn(int) + ') + ' + teo + ' (' + mt + ') + aura de la alianza (' + (labA.reino !== 'magica' || labA.lore ? magiaAuraTxt(labA) : sagaAura()) + '). Incluye las Mañas; sin dado ni otras virtudes.'
       : esp ? (ESP.fat
         ? 'Espontáneo con fatiga: (Técnica + Forma + Vitalidad (' + sgn(vit) + ') + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ' + tirada (' + (String(ESP.tirada).trim() === '' ? 'sin poner, cuenta 0' : roll) + ')) ÷ 2. Cuesta un nivel de fatiga.'
         : 'Espontáneo sin fatiga: (Técnica + Forma + Vitalidad (' + sgn(vit) + ') + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ') ÷ 5, sin tirada.')
         + ' Sin redondear: el hechizo sale si el resultado llega a su nivel. Incluye las Mañas; sin otras virtudes.'
       : 'Lanzamiento: Técnica + Forma + Vitalidad (' + sgn(vit) + ') + aura (' + auraTxt + ')' + malTxt + '. Incluye las Mañas; sin dado ni otras virtudes.';
+    if (imp) note.textContent += ' Acto impío (Magia Ctónica): cada casilla suma otra vez el Arte más bajo de los dos.';
   }
   MODES.forEach(m => seg.appendChild(h('button', { type: 'button', class: 'seg', 'data-m': m, onclick: () => { mode = m; store('castgrid:pj-cg', m); draw(); } }, m)));
   auraIn.addEventListener('input', draw);
@@ -397,7 +415,7 @@ function sheetAbil(c, id, pj, fa) {
   // supernatural Abilities belong to a realm (chosen on the virtue that grants them): the aura of the place adds or takes
   // as it does to that realm's powers
   const an = auraNow();
-  const sob = n => { const r = habReino(pj, n); return r ? { reino: r, aura: realmMod(an.tipo, an.nivel, r) } : null; };
+  const sob = n => { const r = habReino(pj, n); return r ? { reino: r, aura: habAura(pj, an.tipo, an.nivel, r) } : null; };
   const anySob = c.hab.some(x => habLv(c, x) >= 1 && sob(x.n));
   const draw = () => {
     const cv = habCar ? numv(car[habCar]) : 0;

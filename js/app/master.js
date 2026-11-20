@@ -3,7 +3,7 @@ import { ABBR, artOf, esc, h, load, R, store, toNum } from './base.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
 import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
-import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards, vdTreeCards } from './saga/rules.js';
+import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, ceremonialOn, ceremonyToggle, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaButtons, formasOf, isRitual, malusOf, numv, REALM_POW, realmMod, refocusCer, sagaAura, sgn, spellTotal, vdCards, vdTreeCards, impioToggle, magiaAura, magiaAuraTxt } from './saga/rules.js';
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 import { GENERO_TXT } from './creation/rules.js';
@@ -171,7 +171,8 @@ function masterCard(p, compact) {
   }
   const sp = (p.hechizos || []).filter(x => x && String(x.n || '').trim());
   if (sp.length) {
-    const m = realmMod(MST.tipo, MST.nivel, 'magica'), cer = ceremonialOn() && canCeremony(c);
+    // the aura as this magus's magic takes it (Magia Sagrada, Verdadera Comprensión de los Reinos)
+    const ma = magiaAura(p, c, { tipo: MST.tipo, nivel: MST.nivel }), m = ma.mod, cer = ceremonialOn() && canCeremony(c);
     const rows = sp.map(x => {
       const tot = spellTotal(p, c, x, m, cer), lv = toNum(x.nivel);
       return { x: x, r: [x.n, [x.tec, x.forma].filter(Boolean).map(a => ABBR[artOf(a)] || a).join(''), x.nivel != null ? String(x.nivel) : '', tot == null ? '' : String(tot),
@@ -182,8 +183,10 @@ function masterCard(p, compact) {
     });
     const body = rows.map(o => o.r);
     const wrap = h('details', { class: 'm-spells', open: compact ? null : true });
-    wrap.appendChild(h('summary', null, [h('span', { class: 'm-sub', text: 'Hechizos con el aura elegida · ' + sp.length }), h('small', { text: auraTxt(MST.tipo, MST.nivel) + ': ' + sgn(m) })]));
+    wrap.appendChild(h('summary', null, [h('span', { class: 'm-sub', text: 'Hechizos con el aura elegida · ' + sp.length }), h('small', { text: magiaAuraTxt(ma) })]));
     wrap.appendChild(ceremonyToggle(c, refocusCer));
+    const imp = impioToggle(p, refocusCer);
+    if (imp) wrap.appendChild(imp);
     wrap.appendChild(R.grid({ _k: 'm-sp-' + id, head: ['Hechizo', 'Arte', 'Nivel', 'Lanzamiento', 'Margen'], body: body, fcl: true, info: i => spellInfo(id, (p.hechizos || []).indexOf(rows[i].x)) }));
     wrap.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + Vitalidad + aura' + (sp.some(x => numv(x.maestria) > 0) ? ' + maestría' : '') + (malusOf(p) ? ' + malus por heridas y fatiga (' + sgn(malusOf(p)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial, 15 min por magnitud)' : sp.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + ', sin dado. Margen: lanzamiento menos nivel; con el dado, si llega a 0 el hechizo sale sin fatiga, y hasta −10 sale gastando un nivel de fatiga.' }));
     card.appendChild(wrap);

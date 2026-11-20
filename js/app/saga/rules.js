@@ -4,7 +4,7 @@ import { page } from '../views.js';
 import { CAT_OF, KEYP, S, SEASONS, tkey } from './state.js';
 import { dbWrite, localPut, stamp } from './core.js';
 import { ledger, shHead } from './characters.js';
-import { vdEffects, vdLabel, vdNest } from '../creation/rules.js';
+import { AFIN_POR, magiaFx, vdEffects, vdLabel, vdNest } from '../creation/rules.js';
 import { spellCat, vdInfo } from '../info.js';
 import { route } from '../main.js';
 
@@ -39,8 +39,51 @@ function auraNow() {
   if (e && AURA_X[e.tipo] && isFinite(Number(e.nivel))) return { tipo: e.tipo, nivel: Number(e.nivel), lugar: String(e.lugar || ''), escena: true };
   return { tipo: 'magica', nivel: sagaAura(), lugar: '', escena: false };
 }
-function castAura() { const a = auraNow(); return realmMod(a.tipo, a.nivel, 'magica'); }
-function castAuraTxt() { const a = auraNow(); return (a.escena && a.lugar ? a.lugar + ', ' : '') + 'aura ' + auraTxt(a.tipo, a.nivel) + ': ' + sgn(realmMod(a.tipo, a.nivel, 'magica')); }
+/* the aura as a character's magic takes it: its realm (Magia Sagrada: Divine) and, with Verdadera Comprensión de los Reinos,
+   an aura of another realm lowered by the Lore of that realm (creation/rules.js, magiaFx). a: {tipo, nivel}, the place's by default;
+   without a sheet, Hermetic magic */
+const LORE_RE = { magica: /magic/, feerica: /feeric|faerie|hada/, divina: /divin|dominio/, infernal: /infern/ };
+const LORE_TXT = { magica: 'Conocimiento mágico', feerica: 'Conocimiento feérico', divina: 'Conocimiento divino', infernal: 'Conocimiento infernal' };
+function loreLv(c, realm) {
+  const x = ((c && c.hab) || []).find(a => { const k = tkey(a.n); return /^con(ocimiento)?-/.test(k) && LORE_RE[realm] && LORE_RE[realm].test(k); });
+  return x ? abLvl(x.xp) + manaHab(c, x.n) : 0;
+}
+/* Magia Ctónica (Infernal) and Magia Feérica (Faerie): the magic is attuned to that realm's auras as well as Magic's */
+const ownAura = (m, tipo) => tipo === m.reino || (m.afines || []).includes(tipo);
+function magiaAura(pj, c, a) {
+  a = a || auraNow();
+  const m = pj ? magiaFx(pj) : { reino: 'magica', comprension: false, ctonica: false, afines: [], por: [] };
+  const base = numv(a.nivel), own = ownAura(m, a.tipo);
+  const lore = m.comprension && !own && c ? Math.min(base, loreLv(c, a.tipo)) : 0;
+  const nivel = Math.max(0, base - lore);
+  const pow = own ? a.tipo : m.reino;
+  return { tipo: a.tipo, base: base, nivel: nivel, lore: lore, reino: m.reino, afin: own && a.tipo !== m.reino ? AFIN_POR[a.tipo] || '' : '', por: m.por, lugar: a.lugar || '', escena: !!a.escena,
+    mod: realmMod(a.tipo, nivel, pow), botch: botchDice(a.tipo, nivel, pow) };
+}
+/* a supernatural Ability's aura for this sheet: Magia Ctónica's own Ability is attuned like the magic */
+function habAura(pj, tipo, nivel, r) {
+  const m = magiaFx(pj);
+  return r === 'infernal' && m.ctonica && ownAura(m, tipo) ? realmMod(tipo, nivel, tipo) : realmMod(tipo, nivel, r);
+}
+/* Magia Ctónica: a sinful act during the casting adds the lowest of the two Arts once more (shared switch, kept in this browser) */
+const impioOn = () => load(KEYP + 'impio') === '1';
+function impioBonus(pj, c, t, f) {
+  if (!impioOn() || !magiaFx(pj).ctonica || !t || !f) return 0;
+  return Math.min(artLvl(c.arts[t]) + manaArt(c, t), artLvl(c.arts[f]) + manaArt(c, f));
+}
+function impioToggle(pj, onChange) {
+  if (!magiaFx(pj).ctonica) return null;
+  const box = h('input', { type: 'checkbox', class: 'impio-in', checked: impioOn() ? true : null });
+  box.addEventListener('change', () => { store(KEYP + 'impio', box.checked ? '1' : null); onChange(); });
+  return h('label', { class: 'chk cer' }, [box, h('span', { text: 'Acto impío' }),
+    h('small', { class: 'fh', text: 'Magia Ctónica: un acto deliberadamente malvado al lanzar suma otra vez el Arte más bajo (la Técnica o la Forma)' })]);
+}
+function castAura(pj, c) { return magiaAura(pj, c).mod; }
+function magiaAuraTxt(r) {
+  return 'aura ' + auraTxt(r.tipo, r.base) + (r.lore ? ' − ' + r.lore + ' de ' + LORE_TXT[r.tipo] : '')
+    + (r.afin ? ', propia por ' + r.afin : r.reino !== 'magica' ? ', para magia ' + AURA_ADJ[r.reino] : '') + ': ' + sgn(r.mod);
+}
+function castAuraTxt(pj, c) { const r = magiaAura(pj, c); return (r.escena && r.lugar ? r.lugar + ', ' : '') + magiaAuraTxt(r); }
 /* ---------- other shapes (Cambiapieles): «Transformarse en …» swaps size, physical Characteristics, natural weapons and
    the animal's Virtues and Flaws for the animal's; the mind, Abilities and the rest of the sheet stay the character's own */
 function formasOf(pj) { return Array.isArray(pj && pj.formas) ? pj.formas.filter(f => f && f.id && f.n) : []; }
@@ -153,7 +196,7 @@ function spellTotal(pj, c, s, aura, cer) {
   const t = artOf(s.tec), f = artOf(s.forma);
   if (!t || !f) return null;
   const ac = isRitual(s) || (cer && canCeremony(c)) ? academic(c).sum : 0;
-  return artLvl(c.arts[t]) + manaArt(c, t) + artLvl(c.arts[f]) + manaArt(c, f) + numv(pjCar(pj, formaActiva(pj))['Vitalidad']) + aura + Math.max(0, Math.round(numv(s.maestria))) + ac + malusOf(pj);
+  return artLvl(c.arts[t]) + manaArt(c, t) + artLvl(c.arts[f]) + manaArt(c, f) + numv(pjCar(pj, formaActiva(pj))['Vitalidad']) + aura + Math.max(0, Math.round(numv(s.maestria))) + ac + malusOf(pj) + impioBonus(pj, c, t, f);
 }
 /* Ceremonial casting and Ritual spells (ArM5, Hermetic Magic): + Artes Liberales + Filosofía, fifteen minutes per magnitude.
    Ceremony needs some experience in at least one of the two; a Ritual always adds them. */
@@ -240,4 +283,4 @@ function traitLevel(c, name) {
   return hb ? { lv: abLvl(hb.xp), xp: hb.xp } : { lv: 0, xp: 0, nuevo: true };
 }
 
-export { edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };
+export { habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };
