@@ -9,6 +9,7 @@ import { exportPj, importButton } from './pjfile.js';
 import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
+import { castCar, castCarTxt } from './homebrew.js';
 import { spellInfo, vdInfo } from '../info.js';
 
 /* ---------- PERSONAJES */
@@ -113,7 +114,7 @@ function viewPj(id, tab) {
       content.appendChild(R.table({ id: 'pjh-' + id, _k: 'pjh', cols: cols, rows: rows, filters: [1, 2], num: anyM ? [3, 4, 5] : [3, 4], art: [1, 2], sort: 3, search: rows.length > 8, info: i => spellInfo(id, i) }));
       content.appendChild(h('p', { class: 'fh info-hint', text: 'Pulsa el nombre de un hechizo para ver su descripción.' }));
       const bd = magiaAura(pj, c).botch;
-      content.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + Vitalidad + aura (' + castAuraTxt(pj, c) + ')' + (anyM ? ' + maestría' : '') + (malusOf(pj) ? ' + malus por heridas y fatiga (' + sgn(malusOf(pj)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial)' : rows.some((r, i) => isRitual(pj.hechizos[i])) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + (imp && impioOn() ? ' + el Arte más bajo otra vez (acto impío)' : '') + ', sin dado. Un hechizo formulaico se lanza sin fatiga si el total más el dado iguala su nivel.' + (bd ? ' En esta aura se tiran ' + bd + ' dados de pifia más.' : '') }));
+      content.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + ' + castCarTxt() + ' + aura (' + castAuraTxt(pj, c) + ')' + (anyM ? ' + maestría' : '') + (malusOf(pj) ? ' + malus por heridas y fatiga (' + sgn(malusOf(pj)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial)' : rows.some((r, i) => isRitual(pj.hechizos[i])) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + (imp && impioOn() ? ' + el Arte más bajo otra vez (acto impío)' : '') + ', sin dado. Un hechizo formulaico se lanza sin fatiga si el total más el dado iguala su nivel.' + (bd ? ' En esta aura se tiran ' + bd + ' dados de pifia más.' : '') }));
       content.appendChild(h('p', { class: 'note', text: 'Ceremonial y rituales: 15 minutos por magnitud. En ArM5 el lanzamiento ceremonial es para hechizos espontáneos; con un formulaico hace falta la maestría Lanzamiento ceremonial (Houses of Hermes: Societates p. 60). La casilla se recuerda en este navegador.' }));
     } else content.appendChild(h('p', { class: 'note', text: 'Sin hechizos todavía.' }));
     if (canWrite()) content.appendChild(h('a', { class: 'btn ghost', href: '#pj--' + id + '--editar', style: 'align-self:flex-start', text: 'Añadir o cambiar hechizos' }));
@@ -287,7 +288,9 @@ function sheetArts(pj, c, id) {
   const teoOf = () => ESP.oscuro && mfx.ctonica ? 'Magia ctónica' : teo0;
   const labA = magiaAura(pj, c, { tipo: 'magica', nivel: sagaAura() }), labAura = labA.mod;
   const car = pjCar(pj, formaActiva(pj)); // in another shape, its Characteristics
-  const vit = numv(car['Vitalidad']), int = numv(car['Inteligencia']);
+  const int = numv(car['Inteligencia']);
+  const carT = t => numv(car[castCar(t)]); // Vitalidad, or with the homebrew rule the Technique's Characteristic
+  const carNote = () => castCar('Creo') === 'Vitalidad' ? 'Vitalidad (' + sgn(numv(car['Vitalidad'])) + ')' : castCarTxt();
   const lv = a => artLvl(c.arts[a]) + manaArt(c, a);
   const est = estadoFisico(pj), mal = est.total;
   const ac = academic(c), canCer = ac.xp > 0;
@@ -345,10 +348,10 @@ function sheetArts(pj, c, id) {
     const mt = mtOf(), teo = teoOf();
     const imp = impBox && impioOn();
     const low = (t, f) => imp ? Math.min(lv(t), lv(f)) : 0;
-    const extra = lab ? int + mt + labAura : vit + aura + cer + mal;
+    const extra = lab ? int + mt + labAura : aura + cer + mal;
     const parts = (t, f) => [t + ' ' + lv(t), f + ' ' + lv(f)].concat(imp ? ['acto impío ' + low(t, f)] : []).concat(lab ? ['Inteligencia ' + sgn(int), teo + ' ' + mt, 'aura ' + sgn(labAura)]
-      : ['Vitalidad ' + sgn(vit), 'aura ' + sgn(aura)].concat(cer ? ['ceremonial ' + sgn(cer)] : [], mal ? ['malus ' + sgn(mal)] : [], esp && ESP.fat ? ['tirada ' + roll] : [])).join(' + ');
-    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra; return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
+      : [castCar(t) + ' ' + sgn(carT(t)), 'aura ' + sgn(aura)].concat(cer ? ['ceremonial ' + sgn(cer)] : [], mal ? ['malus ' + sgn(mal)] : [], esp && ESP.fat ? ['tirada ' + roll] : [])).join(' + ');
+    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra + (lab ? 0 : carT(t)); return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
     const vals = ARTS_F.map(f => ARTS_T.map(t => val(t, f)));
     const all = [].concat(...vals), max = Math.max(...all), min = Math.min(...all);
     tb.innerHTML = '';
@@ -370,10 +373,10 @@ function sheetArts(pj, c, id) {
     note.textContent = lab
       ? 'Laboratorio: Técnica + Forma + Inteligencia (' + sgn(int) + ') + ' + teo + ' (' + mt + ') + aura de la alianza (' + (labA.reino !== 'magica' || labA.lore ? magiaAuraTxt(labA) : sagaAura()) + '). Incluye las Mañas; sin dado ni otras virtudes.'
       : esp ? (ESP.fat
-        ? 'Espontáneo con fatiga: (Técnica + Forma + Vitalidad (' + sgn(vit) + ') + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ' + tirada (' + (String(ESP.tirada).trim() === '' ? 'sin poner, cuenta 0' : roll) + ')) ÷ 2. Cuesta un nivel de fatiga.'
-        : 'Espontáneo sin fatiga: (Técnica + Forma + Vitalidad (' + sgn(vit) + ') + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ') ÷ 5, sin tirada.')
+        ? 'Espontáneo con fatiga: (Técnica + Forma + ' + carNote() + ' + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ' + tirada (' + (String(ESP.tirada).trim() === '' ? 'sin poner, cuenta 0' : roll) + ')) ÷ 2. Cuesta un nivel de fatiga.'
+        : 'Espontáneo sin fatiga: (Técnica + Forma + ' + carNote() + ' + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ') ÷ 5, sin tirada.')
         + ' Sin redondear: el hechizo sale si el resultado llega a su nivel. Incluye las Mañas; sin otras virtudes.'
-      : 'Lanzamiento: Técnica + Forma + Vitalidad (' + sgn(vit) + ') + aura (' + auraTxt + ')' + malTxt + '. Incluye las Mañas; sin dado ni otras virtudes.';
+      : 'Lanzamiento: Técnica + Forma + ' + carNote() + ' + aura (' + auraTxt + ')' + malTxt + '. Incluye las Mañas; sin dado ni otras virtudes.';
     if (imp) note.textContent += ' Acto impío (Magia Ctónica): cada casilla suma otra vez el Arte más bajo de los dos.';
   }
   MODES.forEach(m => seg.appendChild(h('button', { type: 'button', class: 'seg', 'data-m': m, onclick: () => { mode = m; store('castgrid:pj-cg', m); draw(); } }, m)));
@@ -505,7 +508,7 @@ function sagaIndex(push) {
 function sagaRoute(raw) {
   if (raw === 'estaciones' || raw.startsWith('estaciones--')) { viewSeasons(raw.split('--')[1]); return true; }
   if (raw === 'personajes') { viewCharacters(); return true; }
-  if (raw === 'master') { viewMaster(); return true; }
+  if (raw === 'master' || raw.startsWith('master--')) { viewMaster(raw.split('--')[1]); return true; }
   if (raw === 'pj-nuevo') { viewEditor(null); return true; }
   if (raw.startsWith('pj--')) { const p = raw.split('--'); if (p[2] === 'editar') viewEditor(p[1]); else viewPj(p[1], p[2]); return true; }
   return false;

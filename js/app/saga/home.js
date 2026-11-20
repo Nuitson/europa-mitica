@@ -23,7 +23,7 @@ function renderSagaSide() {
     li.appendChild(sub);
   }
   u.appendChild(li);
-  if (S.owner === true) u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#master', 'aria-current': raw === 'master' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5h11M4 13.5V7l4-3.5L12 7v6.5"/><path d="M6.5 13.5v-3h3v3"/></svg><span>Pantalla del máster <small>' + esc(auraTxt(auraNow().tipo, auraNow().nivel)) + '</small></span>' })));
+  if (S.owner === true) u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#master', 'aria-current': /^master(--|$)/.test(raw) ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5h11M4 13.5V7l4-3.5L12 7v6.5"/><path d="M6.5 13.5v-3h3v3"/></svg><span>Pantalla del máster <small>' + esc(auraTxt(auraNow().tipo, auraNow().nivel)) + '</small></span>' })));
   box.appendChild(h('div', { class: 'tree' }, u));
 }
 function homeSaga() {

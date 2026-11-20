@@ -6,6 +6,7 @@ import { dbWrite, localPut, stamp } from './core.js';
 import { ledger, shHead } from './characters.js';
 import { AFIN_POR, magiaFx, vdEffects, vdLabel, vdNest } from '../creation/rules.js';
 import { spellCat, vdInfo } from '../info.js';
+import { castCar } from './homebrew.js';
 import { route } from '../main.js';
 
 /* ---------- small helpers */
@@ -191,12 +192,13 @@ function formaBlock(pj, c, f) {
   if (f.fuente) sec.appendChild(h('p', { class: 'sh-aside', text: 'Fuente: ' + f.fuente }));
   return sec;
 }
-/* a formulaic spell's casting total: Technique + Form (with Puissant Arts) + Stamina (of the shape the character is in) + aura modifier + mastery */
+/* a formulaic spell's casting total: Technique + Form (with Puissant Arts) + Stamina (of the shape the character is in) + aura modifier + mastery;
+   with the homebrew rule «lanzamiento-atributos», the Technique's own Characteristic instead of Stamina */
 function spellTotal(pj, c, s, aura, cer) {
   const t = artOf(s.tec), f = artOf(s.forma);
   if (!t || !f) return null;
   const ac = isRitual(s) || (cer && canCeremony(c)) ? academic(c).sum : 0;
-  return artLvl(c.arts[t]) + manaArt(c, t) + artLvl(c.arts[f]) + manaArt(c, f) + numv(pjCar(pj, formaActiva(pj))['Vitalidad']) + aura + Math.max(0, Math.round(numv(s.maestria))) + ac + malusOf(pj) + impioBonus(pj, c, t, f);
+  return artLvl(c.arts[t]) + manaArt(c, t) + artLvl(c.arts[f]) + manaArt(c, f) + numv(pjCar(pj, formaActiva(pj))[castCar(t)]) + aura + Math.max(0, Math.round(numv(s.maestria))) + ac + malusOf(pj) + impioBonus(pj, c, t, f);
 }
 /* Ceremonial casting and Ritual spells (ArM5, Hermetic Magic): + Artes Liberales + Filosofía, fifteen minutes per magnitude.
    Ceremony needs some experience in at least one of the two; a Ritual always adds them. */

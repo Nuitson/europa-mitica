@@ -1,5 +1,6 @@
 /* La pantalla del máster. */
-import { ABBR, artOf, esc, h, load, R, store, toNum } from './base.js';
+import { ABBR, artOf, esc, h, load, R, scrollHint, store, toNum } from './base.js';
+import { castCarTxt, HOMEBREW, homebrewOf, homebrewOn } from './saga/homebrew.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
 import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
@@ -16,23 +17,66 @@ import { GENERO_TXT } from './creation/rules.js';
    de personalidad, virtudes y defectos de cualquier personaje, y sus hechizos con el aura elegida. */
 const MST = { tipo: null, nivel: null, lugar: null, redraw: null };
 
-function viewMaster() {
+const M_TABS = [['escena', 'Escena'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew']];
+
+function viewMaster(tab) {
   page.innerHTML = '';
+  MST.redraw = null; MST.drawAura = null;
   page.appendChild(sagaCrumbs([['Pantalla del máster', null]]));
   page.appendChild(h('h1', { class: 'doc-title', text: 'Pantalla del máster' }));
+  document.title = 'Pantalla del máster — Europa Mítica';
+  const cur = M_TABS.some(t => t[0] === tab) ? tab : 'escena';
+  if (S.owner === true) {
+    const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de la pantalla del máster' },
+      M_TABS.map(([k, t]) => h('a', { class: 'tab', href: k === 'escena' ? '#master' : '#master--' + k, 'aria-current': k === cur ? 'page' : null,
+        text: t + (k === 'homebrew' && HOMEBREW.some(r => homebrewOn(r.k)) ? ' · ' + HOMEBREW.filter(r => homebrewOn(r.k)).length : '') })));
+    page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
+    scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
+  }
   const content = h('div', { class: 'content fx' });
   page.appendChild(content);
-  document.title = 'Pantalla del máster — Europa Mítica';
   const note = statusNote(); if (note) content.appendChild(note);
   if (S.owner !== true) {
     content.appendChild(h('p', { class: 'note', text: window.EM_WEB.offline ? 'Sin conexión: la pantalla del máster necesita el servidor de la saga.' : S.owner == null && S.db ? 'Comprobando quién eres…' : 'Esta pantalla es solo para el máster: entra en la saga con el código de máster.' }));
     return;
   }
+  if (cur === 'saga') { content.appendChild(masterWeb()); return; }
+  if (cur === 'homebrew') { content.appendChild(masterHomebrew()); return; }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   content.appendChild(masterAura());
-  content.appendChild(masterWeb());
   content.appendChild(masterPjs());
+}
+
+/* ---------- homebrew: fanmade rules the master switches on for the whole saga (saga/estado → homebrew) */
+function masterHomebrew() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-hb-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-hb-h', text: 'Reglas caseras' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Reglas fanmade que no son de los libros de Ars Magica. Las que actives aquí se aplican a todas las fichas de la saga; las desactivadas no cambian nada.' }));
+  if (!HOMEBREW.length) {
+    sec.appendChild(h('p', { class: 'note', text: 'Todavía no hay reglas caseras. Cuando se añadan, aparecerán aquí para activarlas o desactivarlas.' }));
+    return sec;
+  }
+  const on = homebrewOf();
+  const list = h('div', { class: 'hb-list', role: 'list' });
+  HOMEBREW.forEach(r => {
+    const id = 'hb-' + r.k;
+    const cb = h('input', { type: 'checkbox', id: id, checked: on[r.k] === true ? true : null, disabled: canWrite() ? null : true });
+    cb.addEventListener('change', async () => {
+      cb.disabled = true;
+      const next = Object.assign({}, homebrewOf(), { [r.k]: cb.checked });
+      if (!next[r.k]) delete next[r.k];
+      if (!await writeEstado({ homebrew: next }, (cb.checked ? 'Regla casera activada: ' : 'Regla casera desactivada: ') + r.n)) cb.checked = !cb.checked;
+      cb.disabled = !canWrite();
+    });
+    list.appendChild(h('div', { class: 'hb-rule', role: 'listitem' }, [
+      h('label', { class: 'chk', for: id }, [cb, h('b', { text: r.n })]),
+      r.desc ? h('p', { class: 'hb-desc', text: r.desc }) : null,
+      r.fuente ? h('small', { class: 'xt', text: 'Fuente: ' + r.fuente }) : null]));
+  });
+  sec.appendChild(list);
+  if (!canWrite()) sec.appendChild(h('p', { class: 'note', text: 'Sin permiso para guardar: no se pueden cambiar.' }));
+  return sec;
 }
 
 /* ---------- the scene aura */
@@ -188,7 +232,7 @@ function masterCard(p, compact) {
     const imp = impioToggle(p, refocusCer);
     if (imp) wrap.appendChild(imp);
     wrap.appendChild(R.grid({ _k: 'm-sp-' + id, head: ['Hechizo', 'Arte', 'Nivel', 'Lanzamiento', 'Margen'], body: body, fcl: true, info: i => spellInfo(id, (p.hechizos || []).indexOf(rows[i].x)) }));
-    wrap.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + Vitalidad + aura' + (sp.some(x => numv(x.maestria) > 0) ? ' + maestría' : '') + (malusOf(p) ? ' + malus por heridas y fatiga (' + sgn(malusOf(p)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial, 15 min por magnitud)' : sp.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + ', sin dado. Margen: lanzamiento menos nivel; con el dado, si llega a 0 el hechizo sale sin fatiga, y hasta −10 sale gastando un nivel de fatiga.' }));
+    wrap.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + ' + castCarTxt() + ' + aura' + (sp.some(x => numv(x.maestria) > 0) ? ' + maestría' : '') + (malusOf(p) ? ' + malus por heridas y fatiga (' + sgn(malusOf(p)) + ')' : '') + (cer ? ' + Artes Liberales + Filosofía (ceremonial, 15 min por magnitud)' : sp.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + ', sin dado. Margen: lanzamiento menos nivel; con el dado, si llega a 0 el hechizo sale sin fatiga, y hasta −10 sale gastando un nivel de fatiga.' }));
     card.appendChild(wrap);
   }
   return card;

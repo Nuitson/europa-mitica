@@ -843,6 +843,11 @@ table.mini .note { font-size: 14.5px; }
 /* ---------- pantalla del máster */
 .m-sec { display: flex; flex-direction: column; gap: 14px; }
 .m-sec + .m-sec { margin-top: 18px; padding-top: 22px; border-top: 1px solid var(--rule-2); }
+.hb-list { display: flex; flex-direction: column; gap: 10px; }
+.hb-rule { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--rule-2); border-radius: 6px; }
+.hb-rule .chk b { font-weight: 600; }
+.hb-desc { margin: 0 0 0 26px; }
+.hb-rule small { margin-left: 26px; }
 .content h2.m-h { font: 400 30px/1.15 var(--f-head); color: var(--blood-ink); margin: 6px 0 -2px; }
 .m-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font: 400 17px/1.4 var(--f-body); color: var(--ink); }
 .m-form { display: flex; flex-direction: column; gap: 12px; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px 16px; }
