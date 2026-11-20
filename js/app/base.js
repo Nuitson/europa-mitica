@@ -2,6 +2,7 @@
 
 // js/gate.js loads data/*.json, joins the saga's own folder and leaves it all in window.EM_DATA before starting the page
 const DATA = window.EM_DATA.data;
+const LIBROS = window.EM_DATA.libros || { libros: {}, es: {} }; // PDFs of the books (libros/…) and the Spanish page of each entry
 const IMG = window.EM_DATA.img;
 const DOCS = {};
 DATA.docs.forEach(d => { DOCS[d.id] = d; });
@@ -96,4 +97,4 @@ function inertOthers(top) {
 /* block renderers by type (R.p, R.table, …): js/app/blocks.js fills most, saga/home.js the live ones */
 const R = {};
 
-export { inertOthers, scrollHint, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, DATA, DOCS, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum };
+export { LIBROS, inertOthers, scrollHint, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, DATA, DOCS, esc, fmt, h, ICON, IMG, load, norm, opify, R, signed, store, toNum };

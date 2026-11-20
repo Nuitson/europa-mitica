@@ -1,5 +1,5 @@
 /* Los bloques de las ayudas de juego: texto, tablas, registro de vis y gráficos (R). */
-import { ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, esc, fmt, h, ICON, IMG, inertOthers, load, norm, opify, R, signed, store, toNum } from './base.js';
+import { LIBROS, ABBR, artChip, artOf, ARTS, ARTS_F, ARTS_T, artVar, br, esc, fmt, h, ICON, IMG, inertOthers, load, norm, opify, R, signed, store, toNum } from './base.js';
 import { cell, sel } from './saga/core.js';
 import { canWrite } from './saga/rules.js';
 import { liveStats, liveStock, visDbRows } from './saga/home.js';
@@ -369,6 +369,7 @@ R.table = (b) => {
         if (nw.has(ci)) cls.push('nw');
         const td = h('td', { class: cls.join(' ') || null });
         if (art.has(ci) && artOf(v)) td.appendChild(artChip(v));
+        else if (refBook(b.cols[ci], v)) td.appendChild(refCell(v, o.r[0]));
         else if (long.has(ci) && v) { td.className = 'long'; td.appendChild(clampCell(v)); }
         else if (ci === 0 && b.info) td.appendChild(h('button', { type: 'button', class: 'info-btn', title: 'Ver la descripción', onclick: () => b.info(o.i) }, v));
         else if (ci === 0 && auto.has(o.i)) td.appendChild(h('i', { title: 'Traducción automática', text: v }));
@@ -563,6 +564,27 @@ function clampCell(v) {
   // only offer the arrow when the text is cut (measured once laid out, and again if the width changes)
   const check = () => { if (txt.classList.contains('open') || !txt.clientHeight) return; btn.hidden = txt.scrollHeight <= txt.clientHeight + 1; txt.style.cursor = btn.hidden ? 'default' : ''; };
   if (window.ResizeObserver) new ResizeObserver(check).observe(txt); else requestAnimationFrame(check);
+  return box;
+}
+
+/* the «Pág.» column of the books' compendium: «ArM 41», «RoP:D 34, 36, 49-51»… each page opens the book's PDF there.
+   The compendium quotes the English edition, whose PDF has the same page numbers (libros/en/); where the Spanish PDF
+   has the entry checked, a small «ES» link opens it in Spanish (libros/es/). */
+const refBook = (col, v) => /^P.g/i.test(col || '') && /^\S+\s+\d/.test(v || '') && !!LIBROS.libros[String(v).split(/\s+/)[0]];
+function pdfLink(href, text, title, cls) {
+  return h('a', { class: cls || 'ref-a', href: href, target: '_blank', rel: 'noopener', title: title, text: text });
+}
+function refCell(v, name) {
+  const ab = String(v).split(/\s+/)[0], bk = LIBROS.libros[ab];
+  const box = h('span', { class: 'ref' });
+  String(v).slice(ab.length).split(',').forEach((piece, i) => {
+    const n = parseInt(piece, 10);
+    if (i) box.appendChild(document.createTextNode(', '));
+    if (!isFinite(n)) { box.appendChild(document.createTextNode(piece.trim())); return; }
+    box.appendChild(pdfLink(bk.en + '#page=' + n, (i ? '' : ab + ' ') + piece.trim(), 'Abrir «' + bk.nombre + '» (inglés) en la página ' + n));
+  });
+  const es = bk.es && LIBROS.es[ab + '|' + name + '|' + v];
+  if (es) { box.appendChild(document.createTextNode(' ')); box.appendChild(pdfLink(bk.es + '#page=' + es, 'ES', 'Abrir «' + bk.nombre + '» en castellano, página ' + es, 'ref-a ref-es')); }
   return box;
 }
 

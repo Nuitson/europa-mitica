@@ -29,7 +29,6 @@ function renderTree() {
     return u;
   }
   root.appendChild(ul(DATA.tree));
-  document.getElementById('sidefoot').innerHTML = 'Hecho a partir de ' + DATA.docs.length + ' hojas de cálculo de la carpeta ' + esc(DATA.root.name) + '.';
 }
 
 export { PATH, renderTree };

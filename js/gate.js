@@ -44,7 +44,7 @@ async function api(accion, datos) {
 }
 
 /* ---------- the shared aids, the spell catalogue and the image list: static files served next to the page */
-const STATIC = { data: 'data/ayudas.json', img: 'data/imagenes.json', hech: 'data/hechizos.json', hb: 'data/homebrew/index.json' };
+const STATIC = { data: 'data/ayudas.json', img: 'data/imagenes.json', hech: 'data/hechizos.json', hb: 'data/homebrew/index.json', libros: 'data/libros.json' };
 let staticLoad = null;
 function loadStatic() {
   if (!staticLoad) {

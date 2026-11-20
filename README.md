@@ -11,6 +11,8 @@ config.js             la dirección del servidor (api/api.php)
 api/                  el servidor: PHP + MySQL (lib.php lleva la lógica, api.php es el punto de entrada, instalar.php prepara la base de datos,
                         usuarios.php gestiona cuentas desde la línea de órdenes)
 herramientas/         migrar_desde_drive.py: pasa una saga del servidor antiguo (Drive) al nuevo;
+libros/en, libros/es  los PDF de los libros (en inglés y en castellano) a los que enlaza la columna «Pág.» del compendio; data/libros.json es el índice
+                        (herramientas/enlaces_libros.py lo genera: comprueba las páginas y copia los PDF desde Dropbox)
                         homebrew_csv.py: convierte los CSV de material de blogs en data/homebrew/
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 css/styles.css        los estilos

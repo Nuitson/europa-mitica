@@ -3,7 +3,7 @@
    takes too long, the copy answers. The saga's server (api/api.php) is never cached: its data stay live, and writes
    (POST) never reach this worker.
    Keep FILES in step with the repository: a new module, image or data file goes here too. */
-const CACHE = 'europa-mitica-v4';
+const CACHE = 'europa-mitica-v6';
 const FILES = [
   './',
   'index.html',
@@ -35,6 +35,7 @@ const FILES = [
   'data/ayudas.json',
   'data/hechizos.json',
   'data/imagenes.json',
+  'data/libros.json',
   'data/homebrew/index.json', // each group's file is kept the first time it is opened
   'img/i0.webp',
   'img/i1.webp',
@@ -88,6 +89,7 @@ async function cacheFirst(e) {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
+  if (url.origin === location.origin && /\/libros\//.test(url.pathname)) return; // the books' PDFs are big: the browser fetches them itself, never kept here
   if (url.origin === location.origin) e.respondWith(networkFirst(e));
   else if (FONTS.test(url.hostname)) e.respondWith(cacheFirst(e)); // a font's address never changes its content
 });
