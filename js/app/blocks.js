@@ -300,7 +300,7 @@ R.artstock = b => { const vals = b.live ? liveStock(b.v) : b.v; return h('div', 
 /* ---------------------------------------------------------------- data table */
 R.table = (b) => {
   const st = { q: '', f: {}, sort: null, dir: 1 };
-  const wrap = h('div', { class: 'dt' });
+  const wrap = h('div', { class: 'dt' + (b.long && b.long.length > 1 ? ' multi' : '') }); // several long columns: narrower, so the table fits
   const tools = h('div', { class: 'dt-tools' });
   const count = h('span', { class: 'dt-count' });
   const num = new Set(b.num || []), long = new Set(b.long || []), art = new Set(b.art || []), auto = new Set(b.auto || []), nw = new Set(b.nw || []);
