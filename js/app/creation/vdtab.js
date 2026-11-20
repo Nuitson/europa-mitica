@@ -122,12 +122,12 @@ function openVdTab(o) {
     });
     const x = { n: e.n, en: e.en, valor: e.valor };
     const fx = vdFx(x, e.clase), eff = vdEffTxt(x, e.clase, fx);
-    const desc = String(e.desc || '').trim(), sh = short(desc);
+    const desc = String(e.desc || '').trim(), sh = short(String(e.resumen || '').trim() || desc); // the summary, and the book's text when it is opened
     let dEl;
     if (!desc) dEl = h('p', { class: 'vdt-d none', text: e.propia ? 'Sin descripción.' : 'Sin descripción en el compendio.' });
     else if (sh === desc) dEl = h('p', { class: 'vdt-d', text: desc });
     else {
-      // the short text; pressing it shows the whole description, and pressing again folds it
+      // the summary; pressing it shows the whole description, and pressing again folds it
       let open = false;
       const txt = document.createTextNode(sh), hint = h('span', { class: 'more', text: ' Leer entera' });
       dEl = h('button', { type: 'button', class: 'vdt-d', 'aria-expanded': 'false' }, [txt, hint]);

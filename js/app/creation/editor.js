@@ -340,7 +340,7 @@ function viewEditor(id, override) {
     }
     // what this one gives that the player took out
     const lost = (x.sinOtorgar || []).length ? h('button', { type: 'button', class: 'lnk vd-evo', onclick: () => { delete x.sinOtorgar; afterVd(); } }, 'Volver a añadir lo que otorga') : null;
-    const full = canon && canon.desc ? canon.desc : '';
+    const full = canon ? (canon.resumen || canon.desc || '') : '';
     const desc = full.length > 220 ? full.slice(0, 218) + '…' : full;
     const row = h('div', { class: 'lrow vd' + (locked ? ' locked' : '') + (kind || slots.length || sobHab ? '' : ' noobj') }, [
       h('label', { class: 'cell vd-t', 'data-l': 'Tipo' }, tipoSel),

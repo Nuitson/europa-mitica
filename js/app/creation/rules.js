@@ -108,7 +108,7 @@ function vdIndex() {
     if (!String(e.n || '').trim()) return;
     e.i = VD_IDX.list.length;
     const ge = GEN.get(tkey(e.n));
-    e.key = norm([e.n, e.en, e.cat, e.desc].concat(ge ? [ge.f, ge.n] : []).join(' ')); // «compasiva» finds «Compasivo»
+    e.key = norm([e.n, e.en, e.cat, e.desc, e.resumen].concat(ge ? [ge.f, ge.n] : []).join(' ')); // «compasiva» finds «Compasivo»
     e.core = e.libro === 'Core Rulebook';
     // one option per virtue: the same rule from several books (or two Spanish names of it) shows once, from the core book if it is there;
     // the saga's own are always apart
@@ -128,7 +128,7 @@ function vdIndex() {
   const doc = DOCS['virtudes-defectos'];
   if (doc) doc.sheets.slice(0, 2).forEach((s, si) => s.blocks.forEach(b => {
     if (b.t !== 'table') return;
-    b.rows.forEach(r => add({ clase: si === 0 ? 'virtud' : 'defecto', n: r[0], en: r[1] || '', cat: r[2] || '', valor: r[3] || '', libro: r[4] || '', pag: r[5] || '', desc: r[6] || '' }));
+    b.rows.forEach(r => add({ clase: si === 0 ? 'virtud' : 'defecto', n: r[0], en: r[1] || '', cat: r[2] || '', valor: r[3] || '', libro: r[4] || '', pag: r[5] || '', resumen: r[6] || '', desc: r[7] || r[6] || '' })); // r[6] = Resumen, r[7] = Descripción (el texto del libro, si lo hay)
   }));
   Object.keys(own).sort().forEach(id => {
     const x = own[id];
