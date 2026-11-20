@@ -49,6 +49,34 @@ function spellCat(s) {
 }
 const lvlTxt = v => (String(v) === 'Gen' ? 'nivel general' : 'nivel ' + v);
 function rdtTxt(o) { return [o.alc, o.dur, o.obj].filter(Boolean).join(' · '); }
+/* the thanks to whoever wrote and shared a piece of homebrew: «Gracias a Teotimus (Ars Rolica) por…»;
+   people: [{ autor, blog, url (of a post: its site is the blog's address), colab }] */
+function hbThanks(people, what) {
+  const seen = new Set(), list = [];
+  (people || []).forEach(x => { if (x && x.autor && !seen.has(x.autor)) { seen.add(x.autor); list.push(x); } });
+  const colabs = [...new Set((people || []).map(x => x && x.colab).filter(Boolean))].filter(c => !seen.has(c));
+  const p = h('p', { class: 'hb-thanks' });
+  if (!list.length) return p;
+  // «Gracias a A, de su blog, a B y a C, de su blog, con la colaboración de D, por crear…»: an aside opened with a comma is closed with one
+  let open = false; // the last thing written is an aside still to close
+  const txt = t => p.appendChild(document.createTextNode(t));
+  txt('Gracias a ');
+  list.forEach((x, i) => {
+    if (i) txt((open ? ', ' : i === list.length - 1 ? ' ' : ', ') + (i === list.length - 1 ? 'y a ' : 'a '));
+    open = false;
+    p.appendChild(h('b', { text: x.autor }));
+    let site = '';
+    try { site = x.url ? new URL(x.url).origin + '/' : ''; } catch (e) { site = ''; }
+    if (x.blog) {
+      txt(', de ');
+      p.appendChild(site ? h('a', { href: site, target: '_blank', rel: 'noopener', text: x.blog }) : document.createTextNode(x.blog));
+      open = true;
+    }
+  });
+  if (colabs.length) { txt(', con la colaboración de ' + colabs.join(' y ')); open = true; }
+  txt((open ? ', ' : ' ') + 'por crear y compartir ' + (what || 'este material') + ' con la comunidad de Ars Magica.');
+  return p;
+}
 function catSource(x) {
   const C = hechCat();
   const p = h('p', { class: 'info-src' });
@@ -57,7 +85,8 @@ function catSource(x) {
     p.appendChild(document.createTextNode('Homebrew de ' + (x.autor || (g && g.autor) || '') + (x.blog ? ', en ' + x.blog : '') + (x.entrada_n ? ': «' + x.entrada_n + '»' : '') + (x.fecha ? ' (' + x.fecha + ')' : '') + '. '));
     if (x.url) p.appendChild(h('a', { href: x.url, target: '_blank', rel: 'noopener', text: 'Leer la entrada original' }));
     if (x.idioma === 'en') p.appendChild(document.createTextNode(' · En inglés.'));
-    return p;
+    const g2 = hbGroup(x.hb);
+    return h('div', null, [p, hbThanks([{ autor: x.autor || (g2 && g2.autor), blog: x.blog || (g2 && (g2.blogs || [])[0]), url: x.url, colab: x.colab }], 'este hechizo')]);
   }
   p.appendChild(document.createTextNode((x.libro || 'Ars Magica, edición definitiva') + ': «' + (x.en || x.n) + '»' + (x.pag ? ', pág. ' + x.pag : '') + '. '));
   if (C.src) {
@@ -252,4 +281,4 @@ function vdInfo(x, clase, g) {
   if (card) card.classList.add('info');
 }
 
-export { catInfo, hechCat, spellCat, spellInfo, vdInfo };
+export { catInfo, hbThanks, hechCat, spellCat, spellInfo, vdInfo };

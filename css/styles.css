@@ -866,6 +866,11 @@ table.mini .note { font-size: 14.5px; }
 .hb-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 18px; }
 .hb-off { border-left: 3px solid var(--blood); padding-left: 10px; }
 .hb-card-off { opacity: .65; }
+.hb-by { color: var(--ink-2); font-size: 14px; }
+.hb-thanks { margin: 0; padding: 8px 12px; border-left: 3px solid var(--blood); background: color-mix(in srgb, var(--blood) 5%, transparent); border-radius: 0 6px 6px 0; font-size: 14.5px; max-width: 72ch; }
+.modal-card .hb-thanks { margin-top: 8px; }
+.hb-off-t { color: var(--blood); }
+.hb-text h4 { margin-top: 10px; }
 .content h2.m-h { font: 400 30px/1.15 var(--f-head); color: var(--blood-ink); margin: 6px 0 -2px; }
 .m-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font: 400 17px/1.4 var(--f-body); color: var(--ink); }
 .m-form { display: flex; flex-direction: column; gap: 12px; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px 16px; }

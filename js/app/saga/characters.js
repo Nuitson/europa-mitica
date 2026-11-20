@@ -9,7 +9,7 @@ import { exportPj, importButton } from './pjfile.js';
 import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { viewMaster } from '../master.js';
-import { viewHb } from './hbview.js';
+import { viewCov, viewHb } from './hbview.js';
 import { castCar, castCarTxt } from './homebrew.js';
 import { spellInfo, vdInfo } from '../info.js';
 
@@ -511,6 +511,7 @@ function sagaRoute(raw) {
   if (raw === 'personajes') { viewCharacters(); return true; }
   if (raw === 'master' || raw.startsWith('master--')) { viewMaster(raw.split('--')[1]); return true; }
   if (raw === 'hb' || raw.startsWith('hb--')) { const p = raw.split('--'); viewHb(p[1], p[2]); return true; }
+  if (raw.startsWith('hbal--')) { const p = raw.split('--'); viewCov(p[1], p[2]); return true; }
   if (raw === 'pj-nuevo') { viewEditor(null); return true; }
   if (raw.startsWith('pj--')) { const p = raw.split('--'); if (p[2] === 'editar') viewEditor(p[1]); else viewPj(p[1], p[2]); return true; }
   return false;
