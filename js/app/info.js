@@ -4,6 +4,7 @@ import { S, tkey } from './saga/state.js';
 import { dbWrite, field, localPut, openModal, stamp, toast } from './saga/core.js';
 import { auraNow, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, entriesOf, isRitual, magiaAura, spellTotal } from './saga/rules.js';
 import { vdEntry, vdLabel } from './creation/rules.js';
+import { hbGroup, hbSpells, hbSpellSig } from './saga/homebrew.js';
 
 /* ================================================================== DESCRIPCIONES AL PULSAR
    On a character, a spell or a Virtue/Flaw opens a card with its description: the catalogue's (summarised in Spanish
@@ -11,12 +12,15 @@ import { vdEntry, vdLabel } from './creation/rules.js';
    The spell catalogue comes from data/hechizos.json; Virtues and Flaws come from the compendium (vdEntry). */
 let HECH = null;
 function hechCat() {
-  if (HECH) return HECH;
-  HECH = { list: [], byId: new Map(), byKey: new Map(), src: null };
+  // the homebrew groups switched on add their spells: built again when one comes or goes
+  const sig = hbSpellSig();
+  if (HECH && HECH.sig === sig) return HECH;
+  HECH = { list: [], byId: new Map(), byKey: new Map(), src: null, sig: sig };
   try {
     const d = window.EM_DATA && window.EM_DATA.hech;
     if (d && Array.isArray(d.h)) { HECH.list = d.h; HECH.src = d.src || null; }
   } catch (e) { /* no catalogue */ }
+  if (sig) HECH.list = HECH.list.concat(hbSpells());
   HECH.list.forEach(x => {
     HECH.byId.set(x.id, x);
     [x.n, x.en].concat(x.alias || []).filter(Boolean).forEach(n => {
@@ -48,6 +52,13 @@ function rdtTxt(o) { return [o.alc, o.dur, o.obj].filter(Boolean).join(' · '); 
 function catSource(x) {
   const C = hechCat();
   const p = h('p', { class: 'info-src' });
+  if (x.hb) { // fanmade: the blog and its author, with a link to the post
+    const g = hbGroup(x.hb);
+    p.appendChild(document.createTextNode('Homebrew de ' + (x.autor || (g && g.autor) || '') + (x.blog ? ', en ' + x.blog : '') + (x.entrada_n ? ': «' + x.entrada_n + '»' : '') + (x.fecha ? ' (' + x.fecha + ')' : '') + '. '));
+    if (x.url) p.appendChild(h('a', { href: x.url, target: '_blank', rel: 'noopener', text: 'Leer la entrada original' }));
+    if (x.idioma === 'en') p.appendChild(document.createTextNode(' · En inglés.'));
+    return p;
+  }
   p.appendChild(document.createTextNode((x.libro || 'Ars Magica, edición definitiva') + ': «' + (x.en || x.n) + '»' + (x.pag ? ', pág. ' + x.pag : '') + '. '));
   if (C.src) {
     p.appendChild(document.createTextNode(C.src.t + ' '));
@@ -131,7 +142,7 @@ function spellInfo(pjId, i) {
   const own = String(s.desc || '').trim();
   if (own) body.push(h('div', { class: 'info-own' }, [h('div', { class: 'info-lab', text: cat ? 'Descripción de la ficha' : 'Descripción' })].concat(paras(own))));
   if (cat) {
-    body.push(h('div', { class: 'info-cat' }, [h('div', { class: 'info-lab', text: own ? 'En el manual' : 'Descripción' })].concat(paras(cat.desc), cat.base ? [h('p', { class: 'info-base', text: cat.base })] : [])));
+    body.push(h('div', { class: 'info-cat' }, [h('div', { class: 'info-lab', text: own ? (cat.hb ? 'En el homebrew' : 'En el manual') : 'Descripción' })].concat(paras(cat.desc), cat.base ? [h('p', { class: 'info-base', text: cat.base })] : [], catNotes(cat))));
     body.push(catSource(cat));
   } else if (!own) {
     body.push(h('p', { class: 'note', text: 'Este hechizo no está en el catálogo (lo inventasteis o viene de otro libro) y la ficha no trae descripción.' }));
@@ -179,6 +190,26 @@ function spellInfo(pjId, i) {
   if (card) card.classList.add('info');
 }
 const canUnlink = (s, cat) => !!cat;
+const catNotes = x => x.notas ? [h('div', { class: 'info-lab', text: 'Notas' })].concat(paras(x.notas)) : [];
+/* a spell of the catalogue (or of a homebrew group) on its own, outside any character */
+function catInfo(x) {
+  if (!x) return;
+  const head = h('div', { class: 'info-head' });
+  if (x.tec) head.appendChild(artChip(x.tec));
+  if (x.forma) head.appendChild(artChip(x.forma));
+  if (x.nivel != null && x.nivel !== '') head.appendChild(h('span', { class: 'info-lv', text: lvlTxt(x.nivel) }));
+  const rdt = rdtTxt(x);
+  if (rdt) head.appendChild(h('span', { class: 'info-rdt', text: rdt }));
+  if (x.rit) head.appendChild(h('span', { class: 'info-rdt', text: 'ritual' }));
+  const body = [head];
+  if (x.req) body.push(h('p', { class: 'info-req', text: 'Requisito: ' + x.req }));
+  if (x.etiq) body.push(h('p', { class: 'info-req', text: 'Etiquetas: ' + x.etiq }));
+  body.push(h('div', { class: 'info-cat' }, paras(x.desc).concat(x.base ? [h('p', { class: 'info-base', text: x.base })] : [], catNotes(x))));
+  body.push(catSource(x));
+  openModal(x.n || 'Hechizo', body, []);
+  const card = document.querySelector('.modal-card');
+  if (card) card.classList.add('info');
+}
 function spellCands(s) {
   const t = artOf(s.tec), f = artOf(s.forma), lv = toNum(s.nivel);
   if (!t || !f) return [];
@@ -221,4 +252,4 @@ function vdInfo(x, clase, g) {
   if (card) card.classList.add('info');
 }
 
-export { hechCat, spellCat, spellInfo, vdInfo };
+export { catInfo, hechCat, spellCat, spellInfo, vdInfo };

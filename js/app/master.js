@@ -1,6 +1,6 @@
 /* La pantalla del máster. */
 import { ABBR, artOf, esc, h, load, R, scrollHint, store, toNum } from './base.js';
-import { castCarTxt, HOMEBREW, homebrewOf, homebrewOn } from './saga/homebrew.js';
+import { castCarTxt, HB_KEY, hbActive, hbGroups, hbOn, HOMEBREW, homebrewOf, homebrewOn } from './saga/homebrew.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
 import { confirmButton, field, monogram, pjsSorted, sagaCrumbs, statusNote, toast } from './saga/core.js';
@@ -29,7 +29,7 @@ function viewMaster(tab) {
   if (S.owner === true) {
     const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de la pantalla del máster' },
       M_TABS.map(([k, t]) => h('a', { class: 'tab', href: k === 'escena' ? '#master' : '#master--' + k, 'aria-current': k === cur ? 'page' : null,
-        text: t + (k === 'homebrew' && HOMEBREW.some(r => homebrewOn(r.k)) ? ' · ' + HOMEBREW.filter(r => homebrewOn(r.k)).length : '') })));
+        text: t + (k === 'homebrew' && hbCount() ? ' · ' + hbCount() : '') })));
     page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
     scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
   }
@@ -41,7 +41,7 @@ function viewMaster(tab) {
     return;
   }
   if (cur === 'saga') { content.appendChild(masterWeb()); return; }
-  if (cur === 'homebrew') { content.appendChild(masterHomebrew()); return; }
+  if (cur === 'homebrew') { content.appendChild(masterHomebrew()); content.appendChild(masterHbContent()); return; }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   content.appendChild(masterAura());
@@ -49,6 +49,38 @@ function viewMaster(tab) {
 }
 
 /* ---------- homebrew: fanmade rules the master switches on for the whole saga (saga/estado → homebrew) */
+const hbCount = () => HOMEBREW.filter(r => homebrewOn(r.k)).length + hbActive().length;
+/* the material from blogs: one button per type and author («Teotimus · Hechizos») adds it to the saga or takes it out */
+function masterHbContent() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-hbc-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-hbc-h', text: 'Material de blogs' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Magos, aprendices, alianzas, objetos mágicos y hechizos fanmade, por tipo y autor. Lo que añadas sale en la barra lateral, en «Homebrew», para toda la saga; los hechizos entran además en el catálogo de las fichas.' }));
+  const groups = hbGroups();
+  if (!groups.length) { sec.appendChild(h('p', { class: 'note', text: 'No hay material de blogs en la web (data/homebrew/).' })); return sec; }
+  const tipos = [];
+  groups.forEach(g => { if (!tipos.includes(g.tipo)) tipos.push(g.tipo); });
+  tipos.forEach(t => {
+    const row = h('div', { class: 'hb-row', role: 'group', 'aria-label': t });
+    groups.filter(g => g.tipo === t).forEach(g => {
+      const on = hbOn(g.k);
+      const n = [g.textos ? g.textos + (g.textos === 1 ? ' entrada' : ' entradas') : '', g.hechizos ? g.hechizos + ' hechizos' : ''].filter(Boolean).join(' · ');
+      const b = h('button', { type: 'button', class: 'hb-tog', 'aria-pressed': on ? 'true' : 'false', disabled: canWrite() ? null : true,
+        title: (on ? 'Quitar de la saga: ' : 'Añadir a la saga: ') + g.autor + ' · ' + t + ((g.blogs || []).length ? ' (' + g.blogs.join(', ') + ')' : '') },
+        [h('span', { class: 'hb-tog-i', 'aria-hidden': 'true', text: on ? '✓' : '+' }), h('b', { text: g.autor + ' · ' + t }), h('small', { text: n })]);
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        const next = Object.assign({}, homebrewOf());
+        if (on) delete next[HB_KEY(g.k)]; else next[HB_KEY(g.k)] = true;
+        if (!await writeEstado({ homebrew: next }, (on ? 'Quitado de la saga: ' : 'Añadido a la saga: ') + g.autor + ' · ' + t)) b.disabled = !canWrite();
+      });
+      row.appendChild(h('span', { class: 'hb-item' }, [b, h('a', { class: 'lnk hb-see', href: '#hb--' + g.k, text: on ? 'Ver' : 'Vista previa' })]));
+    });
+    sec.appendChild(h('h3', { class: 'm-sub', text: t }));
+    sec.appendChild(row);
+  });
+  if (!canWrite()) sec.appendChild(h('p', { class: 'note', text: 'Sin permiso para guardar: no se puede cambiar.' }));
+  return sec;
+}
 function masterHomebrew() {
   const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-hb-h' });
   sec.appendChild(h('h2', { class: 'm-h', id: 'm-hb-h', text: 'Reglas caseras' }));

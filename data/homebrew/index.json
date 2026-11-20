@@ -1,0 +1,145 @@
+{
+ "v": 1,
+ "grupos": [
+  {
+   "k": "magos-kuni-mizomura",
+   "tipo": "Magos",
+   "autor": "Kuni Mizomura",
+   "blogs": [
+    "La Atalaya de Mizomura (La Leprosería Tytalus)"
+   ],
+   "textos": 58,
+   "hechizos": 0
+  },
+  {
+   "k": "magos-teotimus",
+   "tipo": "Magos",
+   "autor": "Teotimus",
+   "blogs": [
+    "Ars Rolica"
+   ],
+   "textos": 3,
+   "hechizos": 0
+  },
+  {
+   "k": "magos-typhoonandrew",
+   "tipo": "Magos",
+   "autor": "Typhoonandrew",
+   "blogs": [
+    "The Iron-Bound Tome"
+   ],
+   "textos": 5,
+   "hechizos": 0
+  },
+  {
+   "k": "aprendices-kuni-mizomura",
+   "tipo": "Aprendices",
+   "autor": "Kuni Mizomura",
+   "blogs": [
+    "La Atalaya de Mizomura (La Leprosería Tytalus)"
+   ],
+   "textos": 32,
+   "hechizos": 0
+  },
+  {
+   "k": "aprendices-teotimus",
+   "tipo": "Aprendices",
+   "autor": "Teotimus",
+   "blogs": [
+    "Ars Rolica"
+   ],
+   "textos": 30,
+   "hechizos": 0
+  },
+  {
+   "k": "aprendices-typhoonandrew",
+   "tipo": "Aprendices",
+   "autor": "Typhoonandrew",
+   "blogs": [
+    "The Iron-Bound Tome"
+   ],
+   "textos": 2,
+   "hechizos": 0
+  },
+  {
+   "k": "alianzas-kuni-mizomura",
+   "tipo": "Alianzas",
+   "autor": "Kuni Mizomura",
+   "blogs": [
+    "La Atalaya de Mizomura (La Leprosería Tytalus)"
+   ],
+   "textos": 30,
+   "hechizos": 0
+  },
+  {
+   "k": "alianzas-teotimus",
+   "tipo": "Alianzas",
+   "autor": "Teotimus",
+   "blogs": [
+    "Ars Rolica"
+   ],
+   "textos": 42,
+   "hechizos": 0
+  },
+  {
+   "k": "alianzas-typhoonandrew",
+   "tipo": "Alianzas",
+   "autor": "Typhoonandrew",
+   "blogs": [
+    "The Iron-Bound Tome"
+   ],
+   "textos": 7,
+   "hechizos": 0
+  },
+  {
+   "k": "objetos-magicos-kuni-mizomura",
+   "tipo": "Objetos mágicos",
+   "autor": "Kuni Mizomura",
+   "blogs": [
+    "La Atalaya de Mizomura (La Leprosería Tytalus)"
+   ],
+   "textos": 3,
+   "hechizos": 0
+  },
+  {
+   "k": "objetos-magicos-teotimus",
+   "tipo": "Objetos mágicos",
+   "autor": "Teotimus",
+   "blogs": [
+    "Ars Rolica"
+   ],
+   "textos": 33,
+   "hechizos": 0
+  },
+  {
+   "k": "objetos-magicos-typhoonandrew",
+   "tipo": "Objetos mágicos",
+   "autor": "Typhoonandrew",
+   "blogs": [
+    "The Iron-Bound Tome"
+   ],
+   "textos": 12,
+   "hechizos": 0
+  },
+  {
+   "k": "hechizos-teotimus",
+   "tipo": "Hechizos",
+   "autor": "Teotimus",
+   "blogs": [
+    "Ars Rolica"
+   ],
+   "textos": 30,
+   "hechizos": 31
+  },
+  {
+   "k": "hechizos-typhoonandrew",
+   "tipo": "Hechizos",
+   "autor": "Typhoonandrew",
+   "blogs": [
+    "The Iron-Bound Tome"
+   ],
+   "textos": 0,
+   "hechizos": 833
+  }
+ ]
+}

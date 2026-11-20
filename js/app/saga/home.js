@@ -1,7 +1,8 @@
 /* La saga en la barra lateral, en el inicio y en las cifras vivas de las hojas. */
 import { ARTS, ARTS_T, esc, fmt, h, R, signed } from '../base.js';
 import { S, SEASONS } from './state.js';
-import { monogram, pjsSorted, statusNote } from './core.js';
+import { monogram, pjsSorted, sagaChanged, statusNote } from './core.js';
+import { hbActive, hbSync, hbTitle } from './homebrew.js';
 import { auraNow, auraTxt, canWrite, currentRaw, curSeason, entriesOf, numv, skey, sname } from './rules.js';
 import { openTesEditor, openVisEditor, tesMiniTable } from './seasons.js';
 
@@ -24,6 +25,14 @@ function renderSagaSide() {
   }
   u.appendChild(li);
   if (S.owner === true) u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#master', 'aria-current': /^master(--|$)/.test(raw) ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5h11M4 13.5V7l4-3.5L12 7v6.5"/><path d="M6.5 13.5v-3h3v3"/></svg><span>Pantalla del máster <small>' + esc(auraTxt(auraNow().tipo, auraNow().nivel)) + '</small></span>' })));
+  // the homebrew material switched on (and, for the master, the way to it); its spells must be here for the catalogue
+  const hb = hbActive();
+  if (hb.length || S.owner === true) {
+    const li = h('li', null, h('a', { class: 't-doc', href: '#hb', 'aria-current': raw === 'hb' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2.5h7.5L13 5v8.5H3z"/><path d="M5.5 7h5M5.5 9.5h5M5.5 12h3"/></svg><span>Homebrew' + (hb.length ? ' <small>' + hb.length + (hb.length === 1 ? ' activo' : ' activos') + '</small>' : '') + '</span>' }));
+    if (hb.length) li.appendChild(h('ul', null, hb.map(g => h('li', null, h('a', { class: 't-doc t-pj', href: '#hb--' + g.k, 'aria-current': raw === 'hb--' + g.k || raw.startsWith('hb--' + g.k + '--') ? 'page' : null, text: hbTitle(g) })))));
+    u.appendChild(li);
+  }
+  hbSync(sagaChanged);
   box.appendChild(h('div', { class: 'tree' }, u));
 }
 function homeSaga() {
