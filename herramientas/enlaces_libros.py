@@ -33,7 +33,7 @@ LIBROS = {
     'Gr': ('grogs', 'Grogs', 'Grogs', None),
     'Grogs': ('grogs', 'Grogs', 'Grogs', None),
     'TMRE': ('tmre', 'The Mysteries, Revised Edition', 'The Mysteries (Revised)', None),
-    'HoH:TL': ('hoh-tl', 'Houses of Hermes: True Lineages', 'True Lineages', None),
+    'HoH:TL': ('hoh-tl', 'Casas de Hermes: Castas', 'True Lineages', 'AM5_Castas_web.pdf'),
     'TC&TC': ('tctc', 'The Cradle and the Crescent', 'The Cradle', None),
     'RoP:F': ('rop-f', 'Reinos de Poder: Feérico', 'Realms Of Power - Faerie', 'Reinos de Poder Feérico - Traduccion Fan.pdf'),
     'RoP:M': ('rop-m', 'Reinos de Poder: Magia', 'Realms Of Power - Magic', 'AM5_RdPM_web.pdf'),
@@ -54,8 +54,22 @@ LIBROS = {
     'LoM': ('lom', 'Lords of Men', 'Lords Of Men', None),
     'Ant': ('ant', 'Antagonists', 'Antagonists', None),
     'ToME': ('tome', 'Tales of Mythic Europe', 'Tales Of Mythic', None),
+    # solo en castellano (sin PDF inglés): sus entradas las añade libros_castellano.py
+    'TdI': ('tdi', 'El Tribunal de Iberia', None, 'AM_tribunaliberia_WEB.pdf'),
 }
 # sin PDF propio con la abreviatura de otra hoja: «Grogs» y «Gr» son el mismo libro
+# libros que casa y rellena libros_castellano.py (el compendio los tenía con nombres traducidos por nuestra cuenta): esta
+# herramienta y descripciones_libros.py no recalculan sus páginas ni sus textos, para no deshacer lo casado
+PROPIOS = {'HoH:TL', 'TdI'}
+
+
+def ruta_es(ab):
+    """el PDF en castellano del libro: el de la carpeta ES o, si no está ahí, la copia de libros/es"""
+    esf = LIBROS[ab][3]
+    if not esf: return None
+    for r in (os.path.join(ES, esf), os.path.join(RAIZ, 'libros', 'es', LIBROS[ab][0] + '.pdf')):
+        if os.path.exists(r): return r
+    return os.path.join(ES, esf)
 STOP = set('para como pero cuando donde sobre entre desde hasta tiene tienen puede pueden cada otra otros otras esta este estos estas'.split())
 
 
@@ -214,14 +228,22 @@ def main():
     problemas = []
     for ab, (slug, nombre, trozo, esf) in LIBROS.items():
         ents = por.get(ab, [])
-        if not ents: continue
-        en_f = buscar_pdf_en(trozo)
-        n, off = desfase_en(paginas(os.path.join(EN, en_f)), ents)
-        linea = '%-7s %-6d %s' % (ab, len(ents), '%s de %d' % (off, n))
-        if not off or off[0][0] != 0 or off[0][1] < max(2, 0.3 * n): problemas.append(ab)
-        info = {'slug': slug, 'nombre': nombre, 'en': 'libros/en/%s.pdf' % slug, '_en': en_f, '_es': esf}
-        if esf:
-            ok = resolver_es(paginas_crudas(os.path.join(ES, esf)), ents, ab)
+        if not ents:
+            libros[ab] = {'slug': slug, 'nombre': nombre, '_en': None, '_es': None}
+            continue
+        en_f = buscar_pdf_en(trozo) if trozo else None   # sin edición inglesa (El Tribunal de Iberia)
+        n, off = desfase_en(paginas(os.path.join(EN, en_f)), ents) if en_f else (0, [(0, 0)])
+        linea = '%-7s %-6d %s' % (ab, len(ents), '%s de %d' % (off, n) if en_f else 'sin PDF inglés')
+        if en_f and (not off or off[0][0] != 0 or off[0][1] < max(2, 0.3 * n)): problemas.append(ab)
+        info = {'slug': slug, 'nombre': nombre, '_en': en_f, '_es': esf}
+        if en_f: info['en'] = 'libros/en/%s.pdf' % slug
+        if esf and ab in PROPIOS:   # sus páginas las puso libros_castellano.py: se conservan
+            info['es'] = 'libros/es/%s.pdf' % slug
+            antes = json.load(open(os.path.join(RAIZ, 'data', 'libros.json'), encoding='utf8'))['es']
+            paginas_es.update({k: v for k, v in antes.items() if k.startswith(ab + '|')})
+            linea += '   (libros_castellano.py)'
+        elif esf:
+            ok = resolver_es(paginas_crudas(ruta_es(ab)), ents, ab)
             info['es'] = 'libros/es/%s.pdf' % slug
             for k, p in ok.items(): paginas_es['%s|%s|%s' % (ab, ents[k]['es'], ents[k]['pag'])] = p
             linea += '   %d de %d' % (len(ok), len(ents))
@@ -233,7 +255,7 @@ def main():
     hechos = set()
     for ab, info in libros.items():
         for sub, carpeta, f in (('en', EN, info['_en']), ('es', ES, info['_es'])):
-            if not f or (sub, info['slug']) in hechos: continue
+            if not f or (sub, info['slug']) in hechos or not os.path.exists(os.path.join(carpeta, f)): continue
             hechos.add((sub, info['slug']))
             dst = os.path.join(RAIZ, 'libros', sub, info['slug'] + '.pdf')
             if not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(os.path.join(carpeta, f)):

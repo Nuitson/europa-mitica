@@ -627,7 +627,8 @@ function refCell(v, name) {
   String(v).slice(ab.length).split(',').forEach((piece, i) => {
     const n = parseInt(piece, 10);
     if (i) box.appendChild(document.createTextNode(', '));
-    if (!isFinite(n)) { box.appendChild(document.createTextNode(piece.trim())); return; }
+    // a book only in Spanish (El Tribunal de Iberia) has no English PDF: the page as text, and the ES link below
+    if (!isFinite(n) || !bk.en) { box.appendChild(document.createTextNode((!i && !bk.en ? ab + ' ' : '') + piece.trim())); return; }
     box.appendChild(pdfLink(bk.en + '#page=' + n, (i ? '' : ab + ' ') + piece.trim(), 'Abrir «' + bk.nombre + '» (inglés) en la página ' + n));
   });
   const es = bk.es && LIBROS.es[ab + '|' + name + '|' + v];

@@ -878,6 +878,23 @@ table.mini .note { font-size: 14.5px; }
 .hb-tog-i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-size: 12px; line-height: 1; color: var(--ink-2); }
 .hb-tog[aria-pressed="true"] { border-color: var(--blood); background: color-mix(in srgb, var(--blood) 9%, transparent); }
 .hb-tog[aria-pressed="true"] .hb-tog-i { background: var(--blood); border-color: var(--blood); color: #fff; }
+.lib-sum { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.lib-sum > div { display: flex; flex-direction: column; gap: 2px; }
+.lib-sum .l { font: 500 11px/1.2 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.lib-sum b { font: 500 22px/1.1 var(--f-body); font-variant-numeric: tabular-nums lining-nums; }
+table.lib-t th { white-space: nowrap; }
+table.lib-t td.num { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
+.lib-n { min-width: 210px; }
+.lib-n b { display: block; font-weight: 600; }
+.lib-n small { display: block; color: var(--ink-3); font-size: 13.5px; }
+.lib-pdf { display: inline-flex; gap: 6px; margin-top: 2px; }
+.lib-pdf:empty { display: none; }
+.lib-bar { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.lib-bar-t { width: 64px; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; position: relative; }
+.lib-bar-t i { position: absolute; inset: 0 auto 0 0; background: var(--blood); border-radius: 3px; }
+.lib-bar-n { font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums lining-nums; }
+.vtag.lib-st { margin-left: 0; }
+.vtag.ok { color: var(--pos); background: color-mix(in srgb, var(--pos) 12%, var(--card)); }
 .hb-tog:disabled { cursor: default; opacity: .6; }
 .hb-see { font-size: 13px; }
 .hb-list-e { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }

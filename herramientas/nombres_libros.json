@@ -529,5 +529,176 @@
   "tipo": "Historia",
   "valor": "Menor",
   "nuevo": "Aprendiz acogido"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Vida Encantada",
+  "pag": "HoH:TL 104",
+  "en": "Charmed Life",
+  "tipo": "Heroica",
+  "valor": "Mayor",
+  "nuevo": "Buena Estrella"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Mimetismo Mítico",
+  "pag": "HoH:TL 107",
+  "en": "Mythic Mimicry",
+  "tipo": "Heroica",
+  "valor": "Mayor",
+  "nuevo": "Imitador Mítico"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Sensibilidad a la Vis",
+  "pag": "HoH:TL 107-108",
+  "en": "Vis Sensitivity",
+  "tipo": "Heroica",
+  "valor": "Mayor",
+  "nuevo": "Sensible a la Vis"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Dhampir",
+  "pag": "HoH:TL 141-142",
+  "en": "",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Dhampiro"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Magia Mutante",
+  "pag": "HoH:TL 101, 107",
+  "en": "Mutantum Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia Mutantum"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Magia Amplificada",
+  "pag": "HoH:TL 104",
+  "en": "Boosted Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia Inducida"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Magia Conectada",
+  "pag": "HoH:TL 107",
+  "en": "Tethered Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia Deslocalizada"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Trabajador de Plomo",
+  "pag": "HoH:TL 143",
+  "en": "Leadworker",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Plomero"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Gran Portador",
+  "pag": "HoH:TL 105",
+  "en": "Great Bearer",
+  "tipo": "Heroica",
+  "valor": "Menor",
+  "nuevo": "Gran Porteador"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Patrimonio de los héroes",
+  "pag": "HoH:TL 105-106",
+  "en": "Heroes' Birthright",
+  "tipo": "Heroica",
+  "valor": "Menor",
+  "nuevo": "Legado Heroico"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Memoria de Mensajero",
+  "pag": "HoH:TL 106",
+  "en": "Messenger's Memory",
+  "tipo": "Heroica",
+  "valor": "Menor",
+  "nuevo": "Memoria del Mensajero"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Viajero Seguro",
+  "pag": "HoH:TL 107",
+  "en": "Sure Traveler",
+  "tipo": "Heroica",
+  "valor": "Menor",
+  "nuevo": "Viajero Infalible"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Bailarín Folclórico",
+  "pag": "HoH:TL 142",
+  "en": "Folk Dancer",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Bailarín Popular"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Sangre Samovily",
+  "pag": "HoH:TL 142-143",
+  "en": "Samovily Blood",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Sangre de Samovily"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Linaje Ilegitimo",
+  "pag": "HoH:TL 109",
+  "en": "Illegitimate Lineage",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Linaje Ilegítimo"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Magia ajustada",
+  "pag": "HoH:TL 108",
+  "en": "Fettered Magic",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Magia Conectiva"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Magia Atada",
+  "pag": "HoH:TL 108",
+  "en": "Bound Magic",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Magia Caduca"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Parma Magica inamovible",
+  "pag": "HoH:TL 25",
+  "en": "Stockade Parma Magica",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Parma Magica Inamovible"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Aprendiz acogido",
+  "pag": "HoH:TL 26",
+  "en": "Fostered Apprentice",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Aprendiz Acogido"
  }
 ]

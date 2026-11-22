@@ -16,3 +16,6 @@ api/config.php
 !datos/europa.sqlite
 copia-*.json
 datos/correo.log
+
+# más de 100 MB: GitHub no lo admite (lo copia herramientas/libros_castellano.py; el enlace ES solo funciona en el equipo que lo tenga)
+libros/es/tdi.pdf

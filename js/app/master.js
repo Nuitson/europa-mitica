@@ -1,5 +1,5 @@
 /* La pantalla del máster. */
-import { ABBR, artOf, esc, h, load, R, scrollHint, store, toNum } from './base.js';
+import { ABBR, artOf, DOCS, esc, h, LIBROS, load, R, scrollHint, store, toNum } from './base.js';
 import { castCarTxt, HB_KEY, hbActive, hbGroups, hbOn, HOMEBREW, homebrewOf, homebrewOn } from './saga/homebrew.js';
 import { page } from './views.js';
 import { KEYP, S, TIPOS, TIPOS_PL, tkey } from './saga/state.js';
@@ -17,7 +17,10 @@ import { GENERO_TXT } from './creation/rules.js';
    de personalidad, virtudes y defectos de cualquier personaje, y sus hechizos con el aura elegida. */
 const MST = { tipo: null, nivel: null, lugar: null, redraw: null };
 
-const M_TABS = [['escena', 'Escena'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew']];
+const M_TABS = [['escena', 'Escena'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew'], ['libros', 'Libros', 'dev']];
+/* «dev»: only for the developers of the web (accounts with the administrator level) */
+const isDev = () => !!(window.EM_WEB && window.EM_WEB.user && window.EM_WEB.user.admin);
+const mTabs = () => M_TABS.filter(t => t[2] !== 'dev' || isDev());
 
 function viewMaster(tab) {
   page.innerHTML = '';
@@ -25,10 +28,10 @@ function viewMaster(tab) {
   page.appendChild(sagaCrumbs([['Pantalla del máster', null]]));
   page.appendChild(h('h1', { class: 'doc-title', text: 'Pantalla del máster' }));
   document.title = 'Pantalla del máster — Europa Mítica';
-  const cur = M_TABS.some(t => t[0] === tab) ? tab : 'escena';
+  const cur = mTabs().some(t => t[0] === tab) ? tab : 'escena';
   if (S.owner === true) {
     const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de la pantalla del máster' },
-      M_TABS.map(([k, t]) => h('a', { class: 'tab', href: k === 'escena' ? '#master' : '#master--' + k, 'aria-current': k === cur ? 'page' : null,
+      mTabs().map(([k, t]) => h('a', { class: 'tab', href: k === 'escena' ? '#master' : '#master--' + k, 'aria-current': k === cur ? 'page' : null,
         text: t + (k === 'homebrew' && hbCount() ? ' · ' + hbCount() : '') })));
     page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
     scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
@@ -42,6 +45,7 @@ function viewMaster(tab) {
   }
   if (cur === 'saga') { content.appendChild(masterWeb()); return; }
   if (cur === 'homebrew') { content.appendChild(masterHomebrew()); content.appendChild(masterHbContent()); return; }
+  if (cur === 'libros') { content.appendChild(masterLibros()); return; }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   content.appendChild(masterAura());
@@ -108,6 +112,68 @@ function masterHomebrew() {
   });
   sec.appendChild(list);
   if (!canWrite()) sec.appendChild(h('p', { class: 'note', text: 'Sin permiso para guardar: no se pueden cambiar.' }));
+  return sec;
+}
+
+/* ---------- books: how far the compendium of virtues and flaws is filled in, book by book (data/ayudas.json + data/libros.json) */
+function librosEstado() {
+  const doc = DOCS['virtudes-defectos'], by = new Map();
+  if (!doc) return [];
+  doc.sheets.filter(sh => sh.id === 'virtudes' || sh.id === 'defectos').forEach(sh => sh.blocks.filter(b => b.t === 'table').forEach(b => {
+    const c = n => b.cols.indexOf(n);
+    const [iN, iL, iP, iD] = [c('Nombre'), c('Libro'), c('Pág.'), c('Descripción')];
+    b.rows.forEach(r => {
+      const pag = String(r[iP] || ''), ab = pag.split(/\s+/)[0];
+      const k = String(r[iL] || '') || ab || '—';
+      if (!by.has(k)) by.set(k, { libro: k, abs: {}, v: 0, d: 0, desc: 0, es: 0 });
+      const x = by.get(k);
+      if (LIBROS.libros[ab]) x.abs[ab] = (x.abs[ab] || 0) + 1;
+      x[sh.id === 'virtudes' ? 'v' : 'd']++;
+      if (iD >= 0 && String(r[iD] || '').trim()) x.desc++;
+      if (LIBROS.es[ab + '|' + r[iN] + '|' + pag]) x.es++;
+    });
+  }));
+  // the books the web knows (data/libros.json) without any entry yet («El Tribunal de Iberia») are listed too
+  const con = new Set([...by.values()].flatMap(x => Object.keys(x.abs)));
+  const slugs = new Set([...con].map(ab => LIBROS.libros[ab].slug));
+  Object.keys(LIBROS.libros).forEach(ab => {
+    if (con.has(ab) || slugs.has(LIBROS.libros[ab].slug)) return;
+    by.set('ab:' + ab, { libro: LIBROS.libros[ab].nombre, abs: { [ab]: 0 }, v: 0, d: 0, desc: 0, es: 0 });
+  });
+  const ORD = ['Completo', 'En curso', 'Pendiente', 'Sin libro en castellano', 'Sin entradas'];
+  return [...by.values()].map(x => {
+    const ab = Object.keys(x.abs).sort((a, b) => x.abs[b] - x.abs[a])[0] || '', bk = LIBROS.libros[ab] || null;
+    const n = x.v + x.d, esPdf = !!(bk && bk.es);
+    const estado = !n ? 'Sin entradas' : x.desc >= n ? 'Completo' : x.desc ? 'En curso' : esPdf ? 'Pendiente' : 'Sin libro en castellano';
+    return Object.assign(x, { ab: ab, bk: bk, n: n, esPdf: esPdf, estado: estado, nombre: (bk && bk.nombre) || x.libro });
+  }).sort((a, b) => ORD.indexOf(a.estado) - ORD.indexOf(b.estado) || (b.n && b.desc / b.n) - (a.n && a.desc / a.n) || b.n - a.n);
+}
+function masterLibros() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-lib-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-lib-h' }, ['Virtudes y defectos por libro', h('span', { class: 'vtag', text: 'Solo desarrolladores' })]));
+  sec.appendChild(h('p', { class: 'doc-blurb', html: 'Lo que tiene ya el <a class="lnk" href="#virtudes-defectos">compendio de virtudes y defectos</a> de cada libro: el texto completo del libro (columna «Descripción»), y el enlace a la página del PDF en castellano. Un libro está completo cuando todas sus entradas tienen el texto del libro.' }));
+  const L = librosEstado();
+  if (!L.length) { sec.appendChild(h('p', { class: 'note', text: 'No se ha podido leer el compendio de virtudes y defectos.' })); return sec; }
+  const tot = L.reduce((s, x) => ({ n: s.n + x.n, desc: s.desc + x.desc }), { n: 0, desc: 0 });
+  const cnt = e => L.filter(x => x.estado === e).length;
+  sec.appendChild(h('div', { class: 'lib-sum' }, [
+    ['Libros', String(L.length)], ['Completos', String(cnt('Completo'))], ['En curso', String(cnt('En curso'))],
+    ['Entradas con texto', tot.desc + ' de ' + tot.n + ' (' + Math.round(100 * tot.desc / tot.n) + ' %)']].map(([l, v]) => h('div', null, [h('span', { class: 'l', text: l }), h('b', { text: v })]))));
+  const bar = (a, n) => h('span', { class: 'lib-bar', role: 'img', 'aria-label': a + ' de ' + n }, [h('span', { class: 'lib-bar-t' }, h('i', { style: 'width:' + (n ? Math.round(100 * a / n) : 0) + '%' })), h('span', { class: 'lib-bar-n', text: a + '/' + n })]);
+  const pdf = (href, t, title) => h('a', { class: 'ref-a' + (t === 'ES' ? ' ref-es' : ''), href: href, target: '_blank', rel: 'noopener', title: title, text: t });
+  const tb = h('tbody');
+  L.forEach(x => {
+    const links = h('span', { class: 'lib-pdf' }, [x.bk && x.bk.en ? pdf(x.bk.en, 'EN', 'Abrir el PDF en inglés') : null, x.esPdf ? pdf(x.bk.es, 'ES', 'Abrir el PDF en castellano') : null]);
+    tb.appendChild(h('tr', null, [
+      h('td', { class: 'lib-n' }, [h('b', { text: x.nombre }), h('small', { text: [x.ab, x.nombre !== x.libro ? x.libro : ''].filter(Boolean).join(' · ') }), links]),
+      h('td', { class: 'num', text: String(x.v) }),
+      h('td', { class: 'num', text: String(x.d) }),
+      h('td', null, x.n ? bar(x.desc, x.n) : h('span', { class: 'xt', text: 'Aún no hay entradas en el compendio' })),
+      h('td', null, x.esPdf ? bar(x.es, x.n) : h('span', { class: 'xt', text: 'Sin PDF' })),
+      h('td', null, h('span', { class: 'vtag lib-st' + (x.estado === 'Completo' ? ' ok' : x.estado === 'En curso' ? ' warn' : ''), text: x.estado }))]));
+  });
+  sec.appendChild(h('div', { class: 'tw' }, h('table', { class: 'mini lib-t' }, [
+    h('thead', null, h('tr', null, ['Libro', 'Virtudes', 'Defectos', 'Texto del libro', 'Página en castellano', 'Estado'].map(t => h('th', { scope: 'col', text: t })))), tb])));
   return sec;
 }
 

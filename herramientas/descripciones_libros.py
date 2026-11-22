@@ -7,10 +7,10 @@ El compendio (data/ayudas.json, hojas «Virtudes» y «Defectos») tiene una col
 y una columna «Descripción» con el texto del libro. Esta herramienta rellena la segunda y, de paso, la página en castellano
 de cada entrada (data/libros.json, el enlace «ES»): lee el PDF, encuentra todos los encabezados («Nombre» y debajo
 «Valor, Tipo»), casa cada entrada con su encabezado (por nombre exacto o, si el libro lo llama de otra forma, por parecido
-con el mismo valor) y copia el texto hasta el encabezado siguiente. Lo que no se casa queda vacío.
+con el mismo valor) y copia el texto hasta el encabezado siguiente. Lo que no se casa conserva el texto que tuviera (puesto a mano o por libros_castellano.py).
 
 Sin --escribir solo cuenta y enseña ejemplos. Con --escribir reescribe data/ayudas.json y data/libros.json (se puede repetir:
-el resumen no se toca y la descripción se recalcula entera).
+el resumen no se toca y la descripción se recalcula; los libros de L.PROPIOS no se tocan).
 """
 import collections, difflib, json, os, re, statistics, sys
 
@@ -106,7 +106,7 @@ def valor_compatible(a, linea):
 
 def descripciones(ab, ents):
     """{índice de entrada: (texto, página del PDF en castellano)} para un libro con PDF en castellano"""
-    ruta = os.path.join(L.ES, L.LIBROS[ab][3])
+    ruta = L.ruta_es(ab)
     ls = lineas_libro(ruta)
     cab = cabeceras(ls)
     # nombre de encabezado -> posiciones en cab
@@ -217,6 +217,7 @@ def main():
     for ab, (slug, nombre, trozo, esf) in L.LIBROS.items():
         if not esf or not por.get(ab): continue
         if ab == 'BCoC': continue   # sus entradas no llevan «Valor, Tipo»: no hay encabezado que localizar
+        if ab in L.PROPIOS: continue   # los rellena libros_castellano.py
         d = descripciones(ab, por[ab])
         print('%-7s %3d de %3d' % (ab, len(d), len(por[ab])))
         for k, (t, p) in d.items():
@@ -243,7 +244,8 @@ def main():
             for r in b['rows']:
                 while len(r) < 8: r.append('')
                 ab = r[5].split(' ')[0] if r[5] else ''
-                r[7] = (claves.get((ab, r[0], r[5], r[1], r[2], r[3])) or ('', 0))[0]
+                # lo que no se encuentra conserva el texto que tenía (puesto a mano o por libros_castellano.py)
+                r[7] = (claves.get((ab, r[0], r[5], r[1], r[2], r[3])) or (r[7], 0))[0]
                 if r[7]: n += 1
     fin = raw[len(raw.rstrip('\r\n')):]
     with open(ruta, 'w', encoding='utf8', newline='') as fh:

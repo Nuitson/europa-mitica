@@ -1,5 +1,5 @@
 /* Las descripciones al pulsar: hechizos, virtudes y defectos. */
-import { artChip, artOf, h, toNum } from './base.js';
+import { artChip, artOf, h, LIBROS, toNum } from './base.js';
 import { S, tkey } from './saga/state.js';
 import { dbWrite, field, localPut, openModal, stamp, toast } from './saga/core.js';
 import { auraNow, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, entriesOf, isRitual, magiaAura, spellTotal } from './saga/rules.js';
@@ -88,7 +88,13 @@ function catSource(x) {
     const g2 = hbGroup(x.hb);
     return h('div', null, [p, hbThanks([{ autor: x.autor || (g2 && g2.autor), blog: x.blog || (g2 && (g2.blogs || [])[0]), url: x.url, colab: x.colab }], 'este hechizo')]);
   }
-  p.appendChild(document.createTextNode((x.libro || 'Ars Magica, edición definitiva') + ': «' + (x.en || x.n) + '»' + (x.pag ? ', pág. ' + x.pag : '') + '. '));
+  // from another book (x.ab, as in data/libros.json): its title and its English PDF at the page; the OpenARS note is only for the core book
+  const bk = x.ab ? LIBROS.libros[x.ab] : null;
+  p.appendChild(document.createTextNode((x.libro || (bk && bk.nombre) || x.ab || 'Ars Magica, edición definitiva') + ': «' + (x.en || x.n) + '»' + (x.pag ? ', pág. ' + x.pag : '') + '. '));
+  if (bk) {
+    if (bk.en) p.appendChild(h('a', { href: bk.en + (x.pag ? '#page=' + x.pag : ''), target: '_blank', rel: 'noopener', text: 'Abrir el PDF en inglés' }));
+    return p;
+  }
   if (C.src) {
     p.appendChild(document.createTextNode(C.src.t + ' '));
     (C.src.links || []).forEach(([t, u], i) => { if (i) p.appendChild(document.createTextNode(' · ')); p.appendChild(h('a', { href: u, target: '_blank', rel: 'noopener', text: t })); });
@@ -165,7 +171,8 @@ function spellInfo(pjId, i) {
   if (rdt) head.appendChild(h('span', { class: 'info-rdt', text: rdt }));
   if (isRitual(s) || (cat && cat.rit)) head.appendChild(h('span', { class: 'info-rdt', text: 'ritual' }));
   body.push(head);
-  const cast = castBox(pj, pjId, s);
+  // a ritual of Fenicil is not cast with Technique + Form: no Hermetic casting total for it
+  const cast = cat && cat.fenicil ? null : castBox(pj, pjId, s);
   if (cast) body.push(cast);
   if (cat && cat.req) body.push(h('p', { class: 'info-req', text: 'Requisito: ' + cat.req }));
   const own = String(s.desc || '').trim();
