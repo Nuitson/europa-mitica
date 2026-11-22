@@ -32,13 +32,13 @@ const GEN_F = {
   'Estudiante Prestigioso': 'Estudiante Prestigiosa', 'Instruido': 'Instruida', 'Famoso': 'Famosa', 'Pedagogo': 'Pedagoga',
   'Chismoso': 'Chismosa', 'Inofensivo para los Animales': 'Inofensiva para los Animales', 'Alentador': 'Alentadora',
   'Vigoroso': 'Vigorosa', 'Erudito del (Reino)': 'Erudita del (Reino)', 'Duro': 'Dura', 'Criado en el circo': 'Criada en el circo',
-  'Criado en una compañía de cómicos': 'Criada en una compañía de cómicos', 'Guerrero': 'Guerrera', 'Lector perceptivo': 'Lectora perceptiva',
+  'Guerrero': 'Guerrera', 'Lector perceptivo': 'Lectora perceptiva',
   'Cuidadoso con Habilidad': 'Cuidadosa con Habilidad', 'Chico para todo': 'Chica para todo',
   'Amo de Criaturas de (Forma)': 'Ama de Criaturas de (Forma)', 'Atractivo para los (Seres)': 'Atractiva para los (Seres)',
   'Inofensivo para (Seres)': 'Inofensiva para (Seres)', 'Saqueador curtido': 'Saqueadora curtida', 'Instruido (Islámico)': 'Instruida (Islámico)',
   'Instruido (Hebreo)': 'Instruida (Hebreo)', 'Asesino entrenado': 'Asesina entrenada', 'Perfecto': 'Perfecta',
   'Niño Demoníaco': 'Niña Demoníaca', 'Invocador': 'Invocadora', 'Experimentador': 'Experimentadora',
-  'Estudiante Aplicado': 'Estudiante Aplicada', 'Mago cuidadoso': 'Maga cuidadosa', '(Gremio) Entrenado': '(Gremio) Entrenada',
+  'Estudiante Aplicado': 'Estudiante Aplicada', 'Magus cuidadoso': 'Maga cuidadosa', '(Gremio) Entrenado': '(Gremio) Entrenada',
   'Trabajador de Plomo': 'Trabajadora de Plomo', 'Extractor de vis de (Forma)': 'Extractora de vis de (Forma)',
   'Imbuido del Espíritu de (Forma)': 'Imbuida del Espíritu de (Forma)', 'Gran Portador': 'Gran Portadora', 'Viajero Seguro': 'Viajera Segura',
   'Discreto': 'Discreta', 'Artista Prolífico': 'Artista Prolífica', 'Himnista hiperbóreo': 'Himnista hiperbórea',
@@ -66,7 +66,7 @@ const GEN_F = {
   'Jorobado': 'Jorobada', 'Licántropo': 'Licántropa', 'Lisiado': 'Lisiada', 'Maestro de Nada': 'Maestra de Nada',
   'Mago Conocido': 'Maga Conocida', 'Mago de Amuletos': 'Maga de Amuletos', 'Mago de laboratorio': 'Maga de laboratorio',
   'Mago homúnculo': 'Maga homúnculo', 'Mago mal entrenado': 'Maga mal entrenada', 'Mago Maligno': 'Maga Maligna',
-  'Mago rudimentario': 'Maga rudimentaria', 'Magus Descuidado': 'Maga Descuidada', 'Mal Discutidor': 'Mala Discutidora',
+  'Magus rudimentario': 'Maga rudimentaria', 'Magus Descuidado': 'Maga Descuidada', 'Mal Discutidor': 'Mala Discutidora',
   'Gruagach mal entrenado': 'Gruagach mal entrenada', 'Manco': 'Manca', 'Mentiroso Compulsivo': 'Mentirosa Compulsiva',
   'Moderado': 'Moderada', 'Monje/a Fallido': 'Monja Fallida', 'Mudo': 'Muda', 'Muerto Viviente': 'Muerta Viviente',
   'No Muerto': 'No Muerta', 'Nocturno': 'Nocturna', 'Obeso': 'Obesa', 'Obtuso': 'Obtusa', 'Ofensivo para (Seres)': 'Ofensiva para (Seres)',
@@ -78,7 +78,7 @@ const GEN_F = {
   'Tuerto': 'Tuerta', 'Tullido': 'Tullida', 'Usurero': 'Usurera', 'No especializado': 'No especializada',
   'Propenso a la turbulencia': 'Propensa a la turbulencia', 'Deformado por la magia': 'Deformada por la magia',
   'Propenso al Nátt-Thel': 'Propensa al Nátt-Thel', 'Propenso a la intervención': 'Propensa a la intervención',
-  'Aprendiz adoptivo': 'Aprendiz adoptiva'
+  'Aprendiz acogido': 'Aprendiz acogida'
 };
 
 export { GEN_F };

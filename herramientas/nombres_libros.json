@@ -448,5 +448,86 @@
   "tipo": "Inferioridad",
   "valor": "Inferioridad",
   "nuevo": "Poderes Mermados"
+ },
+ {
+  "ab": "ArM",
+  "es": "Mago cuidadoso",
+  "pag": "ArM 73",
+  "en": "Cautious Sorcerer",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magus cuidadoso"
+ },
+ {
+  "ab": "ArM",
+  "es": "Animal Mágico",
+  "pag": "ArM 56",
+  "en": "Magical Animal Companion",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Compañero animal mágico"
+ },
+ {
+  "ab": "ArM",
+  "es": "Feudo",
+  "pag": "ArM 54",
+  "en": "Feud",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Contienda"
+ },
+ {
+  "ab": "ArM",
+  "es": "Juramento de Fidelidad",
+  "pag": "ArM 56",
+  "en": "Oath of Fealty",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Juramento de lealtad"
+ },
+ {
+  "ab": "ArM",
+  "es": "Magia personal",
+  "pag": "ArM 59",
+  "en": "Short-Ranged Magic",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magia de contacto"
+ },
+ {
+  "ab": "ArM",
+  "es": "Mago rudimentario",
+  "pag": "ArM 60",
+  "en": "Unstructured Caster",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magus rudimentario"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Magia de Figullas",
+  "pag": "HoH:TL 25, 33-34",
+  "en": "Figurine Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Magia Icónica"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Parma Magica rígida",
+  "pag": "HoH:TL 25",
+  "en": "Stockade Parma Magica",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Parma Magica inamovible"
+ },
+ {
+  "ab": "HoH:TL",
+  "es": "Aprendiz adoptivo",
+  "pag": "HoH:TL 26",
+  "en": "Fostered Apprentice",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Aprendiz acogido"
  }
 ]
