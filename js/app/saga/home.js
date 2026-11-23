@@ -1,5 +1,7 @@
 /* La saga en la barra lateral, en el inicio y en las cifras vivas de las hojas. */
-import { ARTS, ARTS_T, esc, fmt, h, R, signed } from '../base.js';
+import { ARTS, ARTS_T, DOCS, esc, fmt, h, ICON, R, signed } from '../base.js';
+import { foldLi, folderLabel } from '../tree.js';
+import { covenantsOf, TRIBUNALES, tribHidden } from './covenant.js';
 import { S, SEASONS } from './state.js';
 import { monogram, pjsSorted, sagaChanged, statusNote } from './core.js';
 import { hbActive, hbSync, hbTitle } from './homebrew.js';
@@ -7,10 +9,33 @@ import { auraNow, auraTxt, canWrite, currentRaw, curSeason, entriesOf, numv, ske
 import { openTesEditor, openVisEditor, tesMiniTable } from './seasons.js';
 
 /* ---------- side panel, home and live figures on the Excel pages */
+const SVG = {
+  saga: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2 9.6 6h5l-4 3 1.5 4.8L8 10.9l-4.1 2.9L5.4 9l-4-3h5z"/></svg>',
+  est: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>',
+  pj: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 14c.6-3 2.7-4.6 5.2-4.6s4.6 1.6 5.2 4.6"/></svg>',
+  master: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5h11M4 13.5V7l4-3.5L12 7v6.5"/><path d="M6.5 13.5v-3h3v3"/></svg>',
+  hb: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2.5h7.5L13 5v8.5H3z"/><path d="M5.5 7h5M5.5 9.5h5M5.5 12h3"/></svg>',
+  arm: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13 11.5 4.5M10 3l3 3M4.5 9.5l2 2M2.5 13.5l1-1"/></svg>',
+  cro: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2.5h8v11H4z"/><path d="M6 5.5h4M6 8h4M6 10.5h2.5"/></svg>',
+  trib: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 6 8 2.5 13.5 6M3.5 6v6M6.5 6v6M9.5 6v6M12.5 6v6M2 13.5h12"/></svg>'
+};
+// the characters by kind, as the side panel groups them (an «Otro» goes with the companions)
+const PJ_GRUPOS = [['magi', 'Magi', ['Magus', 'Aprendiz']], ['comp', 'Compañeros', ['Compañero', 'Otro']], ['grogs', 'Grogs', ['Grog']]];
+const docLink = (href, icon, text, on, small) => h('a', { class: 't-doc', href: href, 'aria-current': on ? 'page' : null, html: icon + '<span>' + esc(text) + (small ? ' <small>' + esc(small) + '</small>' : '') + '</span>' });
+const groupLabel = (icon, text) => h('div', { class: 't-folder t-group', html: icon + '<span>' + esc(text) + '</span>' });
+const sheetLink = (d, raw) => h('a', { class: 't-doc', href: '#' + d.id, 'data-doc': d.id, 'aria-current': raw.split('--')[0] === d.id ? 'page' : null, html: ICON.sheet + '<span>' + esc(d.title) + '</span>' });
+/* the saga's own spreadsheets (its archive): a character's goes with the characters, the rest with the covenant; the covenant's
+   sheet first, then its library and its vis */
+function sagaDocs() {
+  const rank = d => /ficha|alianza-web/i.test(d.id) ? 0 : d.kind === 'biblioteca' ? 1 : /vis|reserva/i.test(d.id + ' ' + d.title) ? 2 : 3;
+  const all = Object.values(DOCS).filter(d => d.saga);
+  return { pj: all.filter(d => d.kind === 'personaje'), cov: all.filter(d => d.kind !== 'personaje').sort((a, b) => rank(a) - rank(b)) };
+}
 function renderSagaSide() {
-  const box = document.getElementById('sagaside');
+  const box = document.getElementById('sagaside'), mbox = document.getElementById('masterside');
   if (!box) return;
   box.innerHTML = '';
+  if (mbox) mbox.innerHTML = '';
   if (window.EM_WEB.guest) {
     box.appendChild(h('div', { class: 'guest-side' }, [h('p', { text: 'Estás como invitado: ves las ayudas públicas. Entra para abrir tu saga, tus personajes y las estaciones.' }),
       h('button', { type: 'button', class: 'btn', onclick: () => window.EM_WEB.entrar() }, 'Entrar o crear cuenta')]));
@@ -18,29 +43,52 @@ function renderSagaSide() {
   }
   const raw = currentRaw();
   const [a, e] = curSeason();
-  box.appendChild(h('a', { class: 't-folder', href: '#saga', html: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2 9.6 6h5l-4 3 1.5 4.8L8 10.9l-4.1 2.9L5.4 9l-4-3h5z"/></svg><span>Saga en curso</span>' }));
+  const sd = sagaDocs();
+  box.appendChild(h('a', { class: 't-folder', href: '#saga', html: SVG.saga + '<span>Saga en curso</span>' }));
   const u = h('ul');
-  u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#estaciones', 'aria-current': /^estaciones/.test(raw) ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg><span>Estaciones <small>' + esc(sname(a, e)) + '</small></span>' })));
-  const li = h('li', null, h('a', { class: 't-doc', href: '#personajes', 'aria-current': raw === 'personajes' || raw === 'pj-nuevo' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 14c.6-3 2.7-4.6 5.2-4.6s4.6 1.6 5.2 4.6"/></svg><span>Personajes</span>' }));
+  u.appendChild(h('li', null, docLink('#estaciones', SVG.est, 'Estaciones', /^estaciones/.test(raw), sname(a, e))));
+  // the characters, in three groups that fold, like the folder itself
   const pjs = pjsSorted(false);
-  if (pjs.length) {
-    const sub = h('ul');
-    pjs.forEach(p => sub.appendChild(h('li', null, h('a', { class: 't-doc t-pj', href: '#pj--' + p._id, 'aria-current': raw === 'pj--' + p._id || raw.startsWith('pj--' + p._id + '--') ? 'page' : null, text: p.nombre }))));
-    li.appendChild(sub);
-  }
-  u.appendChild(li);
-  const ntx = Object.keys(S.tx).length;
-  u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#biblioteca', 'aria-current': raw === 'biblioteca' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 3.5h3v10h-3zM6.5 2.5h3v11h-3zM10.5 4l2.6-.7 2 9.4-2.6.7z"/></svg><span>Biblioteca' + (ntx ? ' <small>' + ntx + (ntx === 1 ? ' texto' : ' textos') + '</small>' : '') + '</span>' })));
-  if (S.owner === true) u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#master', 'aria-current': /^master(--|$)/.test(raw) ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5h11M4 13.5V7l4-3.5L12 7v6.5"/><path d="M6.5 13.5v-3h3v3"/></svg><span>Pantalla del máster <small>' + esc(auraTxt(auraNow().tipo, auraNow().nivel)) + '</small></span>' })));
+  const groups = h('ul');
+  PJ_GRUPOS.forEach(([k, name, tipos]) => {
+    const L = pjs.filter(p => k === 'comp' ? !['Magus', 'Aprendiz', 'Grog'].includes(p.tipo) : tipos.includes(p.tipo));
+    const sub = h('ul', null, L.map(p => h('li', null, h('a', { class: 't-doc t-pj', href: '#pj--' + p._id, 'aria-current': raw === 'pj--' + p._id || raw.startsWith('pj--' + p._id + '--') ? 'page' : null, text: p.nombre }))));
+    // the characters' own spreadsheets in the saga's archive (Astrid's…) go with the magi
+    if (k === 'magi') sd.pj.forEach(d => sub.appendChild(h('li', null, sheetLink(d, raw))));
+    if (!sub.children.length) sub.appendChild(h('li', { class: 't-none', text: 'Ninguno' }));
+    groups.appendChild(foldLi('pj-' + k, groupLabel('', name + (L.length ? ' · ' + L.length : '')), sub));
+  });
+  u.appendChild(foldLi('pjs', docLink('#personajes', SVG.pj, 'Personajes', raw === 'personajes' || raw === 'pj-nuevo'), groups));
   // the homebrew material switched on (and, for the master, the way to it); its spells must be here for the catalogue
   const hb = hbActive();
   if (hb.length || S.owner === true) {
-    const li = h('li', null, h('a', { class: 't-doc', href: '#hb', 'aria-current': raw === 'hb' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2.5h7.5L13 5v8.5H3z"/><path d="M5.5 7h5M5.5 9.5h5M5.5 12h3"/></svg><span>Homebrew' + (hb.length ? ' <small>' + hb.length + (hb.length === 1 ? ' activo' : ' activos') + '</small>' : '') + '</span>' }));
+    const li = h('li', null, docLink('#hb', SVG.hb, 'Homebrew', raw === 'hb', hb.length ? hb.length + (hb.length === 1 ? ' activo' : ' activos') : ''));
     if (hb.length) li.appendChild(h('ul', null, hb.map(g => h('li', null, h('a', { class: 't-doc t-pj', href: '#hb--' + g.k, 'aria-current': raw === 'hb--' + g.k || raw.startsWith('hb--' + g.k + '--') ? 'page' : null, text: hbTitle(g) })))));
     u.appendChild(li);
   }
   hbSync(sagaChanged);
   box.appendChild(h('div', { class: 'tree' }, u));
+  // the covenant: its sheet, library and vis from the archive, and the armoury and chronicle kept in the web
+  const narm = Object.keys(S.arm).length, ncro = Object.keys(S.cro).length;
+  const cov = h('ul', null, sd.cov.map(d => h('li', null, sheetLink(d, raw))));
+  cov.appendChild(h('li', null, docLink('#armeria', SVG.arm, 'Armería', raw === 'armeria', narm ? String(narm) : '')));
+  cov.appendChild(h('li', null, docLink('#cronica', SVG.cro, 'Crónica', raw === 'cronica', ncro ? String(ncro) : '')));
+  box.appendChild(h('div', { class: 'tree t-sec' }, h('ul', null, foldLi('alianza', folderLabel('Alianza'), cov))));
+  // the master's: the screen, and the Tribunals with their covenants (the master hides the ones the saga does not use)
+  if (S.owner === true && mbox) {
+    const m = h('ul', null, h('li', null, docLink('#master', SVG.master, 'Pantalla del máster', /^master(--|$)/.test(raw) && raw !== 'master--tribunales', auraTxt(auraNow().tipo, auraNow().nivel))));
+    const hidden = tribHidden(), tl = h('ul');
+    TRIBUNALES.filter(([k]) => !hidden.has(k)).forEach(([k, n]) => {
+      const L = covenantsOf(k);
+      const sub = h('ul', null, L.map(c => h('li', null, h('a', { class: 't-doc t-pj', href: c.href, 'aria-current': c._id && raw === 'alianza--' + c._id ? 'page' : null, text: c.n }))));
+      if (!L.length) sub.appendChild(h('li', { class: 't-none', text: 'Sin alianzas' }));
+      tl.appendChild(foldLi('trib-' + k, groupLabel('', n.replace(/^(el|los) /, '') + (L.length ? ' · ' + L.length : '')), sub, false));
+    });
+    tl.appendChild(h('li', null, h('a', { class: 't-doc t-more', href: '#master--tribunales', 'aria-current': raw === 'master--tribunales' ? 'page' : null,
+      text: hidden.size ? 'Elegir tribunales (' + hidden.size + (hidden.size === 1 ? ' oculto)' : ' ocultos)') : 'Ocultar tribunales y añadir alianzas' })));
+    m.appendChild(foldLi('tribunales', groupLabel(SVG.trib, 'Tribunales'), tl, false));
+    mbox.appendChild(h('div', { class: 'tree t-sec' }, h('ul', null, foldLi('master', folderLabel('Máster', SVG.master), m))));
+  }
 }
 function homeSaga() {
   const s = h('section', { class: 'folder-sec home-saga', id: 'home-saga' });

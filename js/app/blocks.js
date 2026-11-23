@@ -300,6 +300,9 @@ R.artstock = b => { const vals = b.live ? liveStock(b.v) : b.v; return h('div', 
 
 /* ---------------------------------------------------------------- data table */
 R.table = (b, ctx) => {
+  // a table that changes with the saga (its library of lab texts, with what the seasons did): rows and a footer from saga/library.js
+  const live = R.tableRows && R.tableRows(b, ctx);
+  if (live) b = Object.assign({}, b, live);
   const st = { q: '', f: {}, sort: null, dir: 1 };
   const W = window.EM_WEB;
   // administrators can change any cell of the shared aids' tables (the changes are kept on the server: api «ayudasEscribir»)
@@ -434,6 +437,7 @@ R.table = (b, ctx) => {
   if (b.sort != null && b.group == null) { st.sort = b.sort; }
   draw();
   wrap._reset = () => { st.q = ''; st.f = {}; draw(); };
+  if (b.foot) wrap.appendChild(b.foot());
   return wrap;
 };
 

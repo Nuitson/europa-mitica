@@ -1,5 +1,5 @@
 /* La saga en curso: carga, suscripciones, escrituras, avisos y controles de formulario. */
-import { artOf, artVar, DATA, DOCS, h, IMG, inertOthers, signed } from '../base.js';
+import { artOf, artVar, DATA, DOCS, h, IMG, inertOthers, R, signed } from '../base.js';
 import { resetIndex } from '../search.js';
 import { page } from '../views.js';
 import { S, SEASONS, SUBS, TIPOS, tkey } from './state.js';
@@ -60,7 +60,8 @@ function allSeen() { return SUBS.every(([, k]) => S.seen[k]); }
 let chTimer = null;
 function sagaChanged() { resetIndex(); clearTimeout(chTimer); chTimer = setTimeout(applySagaChange, 60); }
 function hasLive(blocks) {
-  return (blocks || []).some(b => b.live || b.t === 'dynvis' || b.t === 'dyntes' || b.t === 'pjlink' || (b.t === 'cols' && b.items.some(c => hasLive(c))));
+  // the saga library's lab texts also change with the seasons (saga/library.js)
+  return (blocks || []).some(b => b.live || b.t === 'dynvis' || b.t === 'dyntes' || b.t === 'pjlink' || (R.tableRows && R.tableRows.is(b)) || (b.t === 'cols' && b.items.some(c => hasLive(c))));
 }
 function applySagaChange() {
   renderSagaSide();
@@ -77,7 +78,7 @@ function applySagaChange() {
     return;
   }
   if (raw === 'pj-nuevo' || /--editar$/.test(raw)) { if (!page.querySelector('form.pj-form')) route(true); return; } // never clobber a form being filled in
-  if (/^(master|hb|hbal)(--|$)/.test(raw) || /^(estaciones|personajes|biblioteca|pj--)/.test(raw)) { if (!typing()) route(true); return; }
+  if (/^(master|hb|hbal)(--|$)/.test(raw) || /^(estaciones|personajes|armeria|cronica|alianza--|pj--)/.test(raw)) { if (!typing()) route(true); return; }
   const box = document.getElementById('home-saga');
   if (box) box.replaceWith(homeSaga());
   document.querySelectorAll('.glance').forEach(el => { if (el._g) el.replaceWith(glanceNode(el._g)); });

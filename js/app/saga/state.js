@@ -9,7 +9,10 @@ import { norm } from '../base.js';
      tesoreria/{id}       treasury movements recorded from the web
      saga/estado          the saga's current season and the covenant aura
      virtudes/{id}        virtues and flaws made for this saga alone (creation/vdtab.js); new sagas start without them
-     textos/{id}          the covenant's library of laboratory texts (saga/library.js): learnt, invented, deciphered and translated in the seasons
+     textos/{id}          laboratory texts added in the web to the saga's library sheet (saga/library.js), which the seasons learn, invent, decipher and translate
+     armeria/{id}         the covenant's armoury: weapons, armour and gear (saga/covenant.js)
+     cronica/{id}         the saga's chronicle, one entry per season or event (saga/covenant.js)
+     alianzas/{id}        other covenants, by Tribunal, that the master adds (saga/covenant.js)
    The Excel pages stay as the archive; these views grow season by season. */
 const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 const CHARS = ['Inteligencia', 'Percepción', 'Fuerza', 'Vitalidad', 'Presencia', 'Comunicación', 'Destreza', 'Rapidez'];
@@ -50,7 +53,7 @@ Object.keys(ABIL_STD).forEach(c => ABIL_STD[c].forEach(n => { CAT_OF[tkey(n)] = 
 
 /* js/gate.js sets window.EM_WEB (saga, role, database) before starting the page; keys in this browser carry the saga */
 const KEYP = (window.EM_WEB.saga ? window.EM_WEB.saga.id : 'invitado') + ':';
-const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, tx: {}, estado: null, seen: {}, fresh: {}, timer: null };
-const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['textos', 'tx'], ['saga/estado', 'estado']];
+const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, tx: {}, arm: {}, cro: {}, al: {}, estado: null, seen: {}, fresh: {}, timer: null };
+const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['textos', 'tx'], ['armeria', 'arm'], ['cronica', 'cro'], ['alianzas', 'al'], ['saga/estado', 'estado']];
 
 export { ABIL_CATS, ABIL_STD, ACT_TIPOS, CASAS, CAT_OF, CHARS, KEYP, S, SEASONS, SUBS, TIPOS, TIPOS_PL, tkey, VD_CATS };

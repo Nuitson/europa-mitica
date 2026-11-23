@@ -8,6 +8,7 @@ import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCere
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 import { GENERO_TXT } from './creation/rules.js';
+import { masterTribunales } from './saga/covenant.js';
 import { cargarAstro, cielo, cuando, fechaError, hora, MESES } from './astro.js';
 
 /* ================================================================== PANTALLA DEL MÁSTER
@@ -18,7 +19,7 @@ import { cargarAstro, cielo, cuando, fechaError, hora, MESES } from './astro.js'
    de personalidad, virtudes y defectos de cualquier personaje, y sus hechizos con el aura elegida. */
 const MST = { tipo: null, nivel: null, lugar: null, redraw: null };
 
-const M_TABS = [['escena', 'Escena'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew'], ['libros', 'Libros', 'dev']];
+const M_TABS = [['escena', 'Escena'], ['tribunales', 'Tribunales'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew'], ['libros', 'Libros', 'dev']];
 /* «dev»: only for the developers of the web (accounts with the administrator level) */
 const isDev = () => !!(window.EM_WEB && window.EM_WEB.user && window.EM_WEB.user.admin);
 const mTabs = () => M_TABS.filter(t => t[2] !== 'dev' || isDev());
@@ -47,11 +48,30 @@ function viewMaster(tab) {
   if (cur === 'saga') { content.appendChild(masterWeb()); return; }
   if (cur === 'homebrew') { content.appendChild(masterHomebrew()); content.appendChild(masterHbContent()); return; }
   if (cur === 'libros') { content.appendChild(masterLibros()); return; }
+  if (cur === 'tribunales') { content.appendChild(masterTribunales()); return; }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
-  content.appendChild(masterAura());
-  content.appendChild(masterFecha());
+  // the scene's aura on the left, the day and its sky on the right; each folds away
+  content.appendChild(h('div', { class: 'm-duo' }, [foldable(masterAura(), 'aura'), foldable(masterFecha(), 'fecha')]));
   content.appendChild(masterPjs());
+}
+
+/* a section that folds away: the button by its heading hides the rest, and this browser remembers it */
+function foldable(sec, key) {
+  const head = sec.querySelector('h2.m-h');
+  const body = h('div', { class: 'm-fold', id: 'm-fold-' + key });
+  while (head.nextSibling) body.appendChild(head.nextSibling);
+  let open = load(KEYP + 'm-fold-' + key) !== '0';
+  const btn = h('button', { type: 'button', class: 'm-fold-btn', 'aria-controls': body.id });
+  const set = () => { body.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Ocultar' : 'Mostrar'; sec.classList.toggle('folded', !open); };
+  btn.addEventListener('click', () => { open = !open; store(KEYP + 'm-fold-' + key, open ? null : '0'); set(); });
+  const hd = h('div', { class: 'm-sec-h' });
+  head.replaceWith(hd);
+  hd.appendChild(head);
+  hd.appendChild(btn);
+  sec.appendChild(body);
+  set();
+  return sec;
 }
 
 /* ---------- the date of the session and its sky (js/app/astro.js); kept in this browser, per saga */
