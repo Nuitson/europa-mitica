@@ -8,6 +8,7 @@ import { edadTxt, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCere
 import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 import { GENERO_TXT } from './creation/rules.js';
+import { cargarAstro, cielo, cuando, fechaError, hora, MESES } from './astro.js';
 
 /* ================================================================== PANTALLA DEL MÁSTER
    Solo para el máster (quien es máster de la saga). El aura de la escena —reino y nivel— cambia los totales de lanzamiento
@@ -49,7 +50,81 @@ function viewMaster(tab) {
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   content.appendChild(masterAura());
+  content.appendChild(masterFecha());
   content.appendChild(masterPjs());
+}
+
+/* ---------- the date of the session and its sky (js/app/astro.js); kept in this browser, per saga */
+const EST_DIA = { 1: [3, 21], 2: [6, 21], 3: [9, 21], 4: [12, 21] };
+function masterFecha() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-fe-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-fe-h', text: 'Fecha de la partida' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'El cielo del día de la partida: el Sol, la Luna y los planetas en los signos, la fase de la Luna y lo que cambia ese día. Calendario juliano hasta el 4 de octubre de 1582; horas en hora solar de Arazas.' }));
+  let f = null;
+  try { f = JSON.parse(load(KEYP + 'master-fecha') || 'null'); } catch (e) { f = null; }
+  if (!f || !f.y) { const [y, est] = curSeason(), md = EST_DIA[est] || [3, 21]; f = { y: y, m: md[0], d: md[1] }; }
+  const dia = h('input', { type: 'number', id: 'm-dia', min: '1', max: '31', step: '1', inputmode: 'numeric', value: String(f.d) });
+  const mes = h('select', { id: 'm-mes' }, MESES.map((n, i) => h('option', { value: String(i + 1), selected: i + 1 === f.m ? true : null }, n)));
+  const anio = h('input', { type: 'number', id: 'm-anio', min: '900', max: '1600', step: '1', inputmode: 'numeric', value: String(f.y) });
+  sec.appendChild(h('div', { class: 'm-form' }, h('div', { class: 'm-fecha' }, [field('Día', dia), field('Mes', mes), field('Año', anio)])));
+  const out = h('div', { class: 'm-astro-out', 'aria-live': 'polite' });
+  sec.appendChild(out);
+  const draw = () => {
+    const y = parseInt(anio.value, 10), m = parseInt(mes.value, 10), d = parseInt(dia.value, 10);
+    const err = fechaError(y, m, d);
+    out.innerHTML = '';
+    if (err) { out.appendChild(h('p', { class: 'note', text: err })); return; }
+    store(KEYP + 'master-fecha', JSON.stringify({ y: y, m: m, d: d }));
+    out.appendChild(h('p', { class: 'note', text: 'Cargando el calendario…' }));
+    cargarAstro().then(A => {
+      if (fechaError(parseInt(anio.value, 10), parseInt(mes.value, 10), parseInt(dia.value, 10)) || parseInt(anio.value, 10) !== y || parseInt(mes.value, 10) !== m || parseInt(dia.value, 10) !== d) return;
+      out.innerHTML = '';
+      out.appendChild(astroView(cielo(A, y, m, d), y, m, d));
+    }).catch(() => { out.innerHTML = ''; out.appendChild(h('p', { class: 'note', text: 'No se ha podido cargar el calendario astrológico (data/astro.json).' })); });
+  };
+  [dia, mes, anio].forEach(x => x.addEventListener(x === mes ? 'change' : 'input', draw));
+  draw();
+  return sec;
+}
+function astroView(c, y, m, d) {
+  const box = h('div', { class: 'm-astro' });
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  box.appendChild(h('p', { class: 'm-now' }, [h('span', { class: 'fl', text: 'Ese día' }),
+    h('span', { text: cap(c.dia) + ', ' + d + ' de ' + MESES[m - 1] + ' de ' + y + (c.gregoriano ? ' (gregoriano)' : '') + ' · día de ' + c.diaPl + (c.diaRef ? ': ' + c.diaRef.ambito : '') })]));
+  const sol = c.sol, luna = c.luna, fa = luna && luna.fase;
+  box.appendChild(R.stats({ items: [
+    sol ? { l: 'Sol', v: sol.signo.n, s: ['1.er', '2.º', '3.er'][sol.dec] + ' decanato · ' + sol.signo.cualidad.toLowerCase() } : { l: 'Sol', v: '—' },
+    luna ? { l: 'Luna', v: luna.signo.n, s: fa ? (fa.crece ? 'creciente' : 'menguante') : '' } : { l: 'Luna', v: '—' },
+    { l: 'Día de', v: c.diaPl, s: c.diaRef ? c.diaRef.car : '' }] }));
+
+  if (sol) {
+    const g = sol.signo;
+    box.appendChild(h('h3', { class: 'm-sub', text: 'El Sol en ' + g.n }));
+    box.appendChild(R.kv({ cls: 'compact', items: [
+      ['En el signo', 'desde el ' + cuando(sol.desde, y) + (sol.hasta != null ? '; entra en ' + sol.sigue + ' el ' + cuando(sol.hasta, y) : '')],
+      ['Decanato', ['1.er', '2.º', '3.er'][sol.dec] + ': ' + sol.decTxt],
+      ['Magia cíclica', g.genero + ' (±3), ' + g.cualidad.toLowerCase() + ' (±5), ' + g.elemento.toLowerCase() + ' (±6) · humor ' + g.humor.toLowerCase() + ' · regente ' + g.regente],
+      g.cualidad === 'Mutable' ? ['Mutable', 'Signo mutable: actúan las virtudes y defectos mutables.'] : null,
+      sol.est.length ? ['Duración Año', 'hasta la salida del Sol del ' + (sol.est[3] ? sol.est[3].n.toLowerCase() + ' del ' + cuando(sol.est[3].t, y, true) : '4.º equinoccio o solsticio') + ' (lanzado ese día). Próximo: ' + sol.est[0].n.toLowerCase() + ', ' + cuando(sol.est[0].t, y)] : null
+    ].filter(Boolean) }));
+  }
+  if (luna) {
+    box.appendChild(h('h3', { class: 'm-sub', text: 'La Luna en ' + luna.signo.n }));
+    box.appendChild(R.kv({ cls: 'compact', items: [
+      ['En el signo', 'desde el ' + cuando(luna.desde, y) + (luna.hasta != null ? ' hasta el ' + cuando(luna.hasta, y) : '')],
+      fa ? ['Fase', (fa.crece ? 'Creciente' : 'Menguante') + ': ' + fa.ant.toLowerCase() + ' el ' + cuando(fa.antT, y) + '; ' + fa.sig.toLowerCase() + ' el ' + cuando(fa.sigT, y)] : null,
+      fa && fa.nueva != null && fa.llena != null ? ['Duración Luna', 'hasta que se hayan puesto la próxima luna nueva (' + cuando(fa.nueva, y) + ') y la próxima luna llena (' + cuando(fa.llena, y) + ')'] : null
+    ].filter(Boolean) }));
+  }
+  box.appendChild(h('h3', { class: 'm-sub', text: 'Los planetas' }));
+  box.appendChild(R.grid({ _k: 'm-astro-pl', cls: 'm-astro-t', fcl: true, stack: true, head: ['Planeta', 'Signo', 'Desde', 'Hasta', 'Ámbito'],
+    body: c.planetas.map(p => [p.n + (p.ref ? ' (' + p.ref.car + ')' : ''), p.signo ? p.signo.n + (p.retro ? ', entró retrógrado' : '') : '—',
+      p.desde != null ? cuando(p.desde, y, true) : '—', p.hasta != null ? cuando(p.hasta, y, true) : '—', p.ref ? p.ref.ambito : '']) }));
+  box.appendChild(h('h3', { class: 'm-sub', text: 'Durante el día' }));
+  box.appendChild(c.hoy.length ? h('ul', { class: 'm-hoy' }, c.hoy.map(e => h('li', null, [h('b', { text: e.t == null ? 'Todo el día' : hora(e.t) }), document.createTextNode(e.txt)])))
+    : h('p', { class: 'note', text: 'Ese día no cambia nada: ni signos ni fases.' }));
+  box.appendChild(h('p', { class: 'note', html: 'Signos a mediodía. Magia cíclica, virtudes mutables y duraciones: <i>Ars Magica</i> 5.ª ed., p. 41, 52 y 112, y <i>The Mysteries</i>, cap. 4 y 6.' }));
+  return box;
 }
 
 /* ---------- homebrew: fanmade rules the master switches on for the whole saga (saga/estado → homebrew) */

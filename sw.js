@@ -3,7 +3,7 @@
    takes too long, the copy answers. The saga's server (api/api.php) is never cached: its data stay live, and writes
    (POST) never reach this worker.
    Keep FILES in step with the repository: a new module, image or data file goes here too. */
-const CACHE = 'europa-mitica-v20';
+const CACHE = 'europa-mitica-v21';
 const FILES = [
   './',
   'index.html',
@@ -11,6 +11,7 @@ const FILES = [
   'css/styles.css',
   'js/gate.js',
   'js/cuenta.js',
+  'js/app/astro.js',
   'js/app/base.js',
   'js/app/blocks.js',
   'js/app/creation/editor.js',
@@ -37,6 +38,7 @@ const FILES = [
   'data/imagenes.json',
   'data/libros.json',
   'data/homebrew/index.json', // each group's file is kept the first time it is opened
+  // data/astro.json (600 KB, only the master's screen uses it) is kept the first time it is opened
   'img/i0.webp',
   'img/i1.webp',
   'img/i2.webp',
