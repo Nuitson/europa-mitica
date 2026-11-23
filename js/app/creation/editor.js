@@ -4,7 +4,7 @@ import { page } from '../views.js';
 import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../saga/state.js';
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
-import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, ensureHouse, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdReinoFijo, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
+import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, casaVariantes, creationCheck, DRAFT_KEY, ensureGift, ensureHouse, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdReinoFijo, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
 import { openVdTab } from './vdtab.js';
 
@@ -74,13 +74,28 @@ function viewEditor(id, override) {
   const ageNote = h('span', { class: 'fh' });
   const drawAge = () => { const a = ageOf(d); ageNote.textContent = a != null ? a + ' años en ' + ca : ''; };
   drawAge();
+  // the House's variant (branch, lineage, school or tradition): it decides the free virtue
+  const linSel = h('select', { id: 'pj-linaje' });
+  const linFld = field('Variante de la casa', linSel, 'Rama, linaje, escuela o tradición: cada una da su virtud gratuita.', 'w2');
+  const drawLin = () => {
+    const vars = casaVariantes(d);
+    linFld.hidden = vars.length < 2;
+    linSel.innerHTML = '';
+    linSel.appendChild(h('option', { value: '' }, '— Elige la variante —'));
+    vars.forEach(v => linSel.appendChild(h('option', { value: v.k }, (v.n ? v.n + ': ' : '') + v.txt)));
+    linSel.value = vars.some(v => v.k === d.linaje) ? d.linaje : '';
+    linSel.classList.toggle('need', !linSel.value);
+  };
+  linSel.addEventListener('change', () => { d.linaje = linSel.value; ensureHouse(d); drawLin(); drawVd(); drawHab(); });
+  drawLin();
   f.appendChild(sec('Datos', [h('div', { class: 'fgrid' }, [
     field('Nombre', inp(d.nombre, v => { d.nombre = v; }, { required: true, placeholder: 'Nombre ex Casa', id: 'pj-nombre', autocomplete: 'off' }), null, 'w2'),
     field('Epíteto o apodo', inp(d.sub, v => { d.sub = v; }, { placeholder: 'fili de…' })),
-    field('Tipo', sel(TIPOS, d.tipo, v => { d.tipo = v; ensureGift(d); drawVd(); drawHab(); if (artSec) artSec.hidden = !showArts(); if (eaField) eaField.hidden = !isMagic(CLASE[d.tipo]); }, { id: 'pj-tipo' })),
+    field('Tipo', sel(TIPOS, d.tipo, v => { d.tipo = v; ensureGift(d); drawLin(); drawVd(); drawHab(); if (artSec) artSec.hidden = !showArts(); if (eaField) eaField.hidden = !isMagic(CLASE[d.tipo]); }, { id: 'pj-tipo' })),
     // the gender of the names of the virtues and flaws on the sheet: «Compasivo», «Compasiva», «Compasive»
     field('Género', sel(GENERO, d.genero || 'm', v => { d.genero = v; drawVd(); }, { id: 'pj-genero' }), 'Para los nombres de virtudes y defectos; el neutro, en -e.'),
-    field('Casa', inp(d.casa, v => { d.casa = v; if (ensureHouse(d)) { drawVd(); drawHab(); } }, { list: casaDl, autocomplete: 'off' }), 'Un mago recibe gratis la virtud de su casa.'),
+    field('Casa', inp(d.casa, v => { d.casa = v; const ch = ensureHouse(d); drawLin(); if (ch) { drawVd(); drawHab(); } }, { list: casaDl, autocomplete: 'off' }), 'Un mago recibe gratis la virtud de su casa.'),
+    linFld,
     field('Jugador', inp(d.jugador, v => { d.jugador = v; })),
     h('label', { class: 'fld' }, [h('span', { class: 'fl', text: 'Año de nacimiento' }), inp(d.nacimiento, v => { d.nacimiento = parseInt(v, 10) || ''; drawAge(); drawHab(); }, { type: 'number', inputmode: 'numeric', id: 'pj-nac' }), ageNote]),
     field('En juego', h('span', { class: 'chk' }, [h('input', { type: 'checkbox', checked: d.activo !== false ? true : null, onchange: ev => { d.activo = ev.target.checked; } }), h('span', { text: 'Activo en la saga' })])),
@@ -321,6 +336,7 @@ function viewEditor(id, override) {
     // what gives it: the grant of the compendium, or one marked by hand (a free virtue of a variant the saga made up)
     let porCtl = null;
     if (gr) porCtl = h('span', { class: 'vd-por', text: 'Otorgada por «' + vdLabel(gr.parent.x, d.genero) + '»' + (gr.g.opc ? ' (opcional)' : '') });
+    else if (x.casaGratis) porCtl = h('span', { class: 'vd-por', text: 'Gratuita por la casa ' + String(d.casa || '').trim() });
     // (only for one that is free here but costs in the book: El Don or a free status need no one to give them)
     else if (named && (x.por || (x.valor === 'Gratuita' && fxk !== 'don' && !(canon && canon.valor === 'Gratuita')))) {
       const myRef = vdRef(x, clase);

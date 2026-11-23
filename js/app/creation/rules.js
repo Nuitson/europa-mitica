@@ -1,6 +1,6 @@
 /* Creación de personajes: el compendio de virtudes y defectos y las reglas de creación. */
 import { artOf, ARTS, ARTS_F, ARTS_T, DATA, DOCS, esc, norm } from '../base.js';
-import { ABIL_STD, CASAS, CHARS, KEYP, S, tkey, VD_CATS } from '../saga/state.js';
+import { ABIL_STD, CASAS, CAT_OF, CHARS, KEYP, S, tkey, VD_CATS } from '../saga/state.js';
 import { abCost, abLvl, afXp, artLvl, curSeason, guessCat, numv, sgn } from '../saga/rules.js';
 import { GEN_F } from './generos.js';
 
@@ -415,38 +415,122 @@ function ensureGift(d) {
   if (!isMagic(CLASE[d.tipo])) return;
   if (!(d.virtudes || []).some(x => vdFx(x, 'virtud') === 'don')) d.virtudes.unshift({ n: 'El Don', en: 'The Gift', cat: 'Especial', valor: 'Gratuita', nota: 'ArM 68' });
 }
-/* ---------- the House's free virtue (ArM5, the Houses of Hermes): a magus of the House gains it at creation, at no cost.
-   By the House (its key in tkey of the name): the virtue by its original name, and the note for what the player picks */
+/* ---------- the House's free virtue (ArM5 p. 39; Casas de Hermes: Castas, Cultos Mistéricos and Societates): a magus of the
+   House gains it at creation, at no cost. Branches, lineages, schools and traditions give different ones: the player picks
+   the variant (d.linaje). Each gift by the compendium's name; obj: its Ability or Art; nota: what the book says it is about;
+   cat: for the ones the compendium lacks. Ex Miscellanea's traditions also give a Major Hermetic Flaw (def) and, like the
+   rest, do not count against the points (ArM5 p. 39: «son extras») */
+const gv = (n, o) => Object.assign({ n: n }, o);
+const gd = (n, o) => Object.assign({ n: n, def: true }, o);
+const solo = (k, vd) => [{ k: k, n: k.charAt(0).toUpperCase() + k.slice(1), vd: vd }];
+// Societates, «Virtud gratuita» of Jerbiton: a Minor Virtue of study, the arts or social life
+const JERBITON = ['Afinidad con Habilidad', 'Alentador', 'Amor verdadero (PJ)', 'Aprender (Habilidad) a Partir de Tus Errores', 'Bendición de Venus',
+  'Chismoso', 'Contactos sociales', 'Creatividad', 'Criado en el circo', 'Cuidadoso con Habilidad', 'Dedos ligeros', 'Instruido',
+  'Estudiante Competente', 'Infancia Privilegiada', 'Influencia Política', 'Lector perceptivo', 'Maña con (Habilidad)', 'Mirada penetrante',
+  'Música Encantada', 'Pedagogo', 'Protección', 'Trotamundos', 'Vigoroso'];
 const CASA_VD = {
-  bjornaer: { en: 'Heartbeast' },
-  bonisagus: { en: 'Puissant (Ability)', nota: 'Teoría Mágica (rama teórica) o Intriga (rama política)' },
-  criamon: { en: 'The Enigma' },
-  guernicus: { en: 'Hermetic Prestige' },
-  merinita: { en: 'Faerie Magic' },
-  tytalus: { en: 'Self Confident' },
-  verditius: { en: 'Verditius Magic' }
-  // PENDIENTE: falta la virtud gratuita de estas casas (no está en el compendio ni en el Drive; añadirla cuando se tenga el texto):
-  // 'ex-miscellanea': …,
-  // flambeau: …,
-  // jerbiton: …,
-  // mercere: …,
-  // tremere: …
+  bjornaer: solo('bjornaer', [gv('Bestia Interior')]),
+  bonisagus: [
+    { k: 'bonisagi', n: 'Bonisagi (teóricos)', vd: [gv('Maña con (Habilidad)', { obj: 'Teoría Mágica' })] },
+    { k: 'trianomae', n: 'Trianomae, seguidores de Trianoma (políticos)', vd: [gv('Maña con (Habilidad)', { obj: 'Intriga' })] }],
+  criamon: solo('criamon', [gv('El Enigma')]),
+  'ex-miscellanea': [
+    { k: 'senores-bestias', n: 'Señores de las bestias', vd: [gv('Invocar Animales'), gv('Inofensivo para los Animales'), gd('Requerimientos de estudio')] },
+    { k: 'damhadh-cambiaformas', n: 'Damhadh-Duidsan, con Cambiaformas', vd: [gv('Cambiaformas'), gv('Maña con Arte', { obj: 'Corpus' }), gd('Condición necesaria', { nota: 'runas' })] },
+    { k: 'damhadh-gigantes', n: 'Damhadh-Duidsan, con Sangre de Gigantes', vd: [gv('Sangre de Gigantes'), gv('Maña con Arte', { obj: 'Corpus' }), gd('Condición necesaria', { nota: 'runas' })] },
+    { k: 'aruspices', n: 'Arúspices herméticos', vd: [gv('Adivinación'), gv('Afinidad con Arte', { obj: 'Intellego' }), gd('Propenso al Crepúsculo')] },
+    { k: 'malocchi', n: 'Malocchi', aviso: 'Los malocchi llevan también Mirada Penetrante.',
+      vd: [gv('Fascinación'), gv('Circunstancias Especiales', { nota: 'cruce de miradas' }), gd('Resistencia mágica débil', { nota: 'cuando hay alguien encima de su sombra' })] },
+    { k: 'tempestariae', n: 'Tempestariae (brujas del clima)', vd: [gv('Silbo de Viento', { cat: 'Sobrenatural' }), gv('Afinidad con Arte', { obj: 'Auram' }), gd('Condición necesaria', { nota: 'objetos indispensables para su magia' })] },
+    { k: 'tesalia', n: 'Brujas de Tesalia', aviso: 'Las brujas de Tesalia llevan además, gratis, una virtud mayor no hermética de invocación de criaturas infernales.',
+      vd: [gv('Afinidad con Arte', { obj: 'Vim' }), gd('Magia dolorosa')] },
+    { k: 'donatores', n: 'Donatores requietis aeternae', vd: [gv('Destierro', { cat: 'Sobrenatural' }), gv('Focus Mágico Menor', { nota: 'Mentem para espíritus o fantasmas, o Corpus para animar cadáveres' }), gd('Restricción', { nota: 'no puede lanzar hechizos en suelo consagrado' })] },
+    { k: 'orfeo', n: 'El culto a Orfeo', vd: [gv('Bendición del Humor Sanguíneo'), gv('Magia Órfica', { cat: 'Hermética' }), gd('Restricción', { nota: 'vínculo emocional' })] },
+    { k: 'pharmacopolae', n: 'Pharmacopolae', aviso: 'Los pharmacopolae llevan también Focus Mágico Menor (curación) y Blando de corazón, No combatiente o Voto (pacifismo).',
+      vd: [gv('Herbología Mítica', { cat: 'Sobrenatural' }), gv('Estaquillar', { cat: 'Hermética' }), gd('Deficiencia en (Técnica)', { obj: 'Perdo' })] },
+    { k: 'pralix', n: 'El linaje de Pralix', vd: [gv('Comprensión Mágica', { cat: 'Sobrenatural' }), gv('Focus Mágico Menor', { nota: 'magia exótica' }), gd('Resistencia mágica débil', { nota: 'contra quien no haya analizado con Comprensión Mágica' })] },
+    { k: 'rusticani', n: 'Magi rústicos (rusticani)', vd: [gv('Magia Artesanal'), gv('Foci de Hechizos', { cat: 'Hermética' }), gd('Magia Espontánea débil')] },
+    { k: 'sahirs', n: 'Saḥirs herméticos', vd: [gv('Siḥr'), gv('Focus Mágico Menor', { nota: 'yinn' }), gd('Propenso al Crepúsculo')] },
+    { k: 'seirenes', n: 'Seirenes', vd: [gv('Canto de Sirena', { cat: 'Sobrenatural' }), gv('Focus Mágico Menor', { nota: 'Mentem, una emoción' }), gd('Condición necesaria')] },
+    { k: 'otra', n: 'Otra tradición', aviso: 'Ex Miscellanea: añade, gratis, la virtud hermética menor, la virtud mayor no hermética y el defecto hermético mayor de su tradición.', vd: [] }],
+  flambeau: [
+    { k: 'ignem', n: 'Escuela del Fundador o de Bóreas', vd: [gv('Maña con Arte', { obj: 'Ignem' })] },
+    { k: 'perdo', n: 'Escuela de Apromor o de Bóreas', vd: [gv('Maña con Arte', { obj: 'Perdo' })] },
+    { k: 'ramius', n: 'Escuela de Ramius (si lo permite el narrador)', vd: [gv('Guerrero')] },
+    { k: 'sebastian', n: 'Escuela de Sebastian (si lo permite el narrador)', vd: [gv('Focus Mágico Menor', { nota: 'una Forma distinta de Ignem para atacar' })] },
+    { k: 'vilano-mana', n: 'Escuela de Vilano (si lo permite el narrador)', vd: [gv('Maña con (Habilidad)', { obj: 'Precisión' })] },
+    { k: 'vilano-cuidadoso', n: 'Escuela de Vilano (si lo permite el narrador)', vd: [gv('Cuidadoso con Habilidad', { nota: 'Precisión' })] }],
+  guernicus: solo('guernicus', [gv('Prestigio Hermético')]),
+  jerbiton: JERBITON.map(n => ({ k: tkey(n), n: '', vd: [gv(n)] })),
+  mercere: [
+    { k: 'creo', n: '', vd: [gv('Maña con Arte', { obj: 'Creo' })] },
+    { k: 'muto', n: '', vd: [gv('Maña con Arte', { obj: 'Muto' })] },
+    { k: 'milvi', n: 'Milvi Antiquiti, del linaje de los Mutantes', vd: [gv('Magia Mutantum')] }],
+  merinita: solo('merinita', [gv('Magia Feérica')]),
+  tremere: solo('tremere', [gv('Focus Mágico Menor', { nota: 'Certamen' })]),
+  tytalus: solo('tytalus', [gv('Determinación')]),
+  verditius: solo('verditius', [gv('Magia Verditius')])
 };
 const casaKey = d => Object.keys(CASA_VD).find(k => tkey(d && d.casa).includes(k)) || '';
 const isMerinita = d => casaKey(d) === 'merinita';
-/* adds the House's free virtue to a magus who lacks it, and takes out the one of a House it no longer belongs to (casaGratis
-   marks it); true if it changed */
+// what a variant gives: the compendium's entry when it has one, and the key that tells whether the character has it
+const casaGifts = v => v.vd.map(s => {
+  const clase = s.def ? 'defecto' : 'virtud', e = vdFind(s.n, clase);
+  return Object.assign({}, s, { clase: clase, e: e, key: e ? vdKeyOf(e, clase, e) : tkey(s.n) });
+});
+const giftList = (d, s) => s.clase === 'virtud' ? (d.virtudes || (d.virtudes = [])) : (d.defectos || (d.defectos = []));
+const giftHas = (x, s) => !!x && !!String(x.n || '').trim() && vdKeyOf(x, s.clase) === s.key && (!s.obj || tkey(x.obj) === tkey(s.obj));
+// «Maña con Intriga», «Condición necesaria (runas)»: for the variant list
+const giftTxt = s => { const t = vdLabel({ n: s.e ? s.e.n : s.n, obj: s.obj }); return s.nota ? t + ' (' + s.nota + ')' : t; };
+/* the variants of the character's House: [{ k, n, txt, aviso }] ([] for a House the page does not know, or not a magus) */
+function casaVariantes(d) {
+  return (CLASE[d.tipo] === 'mago' ? CASA_VD[casaKey(d)] || [] : []).map(v => {
+    const g = casaGifts(v), vs = g.filter(s => s.clase === 'virtud').map(giftTxt), ds = g.filter(s => s.clase === 'defecto').map(giftTxt);
+    return { k: v.k, n: v.n, aviso: v.aviso || '', txt: vs.join(', ') + (ds.length ? '; defecto: ' + ds.join(', ') : '') };
+  });
+}
+/* adds the free virtues (and flaw) of the House's variant to a magus who lacks them, and takes out those of a House or variant
+   it no longer has (casaGratis marks them: «casa:variante»). A House with one variant takes it; with several, an older sheet
+   keeps the one its free virtue shows (Bonisagus with Maña con Intriga → Trianomae), else the player picks it. True if it changed */
 function ensureHouse(d) {
-  const L = d.virtudes || (d.virtudes = []);
   const k = CLASE[d.tipo] === 'mago' ? casaKey(d) : '';
+  const vars = CASA_VD[k] || [];
   let ch = false;
-  for (let i = L.length - 1; i >= 0; i--) if (L[i] && L[i].casaGratis && L[i].casaGratis !== k) { L.splice(i, 1); ch = true; }
-  const spec = CASA_VD[k], e = spec && vdFind(spec.en, 'virtud');
-  if (!e) return ch;
-  if (L.some(x => x && String(x.n || '').trim() && vdKeyOf(x, 'virtud') === vdKeyOf(e, 'virtud', e))) return ch;
-  const casa = String(d.casa || '').trim();
-  L.push({ n: e.n, en: e.en, cat: e.cat, valor: 'Gratuita', nota: ['Gratuita por la casa ' + casa, spec.nota, vdNota(e)].filter(Boolean).join(' · '), casaGratis: k });
-  return true;
+  if (vars.length && !vars.some(v => v.k === d.linaje)) {
+    // (only from what this House gave: another House's gift is not a clue)
+    const g = vars.length === 1 ? vars[0] : vars.find(v => v.vd.length && casaGifts(v).every(s => giftList(d, s).some(x => x.casaGratis === k && giftHas(x, s))));
+    if (g || d.linaje) { d.linaje = g ? g.k : ''; ch = true; }
+  }
+  const v = vars.find(x => x.k === d.linaje);
+  const gifts = v ? casaGifts(v) : [];
+  const tag = v ? k + ':' + v.k : '';
+  [['virtudes', 'virtud'], ['defectos', 'defecto']].forEach(([lk, cl]) => {
+    const L = d[lk] || (d[lk] = []);
+    for (let i = L.length - 1; i >= 0; i--) {
+      const x = L[i];
+      if (!x || !x.casaGratis || x.casaGratis === tag) continue;
+      // marked by an older version of the page (the House alone): it stays if it is one of this variant's
+      if (x.casaGratis === k && gifts.some(s => s.clase === cl && giftHas(x, s))) { x.casaGratis = tag; ch = true; continue; }
+      L.splice(i, 1); ch = true;
+      // and the Ability row it put on the sheet, while it is still empty
+      const hi = (d.hab || []).findIndex(y => y.casaHab && tkey(y.n) === tkey(x.obj) && !Number(y.base) && !String(y.esp || '').trim());
+      if (hi >= 0) d.hab.splice(hi, 1);
+    }
+  });
+  const casa = String(d.casa || '').trim(), varTxt = vars.length > 1 && v && v.n ? ' (' + v.n + ')' : '';
+  gifts.forEach(s => {
+    const L = giftList(d, s);
+    if (L.some(x => giftHas(x, s))) return;
+    const e = s.e;
+    const x = { n: e ? e.n : s.n, en: e ? e.en : '', cat: e ? e.cat : (s.cat || ''), valor: 'Gratuita',
+      nota: ['Gratuita por la casa ' + casa + varTxt, s.nota, vdNota(e)].filter(Boolean).join(' · '), casaGratis: tag };
+    if (s.obj) x.obj = s.obj;
+    L.push(x);
+    ch = true;
+    // the Ability it raises goes on the sheet, as when the player picks it in the row
+    if (s.obj && FX_OBJ[vdFx(x, s.clase)] === 'hab' && !(d.hab || []).some(y => tkey(y.n) === tkey(s.obj))) (d.hab || (d.hab = [])).push({ n: s.obj, cat: CAT_OF[tkey(s.obj)] || '', esp: '', base: 0, casaHab: true });
+  });
+  return ch;
 }
 function ageOf(d) { const [ca] = curSeason(); const n = parseInt(d.nacimiento, 10); return n ? ca - n : null; }
 function abilityCap(age) { return age == null || age < 30 ? 5 : age <= 35 ? 6 : age <= 40 ? 7 : age <= 45 ? 8 : 9; }
@@ -502,7 +586,11 @@ function creationCheck(d) {
     avisos.push(cls === 'mago' ? 'Falta el estatus social: los magos llevan «Magus Hermético», que es gratuito.' : 'Falta el estatus social: todos los personajes llevan uno (hay gratuitos, como Campesino o Habitante de la Alianza).');
   }
   if (cls === 'mago' && hasV('rico')) avisos.push('Según el reglamento, un mago no puede ser Rico.');
-  const unknown = V.filter(x => !vdEntry(x, 'virtud') && !legacyObj(x.n)).map(x => x.n).concat(D.filter(x => !vdEntry(x, 'defecto')).map(x => x.n));
+  const vars = casaVariantes(d), cv = vars.find(v => v.k === d.linaje);
+  if (vars.length > 1 && !cv) avisos.push('Elige la variante de la casa ' + String(d.casa || '').trim() + ': cada una da una virtud gratuita distinta.');
+  if (cv && cv.aviso) avisos.push(cv.aviso);
+  // the House's free ones the compendium lacks (Ex Miscellanea's traditions) come from the House books
+  const unknown = V.filter(x => !x.casaGratis && !vdEntry(x, 'virtud') && !legacyObj(x.n)).map(x => x.n).concat(D.filter(x => !x.casaGratis && !vdEntry(x, 'defecto')).map(x => x.n));
   if (unknown.length) avisos.push('No están en el compendio (revisa el nombre y el valor): ' + unknown.join(', ') + '.');
   // Maña, Afinidad and Característica Notable/Mediocre need their target, once per target
   const noObj = [], twice = [], seenObj = new Set();
@@ -712,4 +800,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { vdReset, AFIN_POR, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };
+export { vdReset, AFIN_POR, casaVariantes, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };
