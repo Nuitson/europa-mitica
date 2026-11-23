@@ -264,10 +264,11 @@ def guardar(ab, slug, pdf, raw, d, lj):
     with open(os.path.join(L.RAIZ, 'data', 'ayudas.json'), 'w', encoding='utf8', newline='') as fh:
         fh.write(json.dumps(d, ensure_ascii=False, separators=(',', ':')) + fin)
     dst = os.path.join(L.RAIZ, 'libros', 'es', slug + '.pdf')
-    if os.path.abspath(pdf) != os.path.abspath(dst) and (not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(pdf)):
+    # only when missing: the copy in libros/es may be a compressed one (same pages) that must not be overwritten
+    if not os.path.exists(dst):
         shutil.copyfile(pdf, dst); print('  copiado el PDF a libros/es/%s.pdf' % slug)
         if os.path.getsize(dst) > 100 * 1024 * 1024:
-            print('  OJO: pasa de 100 MB y GitHub no lo admite; está en .gitignore y solo enlaza en este ordenador')
+            print('  OJO: pasa de 100 MB y GitHub no lo admite; comprímelo (mismas páginas) antes de subirlo')
     lj['libros'].setdefault(ab, {'slug': slug})
     lj['libros'][ab]['es'] = 'libros/es/%s.pdf' % slug
     lj['libros'][ab]['nombre'] = LIBROS_ES[ab]['nombre']

@@ -29,7 +29,7 @@ const GRUPOS = [
   ['Casas de Hermes', ['Houses of Hermes: True Lineages', 'Houses of Hermes: Mystery Cults', 'Houses of Hermes: Societates', 'Magi of Hermes', 'Legends of Hermes']],
   ['Magia no hermética', ['Ancient Magic', 'Rival Magic', 'Hedge Magic, Revised Edition', 'The Mysteries, Revised Edition']],
   ['Alianzas', ['Apprentices', 'Grogs']],
-  ['Tribunales', ['The Cradle and the Crescent', 'Guardians of the Forests: The Rhine Tribunal', 'The Sundered Eagle', 'Against the Dark', 'The Lion and the Lily']]
+  ['Tribunales', ['El Tribunal de Iberia', 'The Cradle and the Crescent', 'Guardians of the Forests: The Rhine Tribunal', 'The Sundered Eagle', 'Against the Dark', 'The Lion and the Lily']]
 ];
 const groupOf = b => { const g = GRUPOS.find(([, l]) => l.includes(b)); return g ? g[0] : 'Otros libros'; };
 // alphabetical by the words, so «(Astrológica) Mutable» and «'Alim» sort with the A, not before them
