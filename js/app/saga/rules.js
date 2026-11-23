@@ -276,6 +276,29 @@ function calc(pj, entries, skip) {
 const manaHab = (c, n) => (c.fx && c.fx.mana.hab[tkey(n)]) || 0;
 const manaArt = (c, a) => (c.fx && c.fx.mana.art[a]) || 0;
 const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v);
+/* an Ability's score with its Puissant bonus (0 when the character lacks it) */
+function habLevel(c, name) { const hb = c.hab.find(x => tkey(x.n) === tkey(name)); return (hb ? abLvl(hb.xp) : 0) + manaHab(c, name); }
+/* Lab Total (ArM5 p. 102): Technique + Form (with their Puissant Art) + Intelligence + Magic Theory + the covenant's aura.
+   From another magus' lab text, Adept Laboratory Student adds 6 and Weak Scholar takes 6; inventing without a text,
+   Creative Block takes 3 (ArM5 p. 73, 52 and 61). mod: what the player adds (lab, familiar, specialty, similar spells…).
+   Returns { total, parts: [[label, value]] } */
+const LAB_VD = { aplicado: ['adept-laboratory-student', 'estudiante-aplicado'], malEst: ['weak-scholar', 'mal-estudiante'], bloqueo: ['creative-block', 'bloqueo-creativo'] };
+const hasVd = (pj, keys) => (pj.virtudes || []).concat(pj.defectos || []).some(x => x && (keys.includes(tkey(x.en)) || keys.includes(tkey(x.n))));
+function labTotal(pj, c, tec, forma, o) {
+  o = o || {};
+  const parts = [];
+  const add = (l, v) => { if (v) parts.push([l, v]); };
+  [artOf(tec), artOf(forma)].forEach(a => { if (a) add(a, artLvl(c.arts[a]) + manaArt(c, a)); });
+  add('Inteligencia', numv(pjCar(pj).Inteligencia));
+  add('Teoría Mágica', habLevel(c, 'Teoría Mágica'));
+  add('aura', sagaAura());
+  if (o.ajeno && hasVd(pj, LAB_VD.aplicado)) add('Estudiante Aplicado', 6);
+  if (o.ajeno && hasVd(pj, LAB_VD.malEst)) add('Mal estudiante', -6);
+  if (o.inventar && hasVd(pj, LAB_VD.bloqueo)) add('Bloqueo Creativo', -3);
+  add('otros bonos', numv(o.mod));
+  return { total: parts.reduce((s, x) => s + x[1], 0), parts: parts };
+}
+const labTxt = L => L.parts.map(([l, v], i) => (i ? (v < 0 ? ' − ' : ' + ') : v < 0 ? '−' : '') + l + ' ' + Math.abs(v)).join('') + ' = ' + L.total;
 function traitLevel(c, name) {
   const art = artOf(name);
   if (art) return { lv: artLvl(c.arts[art]), xp: c.arts[art], art: true };
@@ -285,4 +308,4 @@ function traitLevel(c, name) {
   return hb ? { lv: abLvl(hb.xp), xp: hb.xp } : { lv: 0, xp: 0, nuevo: true };
 }
 
-export { habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };
+export { habLevel, labTotal, labTxt, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };

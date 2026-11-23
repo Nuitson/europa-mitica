@@ -29,6 +29,8 @@ function renderSagaSide() {
     li.appendChild(sub);
   }
   u.appendChild(li);
+  const ntx = Object.keys(S.tx).length;
+  u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#biblioteca', 'aria-current': raw === 'biblioteca' ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 3.5h3v10h-3zM6.5 2.5h3v11h-3zM10.5 4l2.6-.7 2 9.4-2.6.7z"/></svg><span>Biblioteca' + (ntx ? ' <small>' + ntx + (ntx === 1 ? ' texto' : ' textos') + '</small>' : '') + '</span>' })));
   if (S.owner === true) u.appendChild(h('li', null, h('a', { class: 't-doc', href: '#master', 'aria-current': /^master(--|$)/.test(raw) ? 'page' : null, html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5h11M4 13.5V7l4-3.5L12 7v6.5"/><path d="M6.5 13.5v-3h3v3"/></svg><span>Pantalla del máster <small>' + esc(auraTxt(auraNow().tipo, auraNow().nivel)) + '</small></span>' })));
   // the homebrew material switched on (and, for the master, the way to it); its spells must be here for the catalogue
   const hb = hbActive();

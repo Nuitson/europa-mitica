@@ -4,6 +4,8 @@ import { page } from '../views.js';
 import { ABIL_STD, ACT_TIPOS, S, SEASONS, tkey } from './state.js';
 import { allSeen, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, openModal, pjLink, pjsSorted, repChips, sagaChanged, sagaCrumbs, seasonPicker, sel, stamp, statusNote, sumRep, toast } from './core.js';
 import { abLvl, artLvl, calc, canWrite, clone, curSeason, entriesOf, numv, sagaAura, skey, sname, snext, sprev, traitLevel } from './rules.js';
+import { applyLocal, LAB_KIND, labOps, labPanel } from './labwork.js';
+import { labSummary } from './library.js';
 
 /* ---------- ESTACIONES */
 function viewSeasons(slug) {
@@ -61,6 +63,7 @@ function viewSeasons(slug) {
       const info = h('div', { class: 'xi' }, [h('div', { class: 'xn' }, [pjLink(p._id), h('span', { class: 'xt', text: [p.tipo, p.casa].filter(Boolean).join(' · ') })])]);
       if (ent) {
         info.appendChild(h('div', { class: 'xa', text: [ent.tipo, ent.actividad].filter(Boolean).join(' · ') || 'Sin descripción' }));
+        if (ent.lab) info.appendChild(h('div', { class: 'xa lab-line', text: labSummary(ent) }));
         info.appendChild(repChips(ent.reparto));
         if (ent.nota) info.appendChild(h('div', { class: 'note', text: ent.nota }));
       } else info.appendChild(h('div', { class: 'xa muted', text: 'Sin reparto de experiencia.' }));
@@ -176,6 +179,8 @@ function openXpEditor(pjId, anio, est) {
   (d.reparto || []).forEach(r => { r._in = r.raw != null ? r.raw : r.px; r._raw = r.raw != null; });
   if (!d.reparto || !d.reparto.length) d.reparto = [{ r: '', px: '', _in: '', _raw: true }];
   const base = calc(pj, entriesOf(pjId), origId);
+  // the season's lab work: learning from texts, inventing, deciphering, translating (labwork.js)
+  const lab = labPanel(pjId, pj, base, existing ? origId : null, existing);
   const affOn = name => { const a = artOf(name); return a ? base.fx.af.art.has(a) : base.fx.af.hab.has(tkey(name)); };
   const effPx = r => { const v = numv(r._in); return r._raw && affOn(r.r) ? Math.ceil(v * 1.5) : v; };
   const dl = datalist('dl-rasgos', ARTS.concat(base.hab.map(x => x.n), ['Informidad'], ...Object.values(ABIL_STD)));
@@ -209,16 +214,22 @@ function openXpEditor(pjId, anio, est) {
   drawRows();
   const body = [
     seasonPicker(d),
-    field('Tipo de actividad', sel([['', '—']].concat(ACT_TIPOS.map(x => x[0])), d.tipo, v => { d.tipo = v; setHint(); })),
+    field('Tipo de actividad', sel([['', '—']].concat(ACT_TIPOS.map(x => x[0])), d.tipo, v => { d.tipo = v; setHint(); lab.draw(LAB_KIND[v]); })),
     hint,
+    lab.box,
     field('Actividad', inp(d.actividad, v => { d.actividad = v; }, { placeholder: 'Estudiar la summa de Vim de la biblioteca…' })),
     h('div', { class: 'fld' }, [h('span', { class: 'fl', text: 'Reparto de experiencia' }), rows,
       h('div', { class: 'rep-foot' }, [h('button', { type: 'button', class: 'lnk', onclick: () => { d.reparto.push({ r: '', px: '', _in: '', _raw: true }); drawRows(true); } }, '+ Añadir arte o habilidad'), total])]),
     field('Nota', h('textarea', { rows: 2, oninput: ev => { d.nota = ev.target.value; } }, d.nota || ''))];
   setHint();
+  lab.draw(LAB_KIND[d.tipo]);
   const save = h('button', { type: 'button', class: 'btn' }, 'Guardar');
   const actions = [save, h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancelar')];
-  if (existing) actions.push(confirmButton('Borrar', 'Pulsa otra vez para borrar', async () => { if (await dbWrite(() => S.db.doc('avance/' + origId).delete(), 'Reparto borrado')) { localDel('av', origId); close(); } }));
+  // deleting the season also undoes its lab work (spells on the sheet, texts in the library)
+  if (existing) actions.push(confirmButton('Borrar', 'Pulsa otra vez para borrar', async () => {
+    let local = [];
+    if (await dbWrite(() => { const b = S.db.batch(); b.delete('avance/' + origId); local = labOps(b, pjId, origId, null); return b.commit(); }, 'Reparto borrado')) { localDel('av', origId); applyLocal(local); close(); }
+  }));
   const close = openModal('Reparto de PX · ' + pj.nombre, body, actions);
   save.addEventListener('click', async () => {
     const out = { pj: pjId, anio: Number(d.anio), est: Number(d.est), tipo: d.tipo || '', actividad: String(d.actividad || '').trim(), nota: String(d.nota || '').trim(), reparto: [] };
@@ -236,20 +247,26 @@ function openXpEditor(pjId, anio, est) {
     }
     if (existing && existing.origen) out.origen = existing.origen;
     if (existing && existing.creado) out.creado = existing.creado;
-    if (!out.reparto.length && !out.actividad) { toast('Añade al menos un arte o habilidad con sus PX, o describe la actividad.'); return; }
     if (!out.anio) { toast('Indica el año.'); return; }
     const id = pjId + '--' + out.anio + '-' + out.est;
     if (id !== origId && S.av[id]) { toast(pj.nombre + ' ya tiene un reparto en ' + sname(out.anio, out.est) + '.'); return; }
+    const lw = lab.collect(id, out.anio, out.est);
+    if (lw.error) { toast(lw.error); return; }
+    if (lw.lab) out.lab = lw.lab;
+    if (!out.reparto.length && !out.actividad && !out.lab) { toast('Añade al menos un arte o habilidad con sus PX, o describe la actividad.'); return; }
     save.disabled = true;
     // moved to another season: the new entry and the removal of the old one go in one request, never half of it
+    let local = [];
     const ok = await dbWrite(() => {
       const b = S.db.batch();
       b.set('avance/' + id, stamp(out, !existing));
       if (existing && id !== origId) b.delete('avance/' + origId);
+      // and what its lab work changes: spells on the sheet, texts in the library (undoing what the entry did before)
+      local = labOps(b, pjId, existing ? origId : null, { id: id, lab: out.lab || null, add: lw.add || [], tx: lw.tx || [] });
       return b.commit();
     }, 'Reparto guardado: ' + sname(out.anio, out.est));
     save.disabled = false;
-    if (ok) { if (existing && id !== origId) localDel('av', origId); localPut('av', id, out); close(); }
+    if (ok) { if (existing && id !== origId) localDel('av', origId); localPut('av', id, out); applyLocal(local); close(); }
   });
 }
 

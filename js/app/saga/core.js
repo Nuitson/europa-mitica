@@ -77,7 +77,7 @@ function applySagaChange() {
     return;
   }
   if (raw === 'pj-nuevo' || /--editar$/.test(raw)) { if (!page.querySelector('form.pj-form')) route(true); return; } // never clobber a form being filled in
-  if (/^(master|hb|hbal)(--|$)/.test(raw) || /^(estaciones|personajes|pj--)/.test(raw)) { if (!typing()) route(true); return; }
+  if (/^(master|hb|hbal)(--|$)/.test(raw) || /^(estaciones|personajes|biblioteca|pj--)/.test(raw)) { if (!typing()) route(true); return; }
   const box = document.getElementById('home-saga');
   if (box) box.replaceWith(homeSaga());
   document.querySelectorAll('.glance').forEach(el => { if (el._g) el.replaceWith(glanceNode(el._g)); });

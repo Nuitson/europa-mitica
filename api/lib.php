@@ -1,7 +1,7 @@
 <?php
 /* Europa Mítica · servidor de la web (PHP + MySQL/SQLite).
    Cuentas de usuario (contraseña, perfil, avatar), pertenencia a sagas (máster o jugador) y los datos de cada saga.
-   Cada saga es un conjunto de «documentos» (ruta → JSON): personajes/…, avance/…, vis/…, tesoreria/…, retratos/… y saga/estado.
+   Cada saga es un conjunto de «documentos» (ruta → JSON): personajes/…, avance/…, vis/…, tesoreria/…, retratos/…, virtudes/…, textos/… y saga/estado.
    Los JSON se guardan y se devuelven tal cual (sin decodificar siempre), para que un objeto vacío {} no se convierta en una lista []. */
 declare(strict_types=1);
 
@@ -10,7 +10,7 @@ const ESQUEMA = '3';
 const DIAS_SESION = 120;
 const MAX_DOC = 2500000;        // un retrato reducido cabe de sobra
 const MAX_AVATAR = 200000;      // caracteres del avatar (la web lo reduce a 256 px)
-const RUTA_OK = '#^(personajes|avance|vis|tesoreria|retratos|virtudes)/[A-Za-z0-9_.\-]{1,120}$|^saga/estado$#';
+const RUTA_OK = '#^(personajes|avance|vis|tesoreria|retratos|virtudes|textos)/[A-Za-z0-9_.\-]{1,120}$|^saga/estado$#';
 const JSON_OUT = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION;
 
 /* ============================================================== utilidades */

@@ -8,6 +8,7 @@ import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
 import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
+import { labSummary, viewLibrary } from './library.js';
 import { viewMaster } from '../master.js';
 import { viewCov, viewHb } from './hbview.js';
 import { castCar, castCarTxt } from './homebrew.js';
@@ -488,6 +489,7 @@ function pjAvance(content, id, entries, c) {
         h('div', { class: 'a' }, [h('span', { text: [e.tipo, e.actividad].filter(Boolean).join(' · ') || 'Sin descripción' }),
           canWrite() ? h('button', { type: 'button', class: 'lnk', onclick: () => openXpEditor(id, e.anio, e.est) }, 'Editar') : null]),
         (e.reparto || []).length ? h('div', { class: 'subj' }, e.reparto.map(r => h('span', { text: r.r + ' ' + signed(numv(r.px)) }))) : null,
+        e.lab ? h('div', { class: 'lab-line', text: labSummary(e) }) : null,
         e.nota ? h('div', { class: 'note', text: e.nota }) : null])]));
   });
   content.appendChild(tl);
@@ -509,6 +511,7 @@ function sagaIndex(push) {
 function sagaRoute(raw) {
   if (raw === 'estaciones' || raw.startsWith('estaciones--')) { viewSeasons(raw.split('--')[1]); return true; }
   if (raw === 'personajes') { viewCharacters(); return true; }
+  if (raw === 'biblioteca') { viewLibrary(); return true; }
   if (raw === 'master' || raw.startsWith('master--')) { viewMaster(raw.split('--')[1]); return true; }
   if (raw === 'hb' || raw.startsWith('hb--')) { const p = raw.split('--'); viewHb(p[1], p[2]); return true; }
   if (raw.startsWith('hbal--')) { const p = raw.split('--'); viewCov(p[1], p[2]); return true; }

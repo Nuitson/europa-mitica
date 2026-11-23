@@ -9,6 +9,7 @@ import { norm } from '../base.js';
      tesoreria/{id}       treasury movements recorded from the web
      saga/estado          the saga's current season and the covenant aura
      virtudes/{id}        virtues and flaws made for this saga alone (creation/vdtab.js); new sagas start without them
+     textos/{id}          the covenant's library of laboratory texts (saga/library.js): learnt, invented, deciphered and translated in the seasons
    The Excel pages stay as the archive; these views grow season by season. */
 const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 const CHARS = ['Inteligencia', 'Percepción', 'Fuerza', 'Vitalidad', 'Presencia', 'Comunicación', 'Destreza', 'Rapidez'];
@@ -27,6 +28,10 @@ const ACT_TIPOS = [
   ['Práctica', '4 a 8, normalmente 4.'],
   ['Exposición', '2 px.'],
   ['Laboratorio', 'exposición: 2 px en algo relacionado.'],
+  ['Laboratorio: aprender de textos', 'exposición: 2 px en algo relacionado.'],
+  ['Laboratorio: inventar un hechizo', 'exposición: 2 px en algo relacionado.'],
+  ['Laboratorio: descifrar un texto', 'exposición: 2 px en algo relacionado.'],
+  ['Traducir textos de laboratorio', 'exposición: 2 px en algo relacionado.'],
   ['Otro', '']
 ];
 const ABIL_CATS = ['Generales', 'Marciales', 'Académicas', 'Arcanas', 'Sobrenaturales', 'Idiomas vivos', 'Lenguas muertas', 'Conocimientos de área', 'Conocimientos de Organización', 'Profesiones', 'Reputaciones', 'Otras'];
@@ -45,7 +50,7 @@ Object.keys(ABIL_STD).forEach(c => ABIL_STD[c].forEach(n => { CAT_OF[tkey(n)] = 
 
 /* js/gate.js sets window.EM_WEB (saga, role, database) before starting the page; keys in this browser carry the saga */
 const KEYP = (window.EM_WEB.saga ? window.EM_WEB.saga.id : 'invitado') + ':';
-const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, estado: null, seen: {}, fresh: {}, timer: null };
-const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['saga/estado', 'estado']];
+const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, tx: {}, estado: null, seen: {}, fresh: {}, timer: null };
+const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['textos', 'tx'], ['saga/estado', 'estado']];
 
 export { ABIL_CATS, ABIL_STD, ACT_TIPOS, CASAS, CAT_OF, CHARS, KEYP, S, SEASONS, SUBS, TIPOS, TIPOS_PL, tkey, VD_CATS };
