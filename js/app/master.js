@@ -19,7 +19,7 @@ import { cargarAstro, cielo, cuando, fechaError, hora, MESES } from './astro.js'
    de personalidad, virtudes y defectos de cualquier personaje, y sus hechizos con el aura elegida. */
 const MST = { tipo: null, nivel: null, lugar: null, redraw: null };
 
-const M_TABS = [['escena', 'Escena'], ['tribunales', 'Tribunales'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew'], ['libros', 'Libros', 'dev']];
+const M_TABS = [['escena', 'Escena'], ['tribunales', 'Tribunales'], ['formulas', 'Fórmulas'], ['saga', 'La saga en la web'], ['homebrew', 'Homebrew'], ['libros', 'Libros', 'dev']];
 /* «dev»: only for the developers of the web (accounts with the administrator level) */
 const isDev = () => !!(window.EM_WEB && window.EM_WEB.user && window.EM_WEB.user.admin);
 const mTabs = () => M_TABS.filter(t => t[2] !== 'dev' || isDev());
@@ -49,6 +49,7 @@ function viewMaster(tab) {
   if (cur === 'homebrew') { content.appendChild(masterHomebrew()); content.appendChild(masterHbContent()); return; }
   if (cur === 'libros') { content.appendChild(masterLibros()); return; }
   if (cur === 'tribunales') { content.appendChild(masterTribunales()); return; }
+  if (cur === 'formulas') { content.appendChild(masterFormulas()); return; }
   content.appendChild(h('p', { class: 'doc-blurb', text: 'Elige el aura de la escena: al aplicarla cambian los totales de lanzamiento de todas las fichas. Debajo, cualquier personaje con sus rasgos de personalidad, virtudes y defectos.' }));
   content.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => window.print() }, 'Imprimir la pantalla')));
   // the scene's aura on the left, the day and its sky on the right; each folds away
@@ -269,6 +270,64 @@ function masterLibros() {
   });
   sec.appendChild(h('div', { class: 'tw' }, h('table', { class: 'mini lib-t' }, [
     h('thead', null, h('tr', null, ['Libro', 'Virtudes', 'Defectos', 'Texto del libro', 'Página en castellano', 'Estado'].map(t => h('th', { scope: 'col', text: t })))), tb])));
+  return sec;
+}
+
+/* ---------- the rules' formulas of every book (data/formulas.json, made by herramientas/formulas_libros.py from the PDFs):
+   by topic, each with the books and pages where it is; a page opens the book's PDF there when the web has that PDF.
+   The label shows the printed page when the book numbers them; the link goes to the PDF's own page. */
+let FORMULAS = null;
+const cargarFormulas = () => FORMULAS || (FORMULAS = fetch('data/formulas.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .catch(e => { FORMULAS = null; throw e; }));
+const sinAcentos = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function masterFormulas() {
+  const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-fo-h' });
+  sec.appendChild(h('h2', { class: 'm-h', id: 'm-fo-h', text: 'Fórmulas de los libros' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Las fórmulas de reglas de todos los libros (los que hay en castellano, en su edición en castellano; el resto, en inglés), por tema. Cada una lleva el libro y la página: pulsa la página para abrir el PDF allí.' }));
+  const q = h('input', { type: 'search', class: 'fo-q', placeholder: 'Buscar: penetración, aging, Total de Laboratorio…', 'aria-label': 'Buscar fórmulas' });
+  const idi = h('select', { class: 'fo-idi', 'aria-label': 'Idioma de los libros' }, [['', 'Todos los libros'], ['es', 'En castellano'], ['en', 'En inglés']].map(([v, t]) => h('option', { value: v, text: t })));
+  const n = h('span', { class: 'fo-n', 'aria-live': 'polite' });
+  sec.appendChild(h('div', { class: 'fo-bar' }, [q, idi, n]));
+  const nav = h('nav', { class: 'fo-nav', 'aria-label': 'Temas' });
+  const box = h('div', { class: 'fo-box' }, h('p', { class: 'note', text: 'Cargando las fórmulas…' }));
+  sec.appendChild(nav); sec.appendChild(box);
+  cargarFormulas().then(D => {
+    D.f.forEach(f => { f._k = sinAcentos(f.n + ' ' + f.f + ' ' + f.refs.map(r => r[0] + ' ' + ((D.libros[r[0]] || {}).t || '')).join(' ')); });
+    const ref = r => {
+      const [ab, pdfPag, imp] = r, bk = LIBROS.libros[ab], info = D.libros[ab] || { t: ab, idi: 'en' };
+      const url = bk && (info.idi === 'es' ? bk.es : bk.en);
+      const pg = imp != null ? imp : pdfPag;
+      const tit = info.t + ', página ' + pg + (pg !== pdfPag ? ' (' + pdfPag + ' del PDF)' : '');
+      const kids = [h('b', { text: ab }), ' p. ' + pg];
+      return url ? h('a', { class: 'fo-ref', href: url + '#page=' + pdfPag, target: '_blank', rel: 'noopener', title: 'Abrir «' + tit + '»' }, kids)
+        : h('span', { class: 'fo-ref', title: tit + ' (este PDF no está en la web)' }, kids);
+    };
+    const draw = () => {
+      const t = sinAcentos(q.value.trim()), lang = idi.value;
+      const ok = f => (!lang || f.idi === lang) && (!t || t.split(/\s+/).every(w => f._k.includes(w)));
+      box.innerHTML = ''; nav.innerHTML = '';
+      let total = 0;
+      D.temas.forEach(([k, titulo]) => {
+        const fs = D.f.filter(f => f.tema === k && ok(f)).sort((a, b) => a.n.localeCompare(b.n, 'es', { sensitivity: 'base' }));
+        if (!fs.length) return;
+        total += fs.length;
+        nav.appendChild(h('a', { href: '#master--formulas', onclick: e => { e.preventDefault(); document.getElementById('fo-' + k).scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, [titulo, h('small', { text: ' ' + fs.length })]));
+        box.appendChild(h('section', { class: 'fo-tema', id: 'fo-' + k }, [
+          h('h3', { class: 'fo-th' }, [titulo, h('span', { class: 'fo-c', text: fs.length + (fs.length === 1 ? ' fórmula' : ' fórmulas') })]),
+          h('ul', { class: 'fo-l' }, fs.map(f => h('li', { class: 'fo-i', lang: f.idi }, [
+            h('span', { class: 'fo-nm', text: f.n }),
+            h('span', { class: 'fo-ex', html: esc(f.f).replace(/(\s)([+×÷–−\-\/x=]|vs\.?|contra|versus)(?=\s)/g, '$1<i>$2</i>') }),
+            h('span', { class: 'fo-refs' }, f.refs.map(ref))])))]));
+      });
+      n.textContent = total + (total === 1 ? ' fórmula' : ' fórmulas');
+      if (!total) box.appendChild(h('p', { class: 'note', text: 'Ninguna fórmula con eso.' }));
+    };
+    let tm = null;
+    q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(draw, 150); });
+    idi.addEventListener('change', draw);
+    draw();
+  }).catch(() => { box.innerHTML = ''; box.appendChild(h('p', { class: 'note', text: 'No se han podido cargar las fórmulas (data/formulas.json).' })); });
   return sec;
 }
 

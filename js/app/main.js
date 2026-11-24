@@ -115,6 +115,14 @@ function sideToggle() {
     clearTimeout(hideT);
     hideT = setTimeout(() => setOpen(false), HIDE_MS);
   });
+  // a click outside it hides it too (not pinned on a computer; its own buttons and an open dialog don't count).
+  // composedPath: the click's path as it was, even if the clicked node is redrawn away meanwhile (the folds of the tree)
+  document.addEventListener('click', e => {
+    if (!isOpen() || (wide.matches && pinned()) || document.querySelector('.modal')) return;
+    const path = e.composedPath();
+    if (path.includes(side) || path.includes(btn) || path.includes(sbtn)) return;
+    setOpen(false);
+  });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen() && !(wide.matches && pinned()) && !document.querySelector('.modal')) setOpen(false); });
 }
 
