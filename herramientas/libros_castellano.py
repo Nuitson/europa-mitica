@@ -109,9 +109,66 @@ LIBROS_ES = {
         # sin línea de valor: «Invocar animales» / «Los personajes con esta Habilidad…»
         'habilidades': {'Invocar animales', 'Fertilidad', 'Silbo de viento'}},
     'RoP:M': {'nombre': 'Reinos de Poder: Magia', 'subtitulos': True, 'casar': {'Devoto de un espíritu': 'Devoto de los espíritus'}},
-    'RoP:F': {'nombre': 'Reinos de Poder: Feérico'},
-    'App': {'nombre': 'Aprendices'},
-    'BCoC': {'nombre': 'Calebais: la alianza rota'},
+    # los poderes feéricos y virtudes de la hoja de virtudes (cap. 7, en mayúsculas), y las virtudes y defectos de los seres
+    # feéricos (cap. 3), que están en la hoja «Seres sobrenaturales» con su nombre inglés: 'seres' casa ese nombre con el del libro
+    'RoP:F': {'nombre': 'Reinos de Poder: Feérico', 'mayus': True, 'casar': {
+        'Lanzamiento de maldiciones': 'Lanzar maldiciones', 'Invocación (de hadas)': 'Invocar', 'Embaucar': 'Seducir',
+        'Vinculación': 'Vincular', 'Cautivador': 'Cautivar', 'Despedir': 'Expulsar', 'Presencia espantosa': 'Presencia asombrosa',
+        'Familiaridad con las hadas': 'Familiaridad con los seres feéricos', 'Conceder': 'Otorgar', 'Porteo': 'Transporte',
+        'Mercancía': 'Vigilar', 'Bienestar': 'Mejorar', 'Aflicción': 'Desgracia',   # Ward (el compendio decía «Ware»), Weal, Woe
+        'Hechicero homúnculo': 'Hechicero homúnculo', 'Antipatía Feérica': 'Antipatía feérica', 'Simpatía feérica': 'Simpatía feérica'},
+        'nombres': {'FEÉRICOS': 'Familiaridad con los seres feéricos', 'PODER RESIDUAl': 'Poder residual',
+                    'DEFECTOS LIMITANTES DE PODERES PODER REDUCIDO': 'Poder reducido', 'FOCUS EN PODEr': 'Poder focalizado',
+                    'VITALIDAD': 'La recuperación de poder requiere vitalidad', 'ALTAMENTE COGNOSCENTES': 'Altamente cognoscente'},
+        'seres': {
+            'Infiltrator': 'Infiltrador', 'External Vis': 'Vis externa', 'Focus Power': 'Focus en poder', 'Greater Power': 'Poder mayor',
+            'Immune to (Source of Damage)': 'Inmune a (fuente de daño)', 'Increased Faerie Might': 'Poder feérico incrementado',
+            'Ritual Power': 'Poder ritual', 'Huge': 'Enorme', 'Ostentatious': 'Ostentoso', 'Positive Folktales': 'Cuentos folclóricos positivos',
+            'Faerie Beast': 'Bestia feérica', 'Faerie Instructor': 'Instructor feérico', 'Faerie Sight': 'Visión feérica',
+            'Faerie Speech': 'Lenguaje feérico', 'Fast Might Recovery': 'Recuperación rápida de poder', 'Feast of the Dead': 'El festín de los muertos',
+            'Feast of the Fae': 'El festín de los fae', 'Highly Cognizant': 'Altamente cognoscentes', 'Humanoid Faerie': 'Feérico humanoide',
+            'Hybrid Form': 'Forma híbrida', 'Improved Damage': 'Daño mejorado', 'Improved Initiative': 'Iniciativa mejorada',
+            'Improved Powers': 'Poderes incrementados', 'Improved Soak': 'Aguante mejorado', 'Lesser Power': 'Poder menor',
+            'Personal Power': 'Poder personal', 'Puissant Pretense': 'Maña en simulación', 'Reputation as Confidence': 'Reputación como confianza',
+            'Residual Power': 'Poder residual', 'Time or Place of Power': 'Tiempo o lugar de poder', 'Pretentious': 'Pretencioso',
+            'Passes for Human': 'Pasar por humano', 'Faerie Trainer': 'Entrenador feérico', 'Narrowly Cognizant': 'Ligeramente cognoscente',
+            'Observant': 'Observador', 'Monstrous Appearance': 'Apariencia monstruosa', 'Intangible Flesh': 'Carne intangible',
+            'Might Recovery Requires Vitality': 'La recuperación de poder requiere vitalidad', 'Restricted Might': 'Poder restringido',
+            'Slow Might Recovery': 'Recuperación lenta de poder', 'Sovereign Ward': 'Protección suprema',
+            'Vulnerable to (Substance)': 'Vulnerable a (sustancia)', 'Little': 'Pequeño', 'Negative Reaction': 'Reacción negativa',
+            'Decreased Might': 'Disminución del poder', 'Freshly Sprung': 'Recién nacido', 'Incognizant': 'Incognoscente',
+            'Poor Combatant': 'Mal combatiente', 'Reduced Damage': 'Daño reducido', 'Reduced Initiative': 'Iniciativa reducida',
+            'Reduced Power': 'Poder reducido', 'Reduced Soak': 'Aguante reducido', 'Role Requires Suffering': 'El papel requiere sufrimiento',
+            'Slow Power': 'Poder lento', 'Susceptible to Deprivation': 'Susceptible a la carencia', 'Traditional Ward': 'Protección tradicional',
+            'Aloof': 'Distante'}},
+    'App': {'nombre': 'Aprendices', 'casar': {'Obsesión': 'Amor ciego', 'Don Suprimido': 'Don reprimido'},
+            # tras «Bastardo» la maqueta pone los paquetes de Habilidades de la infancia, que no son suyos
+            'cortar': {'Bastardo': 'Los siguientes paquetes'}},
+    # magias no herméticas: el PDF en castellano está en OneDrive (pásalo con --pdf)
+    'HMRE': {'nombre': 'Magia Limítrofe', 'excluir': {'Curación', 'Deficiencia Mágica Mayor'},
+             'casar': {'(Tipo) Control': 'Controlar (clase)', 'Controlador': 'Controlar (clase)'}},
+    'RM': {'nombre': 'Magia Rival', 'prefijo': True,
+           # las Habilidades de los muspelli y algunas virtudes: el nombre solo en su línea, sin valor
+           'insertar': {x: 'Mayor, Sobrenatural' for x in ('Sjonhverfing', 'Spadomur', 'Ojo de Tormenta', 'Hilos del destino', 'Valgaldrar',
+                                                          'Fuego Salvaje', 'Aliento de invierno')} | {
+               'MAESTRA EXPERIMENTADA': 'Menor, Historia', 'GENEROSO': 'Menor, Historia', 'MAGIA DE ENCANTAMIENTO DÉBIL': 'Mayor, Hermética'},
+           'casar': {'Maestra hábil': 'Maestra experimentada', 'Maestro generoso': 'Generoso', 'Magia de encantamientos pobre': 'Magia de encantamiento débil',
+                     'Ojo de tormenta': 'Ojo de Tormenta', 'Fuego salvaje': 'Fuego Salvaje', 'Hilos del destino': 'Hilos del destino',
+                     'Valgaldrar': 'Valgaldrar', 'Sjonhverfing': 'Sjonhverfing', 'Spadomur': 'Spadomur', 'Aliento de invierno': 'Aliento de invierno'},
+           'nombres': {'GENEROSO': 'Maestro generoso'}},
+    'AnM': {'nombre': 'Magia Antigua', 'prefijo': True,
+            # el libro pone de ejemplo al grigori Araquiel donde el compendio dice «(Grigorus)»
+            'nombres': {'EL LEGADO DE ARAQUIEL': 'Legado de Grigorus', 'EL SECRETO DE ARAQUIEL': 'Secreto de Grigorus',
+                        'Nueva Virtud MAGIA RÚNICA HERMÉTICA': 'Magia rúnica hermética', 'Nuevas Virtudes HIMNISTA HIPERBÓREO': 'Himnista hiperbóreo'}},
+    # los animulae (cap. de Rocío): el nombre solo en su línea y el texto debajo, sin línea de valor; 'insertar' se la pone
+    'BCoC': {'nombre': 'Calebais: la alianza rota',
+             'insertar': {'Poderes Superiores': 'Mayor, General', 'Fiereza': 'Menor, General', 'Poder Aumentado': 'Menor, General',
+                          'Poderes Menores': 'Menor, General'},
+             'dos_puntos': {'Animula': 'Mayor, Estatus social'},   # «Animula: Eres un animal…»
+             'casar': {'Poderes Mayores': 'Poderes Superiores', 'Ferocidad': 'Fiereza'},
+             'nombres': {'Fiereza': 'Ferocidad'},   # la misma fila que la Ferocidad de otros libros: se queda su nombre
+             'seres': {'Greater Powers': 'Poderes Superiores', 'Ferocity': 'Ferocidad', 'Lesser Powers': 'Poderes Menores',
+                       'Improved Might': 'Poder Aumentado', 'Animula': 'Animula'}},
 }
 EXTRA = {'heroica', 'heroico', 'estatus', 'social'}
 STOP = set('para como pero cuando donde sobre entre desde hasta tiene tienen puede pueden cada otra otros otras esta este '
@@ -130,6 +187,14 @@ MISTERIO = re.compile(r'^([A-ZÁÉÍÓÚÑ][^()]{2,60}?)\s*\((?:Misterio|Virtud)
 
 COLA = re.compile(r'^(\S.{0,35}?)\s+((?:Mayor|Menor|Gratuit[ao]|Especial)(?: o (?:Mayor|Menor))?, \w.*)$')
 NUEVA = re.compile(r'^Nuev[ao] (?:virtud|defecto):\s*(.*)$', re.I)
+# Reinos de Poder: Feérico: «VIS EXTERNA Virtud menor o mayor, Sobrenatural La esencia…» en una línea
+# (y «DISMINUCIÓN DEL PODER Sobrenatural, Menor…», «OBSERVADOR Elección Gratuita…», «Protección tradicional Defecto menor…»)
+MAYUS = re.compile(r'^([A-ZÁÉÍÓÚÑÜ(][A-Za-zÁÉÍÓÚÑÜáéíóúñü() /–-]{2,60}?)\s+('
+                   r'(?:Virtud|Defecto|Elección) (?i:mayor|menor|gratuita)(?: o (?i:mayor|menor))?\b.*'
+                   r'|(?:Mayor|Menor|Gratuita)(?: o (?:Mayor|Menor))?, \w.*'
+                   r'|(?:Sobrenatural|General|Social|Interacción Social), (?:Mayor|Menor)\b.*)$')
+# Magia Rival y Magia Antigua: «VIRTUD SOBRENATURAL MAYOR: HECHICERÍA POTENTE», «Defecto Sobrenatural Menor Ritual de…»
+PREFIJO = re.compile(r'^(?i:virtud|defecto)(?: (?i:de))? ([A-Za-zÁÉÍÓÚáéíóúñÑ]+) ((?i:mayor|menor|gratuita))\s*:?\s+(\S.{2,60})$')
 HITO = re.compile(r'^La Vía .+? y (?:el|la) ((?:Hito|Umbral)\b.*)$')
 
 
@@ -145,11 +210,24 @@ def lineas(ruta, cfg=None):
             l = l[0].upper() + l[1:]
         elif i and NUEVA.match(crudas[i - 1][1]) and not NUEVA.match(crudas[i - 1][1]).group(1).strip() and l:
             l = l[0].upper() + l[1:]
+        m = PREFIJO.match(l) if cfg.get('prefijo') else None
+        if m and L.norm(m.group(1)) in D.TIPOS | EXTRA:
+            ls.append((p, m.group(3).strip())); ls.append((p, m.group(2).capitalize() + ', ' + m.group(1).capitalize())); continue
+        if l in cfg.get('insertar', {}):
+            ls.append((p, l)); ls.append((p, cfg['insertar'][l])); continue
+        dp = next((k for k in cfg.get('dos_puntos', {}) if l.startswith(k + ': ')), None)
+        if dp:
+            ls.append((p, dp)); ls.append((p, cfg['dos_puntos'][dp])); ls.append((p, l[len(dp) + 2:])); continue
         if l in cfg.get('habilidades', ()) and next((x for _, x in crudas[i + 1:i + 3] if x), '').startswith('Los personajes con esta Habilidad'):
             ls.append((p, l)); ls.append((p, 'Mayor, Sobrenatural')); continue
         m = MISTERIO.match(l)
         if m and not m.group(1).startswith(('Iniciación', 'Ejemplo')):
             ls.append((p, re.sub(r'^(El|La|Los|Las) ', '', m.group(1).strip()))); ls.append((p, (m.group(2) + ', Mistérica ' + m.group(3)).strip())); continue
+        m = MAYUS.match(l) if cfg.get('mayus') else None
+        letras = [c for c in m.group(1) if c.isalpha()] if m else []
+        if letras and (sum(c.isupper() for c in letras) >= 0.8 * len(letras)
+                       or (m.group(2).startswith(('Virtud ', 'Defecto ')) and len(m.group(1).split()) <= 4)):
+            ls.append((p, m.group(1).strip())); ls.append((p, re.sub(r'^Elección ', '', m.group(2)))); continue
         m = EN_LINEA.match(l)
         if m and set(L.norm(m.group(2).split(',', 1)[1]).split()) <= D.TIPOS | EXTRA:
             ls.append((p, m.group(1).strip())); ls.append((p, (m.group(2) + ' ' + m.group(3)).strip())); continue
@@ -285,6 +363,7 @@ def casar(ab, ruta):
     ents = [e for e in L.entradas() if e['ab'] == ab]
     ls = lineas(ruta, cfg)
     heads = encabezados(ls, subtitulos=cfg.get('subtitulos', False))
+    if cfg.get('mayus'): heads = [h for h in heads if not h['valor'][:5].isupper()]
 
     def tipo_ok(e, h):
         t = set(L.norm(e['tipo']).split()) & (D.TIPOS | EXTRA)
@@ -311,7 +390,7 @@ def casar(ab, ruta):
 
     cands = []
     for k, e in enumerate(ents):
-        if k in asig or e['es'] in rep or cfg.get('solo_a_mano'): continue
+        if k in asig or e['es'] in rep or cfg.get('solo_a_mano') or e['es'] in cfg.get('excluir', ()): continue
         ew = pal(e['desc']) | pal(e['es'])
         p0 = esperada(e['ref'])
         for h in heads:
@@ -326,17 +405,30 @@ def casar(ab, ruta):
     for punt, k, n in sorted(cands, reverse=True):
         if k in asig or n in usados or punt < 0.45: continue
         asig[k] = (heads[n], 'parecido', round(punt, 2)); usados.add(n)
+    if 'seres' in cfg: casar.heads = heads   # para la hoja de seres sobrenaturales (main)
     res = []
     for k, e in enumerate(ents):
         h, modo, punt = asig.get(k, (None, '', 0))
         texto = cola(sin_relleno(D.cuerpo(ls, h['j'], h['fin'], e))) if h else ''
+        corte = cfg.get('cortar', {}).get(e['es'])
+        if corte and corte in texto: texto = texto[:texto.index(corte)].rstrip()
         res.append((e, h, modo, punt, texto))
     return res, [h for h in heads if h['n'] not in usados]
 
 
+def caso(nuevo, viejo):
+    """los encabezados en mayúsculas de algunos libros («DON REPRIMIDO»): en minúscula, con mayúscula la primera palabra
+    y las que la tenían en el nombre del compendio («Don Suprimido» -> «Don reprimido»)"""
+    if not nuevo.isupper(): return nuevo
+    mays = {w.lower() for w in re.findall(r'\w+', viejo) if w[:1].isupper()}
+    ws = re.split(r'(\W+)', nuevo.lower())
+    out = ''.join(w.capitalize() if (i == 0 or w in mays) and w.isalpha() else w for i, w in enumerate(ws))
+    return out[:1].upper() + out[1:]
+
+
 def valor_tipo(linea):
     """«Menor, Hermético Te criaste…» -> ('Menor', 'Hermética')"""
-    v, _, t = linea.partition(',')
+    v, _, t = re.sub(r'^(?:Virtud|Defecto)\s+', '', linea, flags=re.I).partition(',')
     tipo = ' '.join(w for w in t.split()[:2] if L.norm(w) in D.TIPOS | EXTRA)
     tipo = {'hermetico': 'Hermética', 'heroico': 'Heroica'}.get(L.norm(tipo), tipo[:1].upper() + tipo[1:])
     return v.split()[0].capitalize(), tipo
@@ -384,7 +476,7 @@ def main():
                 viejo = (r[0], r[2], r[3])
                 # «Sangre Feérica (Boina Roja)» es «Sangre Feérica» en el libro: el paréntesis la distingue de la del básico, se queda
                 par = re.search(r'\s*(\([^)]*\))\s*$', r[0])
-                libro = LIBROS_ES[ab].get('nombres', {}).get(h['name'], h['name'])
+                libro = caso(LIBROS_ES[ab].get('nombres', {}).get(h['name'], h['name']), r[0])
                 nuevo = libro + ' ' + par.group(1) if par and '(' not in libro else libro
                 if nuevo.lower() == r[0].lower(): nuevo = r[0]
                 if nuevo != r[0]:
@@ -397,9 +489,38 @@ def main():
                 lj['es']['%s|%s|%s' % (ab, r[0], r[5])] = h['pag']
                 if (r[0], r[2], r[3]) != viejo: cambios += 1; print('  %s -> %s' % (' · '.join(viejo), ' · '.join((r[0], r[2], r[3]))))
             for r in quitar: b['rows'].remove(r); print('  quitada fila repetida:', r[0])
+    n += seres(ab, doc, alias, lj)
     with open(nl_ruta, 'w', encoding='utf8', newline='\n') as fh: fh.write(json.dumps(nl, ensure_ascii=False, indent=1) + '\n')
     guardar(ab, slug, pdf, raw, d, lj)
     print('escrito: %d textos, %d nombres/valores cambiados' % (n, cambios))
+
+
+def seres(ab, doc, alias, lj):
+    """la hoja «Seres sobrenaturales» (Nombre, Original, Reino, Clase, Tipo, Valor, Pág., Descripción): las filas de este libro
+    con su nombre inglés pasan al nombre del libro en castellano, el inglés a «Original», y su página del PDF en castellano"""
+    m = LIBROS_ES[ab].get('seres')
+    if not m: return 0
+    heads = {L.norm(x): h for h in casar.heads for x in h['names'] + [LIBROS_ES[ab].get('nombres', {}).get(h['name'], h['name'])]}
+    n = 0
+    for sh in doc['sheets']:
+        if sh['id'] in ('virtudes', 'defectos'): continue
+        for b in sh['blocks']:
+            if b['t'] != 'table' or b['cols'][:2] != ['Nombre', 'Original'] or 'Pág.' not in b['cols']: continue
+            ip = b['cols'].index('Pág.')
+            for r in b['rows']:
+                if not r[ip].startswith(ab + ' '): continue
+                es = m.get(r[0]) or m.get(r[1])
+                h = heads.get(L.norm(es)) if es else None
+                if not h: print('  seres: sin casar', r[0]); continue
+                if r[0] != es:
+                    if not r[1]: r[1] = r[0]
+                    alias[r[0]] = es
+                    lj['es'].pop('%s|%s|%s' % (ab, r[0], r[ip]), None)
+                    r[0] = es
+                lj['es']['%s|%s|%s' % (ab, r[0], r[ip])] = h['pag']
+                n += 1
+    print('  seres sobrenaturales: %d filas' % n)
+    return 0
 
 
 def guardar(ab, slug, pdf, raw, d, lj):

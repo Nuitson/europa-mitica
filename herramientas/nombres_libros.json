@@ -1654,5 +1654,761 @@
   "tipo": "Personalidad",
   "valor": "Menor",
   "nuevo": "Sentidos informes"
+ },
+ {
+  "ab": "App",
+  "es": "Don Suprimido",
+  "pag": "App 13",
+  "en": "Suppressed Gift",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Don reprimido"
+ },
+ {
+  "ab": "App",
+  "es": "Don Suprimido",
+  "pag": "App 13",
+  "en": "Suppressed Gift",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Don reprimido"
+ },
+ {
+  "ab": "App",
+  "es": "Falta de aliento",
+  "pag": "App 13",
+  "en": "Short of Breath",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Falto de aliento"
+ },
+ {
+  "ab": "App",
+  "es": "Obsesión",
+  "pag": "App 11",
+  "en": "Infatuation",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Amor ciego"
+ },
+ {
+  "ab": "App",
+  "es": "Obsesión",
+  "pag": "App 11",
+  "en": "Infatuation",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Amor ciego"
+ },
+ {
+  "ab": "App",
+  "es": "Obsesión",
+  "pag": "App 11",
+  "en": "Infatuation",
+  "tipo": "Infantil",
+  "valor": "Mayor",
+  "nuevo": "Amor ciego"
+ },
+ {
+  "ab": "App",
+  "es": "Obsesión",
+  "pag": "App 11",
+  "en": "Infatuation",
+  "tipo": "Infantil",
+  "valor": "Menor",
+  "nuevo": "Amor ciego"
+ },
+ {
+  "ab": "App",
+  "es": "Propenso a la turbulencia",
+  "pag": "App 12",
+  "en": "Turbulence Prone",
+  "tipo": "Infantil",
+  "valor": "Mayor",
+  "nuevo": "Propenso a las turbulencias"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Lanzamiento de maldiciones",
+  "pag": "RoP:F 112",
+  "en": "Curse-Throwing",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Lanzar maldiciones"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Invocación (de hadas)",
+  "pag": "RoP:F 113",
+  "en": "(Faerie) Summoning",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Invocar (de hadas)"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Embaucar",
+  "pag": "RoP:F 111",
+  "en": "Beguile",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Seducir"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Vinculación",
+  "pag": "RoP:F 111",
+  "en": "Bonding",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Vincular"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Cautivador",
+  "pag": "RoP:F 112",
+  "en": "Captivating",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Cautivar"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Despedir",
+  "pag": "RoP:F 112",
+  "en": "Dismissing",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Expulsar"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Familiaridad con las hadas",
+  "pag": "RoP:F 113",
+  "en": "Familiarity with the Fae",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Familiaridad con los seres feéricos"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Presencia espantosa",
+  "pag": "RoP:F 113",
+  "en": "Frightful Presence",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Presencia asombrosa"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Conceder",
+  "pag": "RoP:F 113",
+  "en": "Grant",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Otorgar"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Porteo",
+  "pag": "RoP:F 113",
+  "en": "Portage",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Transporte"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Mercancía",
+  "pag": "RoP:F 113",
+  "en": "Ware",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Vigilar"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Bienestar",
+  "pag": "RoP:F 114",
+  "en": "Weal",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Mejorar"
+ },
+ {
+  "ab": "RoP:F",
+  "es": "Aflicción",
+  "pag": "RoP:F 114",
+  "en": "Woe",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Desgracia"
+ },
+ {
+  "ab": "BCoC",
+  "es": "Poderes Mayores",
+  "pag": "BCoC 94",
+  "en": "Greater Powers",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Poderes Superiores"
+ },
+ {
+  "ab": "AnM",
+  "es": "Descendencia Hiperbórea",
+  "pag": "AnM 104",
+  "en": "Hyperborean Descent",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Descendiente hiperbóreo"
+ },
+ {
+  "ab": "AnM",
+  "es": "Objeto Despertado",
+  "pag": "AnM 80",
+  "en": "Awaken Device",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Objeto despierto"
+ },
+ {
+  "ab": "AnM",
+  "es": "Nigromancia Cananea",
+  "pag": "AnM 30",
+  "en": "Canaanite Necromancy",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Necromancia cananea"
+ },
+ {
+  "ab": "AnM",
+  "es": "Magia Ritual de Fertilidad",
+  "pag": "AnM 55",
+  "en": "Fertility Ritual Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia de la fertilidad ritual"
+ },
+ {
+  "ab": "AnM",
+  "es": "Crear Objeto Mutable",
+  "pag": "AnM 79",
+  "en": "Craft Mutable Device",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Manufactura Objeto mutable"
+ },
+ {
+  "ab": "AnM",
+  "es": "Descendencia Hiperbórea",
+  "pag": "AnM 104",
+  "en": "Hyperborean Descent",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Descendiente hiperbóreo"
+ },
+ {
+  "ab": "RM",
+  "es": "Brujería potente",
+  "pag": "RM 11",
+  "en": "Potent Sorcery",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Hechicería potente"
+ },
+ {
+  "ab": "RM",
+  "es": "Saqueador curtido",
+  "pag": "RM 18",
+  "en": "Proven Raider",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Incursora probada"
+ },
+ {
+  "ab": "RM",
+  "es": "Magia artesanal menor",
+  "pag": "RM 11-12",
+  "en": "Lesser Craft Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Magia de artesanía menor"
+ },
+ {
+  "ab": "RM",
+  "es": "Maestra hábil",
+  "pag": "RM 18",
+  "en": "Skilled Mistress",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Maestra experimentada"
+ },
+ {
+  "ab": "RM",
+  "es": "Esclavo de Amazonas",
+  "pag": "RM 19",
+  "en": "Amazonian Slave",
+  "tipo": "Estatus Social",
+  "valor": "Mayor",
+  "nuevo": "Esclavo amazona"
+ },
+ {
+  "ab": "RM",
+  "es": "Amante amarga",
+  "pag": "RM 19",
+  "en": "Bitter Mistress",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Maestra humillante"
+ },
+ {
+  "ab": "RM",
+  "es": "Amante amistosa",
+  "pag": "RM 19",
+  "en": "Friendly Mistress",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Maestra amistosa"
+ },
+ {
+  "ab": "RM",
+  "es": "Magia de encantamientos pobre",
+  "pag": "RM 18",
+  "en": "Poor Incantation Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Magia de encantamiento débil"
+ },
+ {
+  "ab": "RM",
+  "es": "Mago Conocido",
+  "pag": "RM 12",
+  "en": "Known Wizard",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Hechicero Conocido"
+ },
+ {
+  "ab": "RM",
+  "es": "Querido Esclavo",
+  "pag": "RM 19",
+  "en": "Beloved Slave",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Esclavo amado"
+ },
+ {
+  "ab": "RM",
+  "es": "Templo en aura mágica",
+  "pag": "RM 19",
+  "en": "Magic Aura Temple",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Aura mágica del Templo"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Bruja popular",
+  "pag": "HMRE 34",
+  "en": "Folk Witch",
+  "tipo": "Estatus Social",
+  "valor": "Gratuita",
+  "nuevo": "Bruja rural"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Matemático de Bolonia",
+  "pag": "HMRE 80",
+  "en": "Mathematicus of Bologna",
+  "tipo": "Estatus Social",
+  "valor": "Gratuita",
+  "nuevo": "Mathematicus de Bolonia"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Foco rúnico mayor",
+  "pag": "HMRE 121",
+  "en": "Major Rune Focus",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Focus mayor en runa"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Control",
+  "pag": "HMRE 19",
+  "en": "(Type) Controlling",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Controlar (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Adivinación",
+  "pag": "HMRE 19",
+  "en": "(Type) Divining",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Adivinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Refinación",
+  "pag": "HMRE 19",
+  "en": "(Type) Refining",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Refinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Controlador",
+  "pag": "HMRE 19",
+  "en": "Controlling",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Controlar (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Adivinación",
+  "pag": "HMRE 19",
+  "en": "Divining",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Adivinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Filosofía elemental",
+  "pag": "HMRE 19",
+  "en": "Elemental Philosophiae",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Philosophiae elemental"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Teurgia Elemental",
+  "pag": "HMRE 19",
+  "en": "Elemental Theurgy",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Teúrgia Elemental"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Refinación",
+  "pag": "HMRE 19",
+  "en": "Refining",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Refinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Invocación",
+  "pag": "HMRE 20",
+  "en": "(Type) Summoning",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Invocación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Suplicar a los poderes",
+  "pag": "HMRE 80",
+  "en": "Entreat the Powers",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Rogar a los poderes"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Magia de amuletos fuerte",
+  "pag": "HMRE 82",
+  "en": "Strong Amulet Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Magia de amuleto fuerte"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Encantos verbales fuertes",
+  "pag": "HMRE 82",
+  "en": "Strong Verbal Charms",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Encantamientos verbales fuertes"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Lanzador rápido (Runas)",
+  "pag": "HMRE 121",
+  "en": "Fast Caster (Runes)",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Hechizos rápidos (Runas)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Foco rúnico menor",
+  "pag": "HMRE 121",
+  "en": "Minor Rune Focus",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Focus menor en runa"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Aire elementalista",
+  "pag": "HMRE 18",
+  "en": "Elementalist Air",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Elementalista de Aire"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Tierra elementalista",
+  "pag": "HMRE 18",
+  "en": "Elementalist Earth",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Elementalista de Tierra"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Fuego elementalista",
+  "pag": "HMRE 18",
+  "en": "Elementalist Fire",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Elementalista de Fuego"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Control",
+  "pag": "HMRE 19",
+  "en": "(Type) Controlling",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Controlar (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Adivinación",
+  "pag": "HMRE 19",
+  "en": "(Type) Divining",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Adivinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Refinación",
+  "pag": "HMRE 19",
+  "en": "(Type) Refining",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Refinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Controlador",
+  "pag": "HMRE 19",
+  "en": "Controlling",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Controlar (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Adivinación",
+  "pag": "HMRE 19",
+  "en": "Divining",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Adivinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Agua elementalista",
+  "pag": "HMRE 19",
+  "en": "Elementalist Water",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Elementalista de Agua"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Refinación",
+  "pag": "HMRE 19",
+  "en": "Refining",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Refinación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "(Tipo) Invocación",
+  "pag": "HMRE 20",
+  "en": "(Type) Summoning",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Invocación (clase)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Forma",
+  "pag": "HMRE 57",
+  "en": "Shape",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Transformación"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Maestría en tatuajes",
+  "pag": "HMRE 57",
+  "en": "Tattoo Mastery",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Dominio del tatuaje"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Suplicar a los poderes del (reino)",
+  "pag": "HMRE 82",
+  "en": "Entreat the (Realm) Powers",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Rogar a los poderes (reino)"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Mago natural",
+  "pag": "HMRE 83",
+  "en": "Natural Magician",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Hechicero natural"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Magia de tatuaje débil",
+  "pag": "HMRE 58",
+  "en": "Weak Tattoo Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Magia del tatuaje débil"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Magia Rígida",
+  "pag": "HMRE 58",
+  "en": "Inflexible Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Magia inflexible"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Mago de Amuletos",
+  "pag": "HMRE 83",
+  "en": "Charm Magician",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Hechicero de encantamientos"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Mago de laboratorio",
+  "pag": "HMRE 83",
+  "en": "Laboratory Magician",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Hechicero de laboratorio"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Mago mal entrenado",
+  "pag": "HMRE 83",
+  "en": "Poorly Trained Magician",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Hechicero pobremente entrenado"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Gruagach mal entrenado",
+  "pag": "HMRE 58",
+  "en": "Poorly Trained Gruagach",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Gruagach pobremente entrenado"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Propenso a la transformación",
+  "pag": "HMRE 57",
+  "en": "Transformation Prone",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Propenso a la transmutación"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Runas efímeras",
+  "pag": "HMRE 123",
+  "en": "Short-Lived Runes",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Runas de corta duración"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Sin Lanzamiento desde Textos",
+  "pag": "HMRE 83",
+  "en": "No Text Casting",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Sin Lanzamiento desde texto"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Tradición Silenciosa",
+  "pag": "HMRE 35",
+  "en": "Silent Tradition",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Tradición muda"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Bruja popular mal entrenada",
+  "pag": "HMRE 35",
+  "en": "Poorly Trained Folk Witch",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Bruja rural mal entrenada"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Artes de setos incompatibles",
+  "pag": "HMRE 58, 83",
+  "en": "Incompatible Hedge Arts",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Artes limítrofes incompatibles"
+ },
+ {
+  "ab": "HMRE",
+  "es": "Encantos verbales débiles",
+  "pag": "HMRE 82",
+  "en": "Weak Verbal Charms",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Encantamientos verbales débiles"
  }
 ]
