@@ -47,6 +47,60 @@ LIBROS_ES = {
     # sección «Nuevas Virtudes y Defectos» (páginas del PDF); el libro impreso va una página por detrás del PDF
     'TdI': {'nombre': 'El Tribunal de Iberia', 'nuevas': (307, 310), 'desfase': 1,
             'nombres': {'SiḤr': 'Siḥr'}},   # el encabezado del PDF sale con la H mayúscula; el índice del libro dice «Siḥr»
+    'HoH:MC': {'nombre': 'Casas de Hermes: Cultos Mistéricos', 'subtitulos': True, 'casar': {
+        # Criamon: las «Estaciones» del compendio son los «Hitos» del libro
+        'Estación de la Herramienta Perfecta': 'Hito de la Herramienta Perfecta',
+        'Estación de Alimento Espiritual': 'Hito del Sustento Espiritual',
+        'Estación de Perfecta Economía de Movimiento': 'Hito del Movimiento Perfecto',
+        'Estación del Microcosmos': 'Hito del Microcosmos',
+        'Umbral del reposo corpóreo': 'Umbral del Reposo Corporal',
+        'Estación de la diferenciación de lo aparente': 'Hito del Discernimiento de la Impostura',
+        'Estación de la Visión Verdadera': 'Hito de la Visión Verdadera',
+        'Estación de recuerdos vívidos de los objetos': 'Hito de los Recuerdos Vívidos de los Objetos',
+        'Estación de paso a través de lo aparente': 'Hito de la Impostura Franqueada',
+        'Estación desde la que ignorar lo real': 'Hito desde Donde Ignorar la Realidad',
+        'Estación del Devorador de Pecados': 'Hito del Comepecados',
+        'Estación de Sangre y Bronce': 'Hito de la Sangre y el Bronce',
+        'Estación que repele y atrae elementos': 'Hito que Repudia y Atrae a los Elementos',
+        'Estación que encanta a los elementos': 'Hito que Fascina a los Elementos',
+        'Estación de la sidra dorada': 'Hito de la Sidra Dorada',
+        'Estación de Servicio a la Armonía': 'Hito del Servicio al Amor',
+        'Estación de Arroz y Miel': 'Hito del Arroz y la Miel',
+        'Estación de Expresión': 'Hito de la Expresión',
+        'Estación de Exaltación': 'Hito de la Exaltación',
+        'Ascensión inmortal como reposo': 'Hito del Umbral del Reposo',
+        # las pistas los cruzaban (Alluring / Inoffensive / Offensive / Unbearable to Beings)
+        'Atractivo para los (Seres)': 'Fascinante para los (Tipo de Ser)',
+        'Inofensivo para (Seres)': 'Inofensivo para los (Tipo de Ser)',
+        'Ofensivo para (Seres)': 'Ofensivo para los (Tipo de Ser)',
+        'Inaguantable para (Seres)': 'Insoportable para los (Tipo de Ser)',
+        # filas repetidas en el compendio, la misma virtud
+        'Magia Potente': 'Magia Potenciada',
+        'Seguidor': 'Miembro de la Manada / Borrego',
+        'Mentalidad de Rebaño': 'Miembro de la Manada / Borrego',
+        'Mago Maligno': 'Magus Maligno',
+        'Estigmas Proféticos': 'Estigmas Proféticos',
+        'Conocimiento de la Naturaleza': 'Conocimiento de la Naturaleza',
+        'Crear Autómata': 'Ingeniero de Autómatas',
+    }},
+    # la edición en castellano de Cultos Mistéricos trae en su primer capítulo varias virtudes de The Mysteries (Magia
+    # Planetaria, Teúrgia Hermética…): sus entradas se casan con ese PDF, que es también su enlace «ES»
+    'TMRE': {'nombre': 'The Mysteries, Revised Edition', 'pdf': 'HoH:MC', 'casar': {
+        'Adivinación y Augurio': 'Adivinación',
+        'Ascendencia al Salón de los Héroes': 'Ascenso al Salón de los Héroes',
+        'Escritura en el Alma': 'Inscribir el Alma',
+        'Magia Invocadora': 'Magia de Invocación',
+        'Magia de Sueños': 'Magia Onírica',
+        'Magia Potente (Casa)': 'Magia Potenciada',
+        'Magia Potente (Signo o Planeta)': 'Magia Potenciada',
+        'Magia Potente (Signo/Planeta)': 'Magia Potenciada',
+        'Interpretación de Sueños Hermética': 'Oniromancia Hermética',
+    }, 'solo_a_mano': True, 'subtitulos': True},
+    'HoH:S': {'nombre': 'Casas de Hermes: Societates'},
+    'RoP:M': {'nombre': 'Reinos de Poder: Magia'},
+    'RoP:F': {'nombre': 'Reinos de Poder: Feérico'},
+    'App': {'nombre': 'Aprendices'},
+    'BCoC': {'nombre': 'Calebais: la alianza rota'},
 }
 EXTRA = {'heroica', 'heroico', 'estatus', 'social'}
 STOP = set('para como pero cuando donde sobre entre desde hasta tiene tienen puede pueden cada otra otros otras esta este '
@@ -55,8 +109,38 @@ STOP = set('para como pero cuando donde sobre entre desde hasta tiene tienen pue
 TV = re.compile(r'^([^\W\d_][^,]{2,30}), ((?:Mayor|Menor|Libre|Gratuit[ao]|Especial)(?: o (?:Mayor|Menor))?)\b(.*)$')
 
 
+# encabezados en una línea: «Magia Planetaria (Menor, Hermética) El uso de…» -> «Magia Planetaria» / «Menor, Hermética El uso de…»
+EN_LINEA = re.compile(r'^([A-ZÁÉÍÓÚÑ(][^()]{2,60}?(?:\([^)]{1,30}\)[^()]{0,25}?)?)\s*\(((?:Mayor|Menor|Libre|Gratuit[ao]|Especial)(?: o (?:Mayor|Menor))?, [^)]{3,40})\)\s*(.*)$')
+
+
+# los Misterios de Cultos Mistéricos: «Magia Sensorial (Misterio Menor de la Casa)», «Glamour (Misterio Mayor de las Ilusiones)»
+MISTERIO = re.compile(r'^([A-ZÁÉÍÓÚÑ][^()]{2,60}?)\s*\((?:Misterio|Virtud) (Mayor|Menor)[^)]{0,50}\)\s*(.*)$')
+
+
+HITO = re.compile(r'^La Vía .+? y (?:el|la) ((?:Hito|Umbral)\b.*)$')
+
+
 def lineas(ruta):
-    ls = [(p, unicodedata.normalize('NFC', l)) for p, l in D.lineas_libro(ruta)]
+    ls = []
+    for p, l in D.lineas_libro(ruta):
+        l = unicodedata.normalize('NFC', l)
+        m = MISTERIO.match(l)
+        if m and not m.group(1).startswith(('Iniciación', 'Ejemplo')):
+            ls.append((p, re.sub(r'^(El|La|Los|Las) ', '', m.group(1).strip()))); ls.append((p, (m.group(2) + ', Mistérica ' + m.group(3)).strip())); continue
+        m = EN_LINEA.match(l)
+        if m and set(L.norm(m.group(2).split(',', 1)[1]).split()) <= D.TIPOS | EXTRA:
+            ls.append((p, m.group(1).strip())); ls.append((p, (m.group(2) + ' ' + m.group(3)).strip())); continue
+        ls.append((p, l))
+    # Criamon: «La Vía del Espejo Esférico y el Hito del Microcosmos» abre la descripción del hito (si detrás no viene el
+    # «Nivel Objetivo» de su guion de iniciación): pasa a encabezado «Hito del Microcosmos» / «Mayor, Mistérica»
+    out = []
+    for i, (p, l) in enumerate(ls):
+        m = HITO.match(l)
+        sig = next((x for _, x in ls[i + 1:i + 3] if x), '')
+        if m and not sig.startswith('Nivel Objetivo'):
+            out.append((p, m.group(1))); out.append((p, 'Mayor, Mistérica'))
+        else: out.append((p, l))
+    ls = out
     for i, (p, l) in enumerate(ls):
         m = TV.match(l)
         if m and set(L.norm(m.group(1)).split()) <= D.TIPOS | EXTRA:
@@ -102,13 +186,21 @@ def titulo(ls, i):
     return len(sig) > 60
 
 
-def encabezados(ls, desde=1, hasta=10 ** 6):
-    """los encabezados «Nombre / Valor, Tipo» del libro (entre esas páginas del PDF), con dónde acaba el texto de cada uno"""
+SUBTIT = ('Ejemplo', 'Guía', 'Guías', 'Iniciación', 'Nuevo', 'Nueva', 'Nuevos', 'Nuevas', 'Requisitos', 'Bono', 'Total', 'Factor')
+
+
+def encabezados(ls, desde=1, hasta=10 ** 6, subtitulos=False):
+    """los encabezados «Nombre / Valor, Tipo» del libro (entre esas páginas del PDF), con dónde acaba el texto de cada uno.
+    subtitulos: las entradas tienen apartados dentro («Guías del Glamour»): el texto sigue hasta el encabezado siguiente"""
     cab = [c for c in D.cabeceras(ls) if desde <= ls[c[0]][0] <= hasta]
     heads = []
     for n, (j, vs) in enumerate(cab):
         fin = cab[n + 1][1][0][1] if n + 1 < len(cab) else min(len(ls), j + 80)
-        fin = next((i for i in range(j + 1, min(fin, j + 140)) if titulo(ls, i)), fin)
+        if subtitulos:   # sigue tras los apartados de la entrada («Guías del Glamour»), no tras otro título
+            raices = {w[:6] for v in vs for w in L.norm(v[0]).split() if len(w) >= 5}
+            propio = lambda t: t.startswith(SUBTIT) or bool(raices & {w[:6] for w in L.norm(t).split() if len(w) >= 5})
+            fin = next((i for i in range(j + 1, min(fin, j + 140)) if titulo(ls, i) and not propio(ls[i][1])), fin)
+        else: fin = next((i for i in range(j + 1, min(fin, j + 140)) if titulo(ls, i)), fin)
         names = [limpio(v[0]) for v in vs]
         heads.append({'n': n, 'name': names[0], 'names': names, 'valor': ls[j][1], 'pag': ls[vs[0][1]][0], 'j': j, 'fin': min(fin, j + 140),
                       'ini': vs[0][1], 'pw': pal(' '.join(l for _, l in ls[j:min(fin, j + 140)]))})
@@ -144,7 +236,7 @@ def casar(ab, ruta):
     cfg = LIBROS_ES[ab]
     ents = [e for e in L.entradas() if e['ab'] == ab]
     ls = lineas(ruta)
-    heads = encabezados(ls)
+    heads = encabezados(ls, subtitulos=cfg.get('subtitulos', False))
 
     def tipo_ok(e, h):
         t = set(L.norm(e['tipo']).split()) & (D.TIPOS | EXTRA)
@@ -157,9 +249,10 @@ def casar(ab, ruta):
         if e['es'] in rep: continue
         quiero = cfg.get('casar', {}).get(e['es'])
         for h in heads:
-            if h['n'] in usados: continue
-            if quiero:
+            if quiero:   # a mano: la misma cabecera puede servir a dos filas (las repetidas del compendio)
                 if L.norm(quiero) in [L.norm(x) for x in h['names']]: asig[k] = (h, 'a mano', 1.0); usados.add(h['n']); break
+                continue
+            if h['n'] in usados: continue
             elif any(D.sin_parentesis(x) == D.sin_parentesis(e['es']) for x in h['names']) and D.valor_compatible(e['valor'], h['valor']):
                 asig[k] = (h, 'exacto', 1.0); usados.add(h['n']); break
     anc = sorted((ents[k]['ref'], h['pag']) for k, (h, m, _) in asig.items())
@@ -170,7 +263,7 @@ def casar(ab, ruta):
 
     cands = []
     for k, e in enumerate(ents):
-        if k in asig or e['es'] in rep: continue
+        if k in asig or e['es'] in rep or cfg.get('solo_a_mano'): continue
         ew = pal(e['desc']) | pal(e['es'])
         p0 = esperada(e['ref'])
         for h in heads:
@@ -204,8 +297,8 @@ def valor_tipo(linea):
 def main():
     ab = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('-') else None
     if ab not in LIBROS_ES: raise SystemExit('Libros que sabe hacer: ' + ', '.join(LIBROS_ES))
-    slug = L.LIBROS[ab][0]
-    pdf = sys.argv[sys.argv.index('--pdf') + 1] if '--pdf' in sys.argv else L.ruta_es(ab)
+    slug = L.LIBROS[LIBROS_ES[ab].get('pdf', ab)][0]   # el PDF de otro libro, si sus textos están en él
+    pdf = sys.argv[sys.argv.index('--pdf') + 1] if '--pdf' in sys.argv else L.ruta_es(LIBROS_ES[ab].get('pdf', ab))
     if not pdf or not os.path.exists(pdf): raise SystemExit('No encuentro el PDF en castellano: pásalo con --pdf')
     if 'nuevas' in LIBROS_ES[ab]: return main_nuevas(ab, slug, pdf)
     res, libres = casar(ab, pdf)
@@ -242,12 +335,13 @@ def main():
                 h, t = x
                 viejo = (r[0], r[2], r[3])
                 # «Sangre Feérica (Boina Roja)» es «Sangre Feérica» en el libro: el paréntesis la distingue de la del básico, se queda
-                mismo = D.sin_parentesis(h['name']) == D.sin_parentesis(r[0]) and '(' in r[0] and '(' not in h['name']
-                if h['name'] != r[0] and not mismo:
-                    nl.append({'ab': ab, 'es': r[0], 'pag': r[5], 'en': r[1], 'tipo': r[2], 'valor': r[3], 'nuevo': h['name']})
-                    if L.norm(r[0]) != L.norm(h['name']): alias[r[0]] = h['name']
+                par = re.search(r'\s*(\([^)]*\))\s*$', r[0])
+                nuevo = h['name'] + ' ' + par.group(1) if par and '(' not in h['name'] else h['name']
+                if nuevo != r[0]:
+                    nl.append({'ab': ab, 'es': r[0], 'pag': r[5], 'en': r[1], 'tipo': r[2], 'valor': r[3], 'nuevo': nuevo})
+                    if L.norm(r[0]) != L.norm(nuevo): alias[r[0]] = nuevo
                     lj['es'].pop('%s|%s|%s' % (ab, r[0], r[5]), None)
-                    r[0] = h['name']
+                    r[0] = nuevo
                 if not D.valor_compatible(r[3], h['valor']): r[3], r[2] = valor_tipo(h['valor'])
                 if t: r[7] = t; n += 1
                 lj['es']['%s|%s|%s' % (ab, r[0], r[5])] = h['pag']

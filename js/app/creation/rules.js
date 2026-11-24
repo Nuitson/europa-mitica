@@ -466,7 +466,11 @@ const CASA_VD = {
     { k: 'creo', n: '', vd: [gv('Maña con Arte', { obj: 'Creo' })] },
     { k: 'muto', n: '', vd: [gv('Maña con Arte', { obj: 'Muto' })] },
     { k: 'milvi', n: 'Milvi Antiquiti, del linaje de los Mutantes', vd: [gv('Magia Mutantum')] }],
-  merinita: solo('merinita', [gv('Magia Feérica')]),
+  // the House's two Outer Mysteries, one or the other: Faerie Magic, or Nature Lore, which opens the Mysteries of Nature
+  // (Cultos Mistéricos: «Conocimiento de la Naturaleza (Misterio Menor Exterior)»)
+  merinita: [
+    { k: 'merinita', n: '', vd: [gv('Magia Feérica')] },
+    { k: 'naturaleza', n: 'Misterios de la Naturaleza', vd: [gv('Conocimiento de la Naturaleza')] }],
   tremere: solo('tremere', [gv('Focus Mágico Menor', { nota: 'Certamen' })]),
   tytalus: solo('tytalus', [gv('Determinación')]),
   verditius: solo('verditius', [gv('Magia Verditius')])
@@ -608,7 +612,7 @@ function creationCheck(d) {
     seenObj.add(k);
   }));
   // the Merinita Outer Mystery needs a character touched by faeries: without a faerie Virtue or Flaw, one Warping Point (ArM5 p. 148)
-  if (cls === 'mago' && isMerinita(d) && !V.concat(D).some(x => vdKeyOf(x, 'virtud') !== 'faerie-magic' && /feeric|faerie|hada/.test(tkey((x.en || '') + ' ' + x.n))) && numv(d.informidad) < 1)
+  if (cls === 'mago' && isMerinita(d) && d.linaje !== 'naturaleza' && !V.concat(D).some(x => vdKeyOf(x, 'virtud') !== 'faerie-magic' && /feeric|faerie|hada/.test(tkey((x.en || '') + ' ' + x.n))) && numv(d.informidad) < 1)
     avisos.push('Un Merinita sin virtud ni defecto feérico empieza con un punto de Informidad (sus maestros se lo dan para la Magia Feérica).');
   const noReino = V.filter(x => vdSobHab(x, 'virtud') && !vdReinoFijo(x) && !REINO_POW_TXT[x.reino]).map(x => '«' + x.n + '»');
   if (noReino.length) avisos.push('Elige el reino de ' + noReino.join(', ') + ': su habilidad sobrenatural suma o resta el aura según el reino.');

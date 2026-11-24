@@ -700,5 +700,671 @@
   "tipo": "Historia",
   "valor": "Menor",
   "nuevo": "Aprendiz Acogido"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Crear Autómata",
+  "pag": "HoH:MC 136",
+  "en": "Craft Automata",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Ingeniero de Autómatas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia Potente",
+  "pag": "HoH:MC 6; TMRE 31-32",
+  "en": "Potent Magic",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magia Potenciada"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia Criada por Hadas",
+  "pag": "HoH:MC 86",
+  "en": "Faerie Raised Magic",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magia de las Hadas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Afinador de Objetos",
+  "pag": "HoH:MC 135",
+  "en": "Item Attunement",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Objetos Armónicos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Ascensión inmortal como reposo",
+  "pag": "HoH:MC 71, 72",
+  "en": "Immortal Ascension as Repose",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Umbral del Reposo"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Atar Criaturas Mágicas",
+  "pag": "HoH:MC 134-135",
+  "en": "Bind Magical Creatures",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Vincular Criaturas Mágicas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Atar el Don",
+  "pag": "HoH:MC 91-92",
+  "en": "Binding the Gift",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Vincular el Don"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Autómata",
+  "pag": "HoH:MC 128-131",
+  "en": "",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Autómatas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Convertirse",
+  "pag": "HoH:MC 93-96",
+  "en": "Becoming",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Metamorfosis"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Glamur",
+  "pag": "HoH:MC 101-102",
+  "en": "Glamour",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Glamour"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Guardián de Naturaleza",
+  "pag": "HoH:MC 105-106",
+  "en": "Guardian of Nature",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Guardián de la Naturaleza"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia Animae",
+  "pag": "HoH:MC 92, 94-95",
+  "en": "Animae Magic",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Magia de las Animae"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia de Amuletos",
+  "pag": "HoH:MC 96-98",
+  "en": "Charm Magic",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Magia Sortílega"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia de Historias",
+  "pag": "HoH:MC 98",
+  "en": "Story Magic",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Magia Narrativa"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Maldición de Atado",
+  "pag": "HoH:MC 131-134",
+  "en": "Bind Curse",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Vincular Maldiciones"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Misterio del Anima",
+  "pag": "HoH:MC 32",
+  "en": "Mystery of the Anima",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Misterio del Ánima"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Misterio del Epitome",
+  "pag": "HoH:MC 30-31",
+  "en": "Mystery of the Epitome",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Misterio del Epítome"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Crear Autómata",
+  "pag": "HoH:MC 136",
+  "en": "Craft Automata",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Ingeniero de Autómatas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Líder de la Manada/ Líder Natural",
+  "pag": "HoH:MC 37-38",
+  "en": "Natural Leader/Pack Leader",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Líder de la Manada / Líder Natural"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Huésped del Hogar",
+  "pag": "HoH:MC 73",
+  "en": "Guest of the House",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Invitado de la Casa"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Atractivo para los (Seres)",
+  "pag": "HoH:MC 86",
+  "en": "Alluring to (Beings)",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Fascinante para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estudiante Independiente",
+  "pag": "HoH:MC 86",
+  "en": "Independent Study",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Estudio Independiente"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Inofensivo para (Seres)",
+  "pag": "HoH:MC 86-87",
+  "en": "Inoffensive to (Beings)",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Inofensivo para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia Potente",
+  "pag": "HoH:MC 6; TMRE 31",
+  "en": "Potent Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia Potenciada"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Inofensivo para (Seres)",
+  "pag": "HoH:MC 86-87",
+  "en": "Inoffensive to (Beings)",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Inofensivo para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Salvaje",
+  "pag": "HoH:MC 104-105",
+  "en": "Wilding",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Naturalización"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Sincronización de Hechizos",
+  "pag": "HoH:MC 100-101",
+  "en": "Spell Timing",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Hechizos Cadentes"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Reforja de objetos encantados",
+  "pag": "HoH:MC 125-127",
+  "en": "Reforging Enchanted Items",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Reforjar Objetos Encantados"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación desde la que ignorar lo real",
+  "pag": "HoH:MC 64,65-66",
+  "en": "Station from Which to Ignore the Real",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito desde Donde Ignorar la Realidad"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Sangre y Bronce",
+  "pag": "HoH:MC 67, 68",
+  "en": "Station of Blood and Bronze",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Sangre y el Bronce"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de la diferenciación de lo aparente",
+  "pag": "HoH:MC 64",
+  "en": "Station of Differentiation of Seeming",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Discernimiento de la Impostura"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Exaltación",
+  "pag": "HoH:MC 71-72",
+  "en": "Station of Exaltation",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Exaltación"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Expresión",
+  "pag": "HoH:MC 71",
+  "en": "Station of Expression",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Expresión"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de la sidra dorada",
+  "pag": "HoH:MC 67, 69-70",
+  "en": "Station of Golden Cider",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Sidra Dorada"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de paso a través de lo aparente",
+  "pag": "HoH:MC 64, 65",
+  "en": "Station of Passing Through Seeming",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Impostura Franqueada"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Perfecta Economía de Movimiento",
+  "pag": "HoH:MC 61, 62-63",
+  "en": "Station of Perfect Economy of Movement",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Movimiento Perfecto"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Arroz y Miel",
+  "pag": "HoH:MC 70-71",
+  "en": "Station of Rice and Honey",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Arroz y la Miel"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Servicio a la Armonía",
+  "pag": "HoH:MC 70, 71",
+  "en": "Station of Service to Harmony",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Servicio al Amor"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de Alimento Espiritual",
+  "pag": "HoH:MC 61, 62",
+  "en": "Station of Spiritual Nourishment",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Sustento Espiritual"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación del Devorador de Pecados",
+  "pag": "HoH:MC 67-68",
+  "en": "Station of the Eater of Sin",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Comepecados"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación del Microcosmos",
+  "pag": "HoH:MC 61, 63",
+  "en": "Station of the Microcosm",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito del Microcosmos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de la Herramienta Perfecta",
+  "pag": "HoH:MC 61",
+  "en": "Station of the Perfect Tool",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Herramienta Perfecta"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de la Visión Verdadera",
+  "pag": "HoH:MC 64",
+  "en": "Station of True Sight",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de la Visión Verdadera"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación de recuerdos vívidos de los objetos",
+  "pag": "HoH:MC 64-65",
+  "en": "Station of Vivid Memories from Objects",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito de los Recuerdos Vívidos de los Objetos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación que encanta a los elementos",
+  "pag": "HoH:MC 67,69",
+  "en": "Station that Charms the Elements",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito que Fascina a los Elementos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Estación que repele y atrae elementos",
+  "pag": "HoH:MC 67, 68",
+  "en": "Station that Repels and Attracts Elements",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Hito que Repudia y Atrae a los Elementos"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Umbral del reposo corpóreo",
+  "pag": "HoH:MC 61, 63",
+  "en": "Threshold of Corporeal Repose",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Umbral del Reposo Corporal"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Encantar (Habilidad)",
+  "pag": "HoH:MC 86",
+  "en": "Enchanting (Ability)",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "(Habilidad) Encantada"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Catalizador estigmático",
+  "pag": "HoH:MC 73",
+  "en": "Stigmatic Catalyst",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Catalizador Estigmático"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Herramientas de Lanzamiento Espontaneas",
+  "pag": "HoH:MC 136",
+  "en": "Spontaneous Casting Tools",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Herramientas de Lanzamiento Espontáneas"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Inaguantable para (Seres)",
+  "pag": "HoH:MC 87",
+  "en": "Unbearable to (Beings)",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Insoportable para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Inaguantable para (Seres)",
+  "pag": "HoH:MC 87",
+  "en": "Unbearable to (Beings)",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Insoportable para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Magia antinatural",
+  "pag": "HoH:MC 87",
+  "en": "Unnatural Magic",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magia Antinatural"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Mago Maligno",
+  "pag": "HoH:MC 73",
+  "en": "Malignant Magus",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Magus Maligno"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Mago Maligno",
+  "pag": "HoH:MC 73",
+  "en": "Malignant Magus",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Magus Maligno"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Mentalidad de Rebaño",
+  "pag": "HoH:MC 38",
+  "en": "Follower/Pack Mentality",
+  "tipo": "Personalidad",
+  "valor": "Menor",
+  "nuevo": "Miembro de la Manada / Borrego"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Miembro de Cofradía",
+  "pag": "HoH:MC 136",
+  "en": "Confraternity Member",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Cofrade"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Ofensivo para (Seres)",
+  "pag": "HoH:MC 87",
+  "en": "Offensive to (Beings)",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Ofensivo para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Ofensivo para (Seres)",
+  "pag": "HoH:MC 87",
+  "en": "Offensive to (Beings)",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Ofensivo para los (Tipo de Ser)"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Olor Salvaje",
+  "pag": "HoH:MC 38",
+  "en": "Feral Scent",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Olor Animal"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Seguidor",
+  "pag": "HoH:MC 38;",
+  "en": "Pack Mentality/Follower",
+  "tipo": "Personalidad",
+  "valor": "Menor",
+  "nuevo": "Miembro de la Manada / Borrego"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Sombra inscrita",
+  "pag": "HoH:MC 73",
+  "en": "Inscribed Shadow",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Sombra Inscrita"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Renqueante",
+  "pag": "HoH:MC 136",
+  "en": "Hobbled",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Cojo"
+ },
+ {
+  "ab": "HoH:MC",
+  "es": "Linaje de primogenitura",
+  "pag": "HoH:MC 136",
+  "en": "Primogeniture Lineage",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Linaje de la Primogenitura"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Magia de Sueños",
+  "pag": "TMRE 102-107",
+  "en": "Dream Magic",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Magia Onírica"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Magia Potente (Signo o Planeta)",
+  "pag": "TMRE 36-37",
+  "en": "Potent Magic (Sign or Planet)",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magia Potenciada (Signo o Planeta)"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Magia Potente (Casa)",
+  "pag": "TMRE 36-37",
+  "en": "Potent Magic (House)",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia Potenciada (Casa)"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Magia Potente (Signo/Planeta)",
+  "pag": "TMRE 36-38",
+  "en": "Potent Magic (Sign/Planet)",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magia Potenciada (Signo/Planeta)"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Adivinación y Augurio",
+  "pag": "TMRE 58-62",
+  "en": "Divination and Augury",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Adivinación"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Interpretación de Sueños Hermética",
+  "pag": "TMRE 62-63",
+  "en": "Hermetic Dream Interpreter",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Oniromancia Hermética"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Escritura en el Alma",
+  "pag": "TMRE 69-70",
+  "en": "Inscription on the Soul",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Inscribir el Alma"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Magia Invocadora",
+  "pag": "TMRE 78",
+  "en": "Invocation Magic",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Magia de Invocación"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Teurgia hermética",
+  "pag": "TMRE 78-81",
+  "en": "Hermetic Theurgy",
+  "tipo": "Mistérica",
+  "valor": "Menor",
+  "nuevo": "Teúrgia Hermética"
+ },
+ {
+  "ab": "TMRE",
+  "es": "Ascendencia al Salón de los Héroes",
+  "pag": "TMRE 82-86",
+  "en": "Ascendancy to the Hall of Heroes",
+  "tipo": "Mistérica",
+  "valor": "Mayor",
+  "nuevo": "Ascenso al Salón de los Héroes"
  }
 ]
