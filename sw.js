@@ -3,7 +3,7 @@
    takes too long, the copy answers. The saga's server (api/api.php) is never cached: its data stay live, and writes
    (POST) never reach this worker.
    Keep FILES in step with the repository: a new module, image or data file goes here too. */
-const CACHE = 'europa-mitica-v27';
+const CACHE = 'europa-mitica-v29';
 const FILES = [
   './',
   'index.html',

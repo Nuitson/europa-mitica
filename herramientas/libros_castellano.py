@@ -96,8 +96,19 @@ LIBROS_ES = {
         'Magia Potente (Signo/Planeta)': 'Magia Potenciada',
         'Interpretación de Sueños Hermética': 'Oniromancia Hermética',
     }, 'solo_a_mano': True, 'subtitulos': True},
-    'HoH:S': {'nombre': 'Casas de Hermes: Societates'},
-    'RoP:M': {'nombre': 'Reinos de Poder: Magia'},
+    'HoH:S': {'nombre': 'Casas de Hermes: Societates', 'casar': {
+        # las tradiciones de Ex Miscellanea: el compendio las tradujo por su cuenta
+        'Guarda': 'Custodia', 'Desaparecer': 'Destierro', 'Herboristería mítica': 'Herbología mítica',
+        'Comprender Magia': 'Comprensión mágica', 'Canción de Sirena': 'Canto de sirena', 'Magia Circular/Anillo': 'Magia anular',
+        'Magia de Orfeo': 'Magia órfica', 'Cortarraíces': 'Estaquillar', 'Foco de Hechizos': 'Foci de hechizos', 'Sihr': 'SiḤr',
+        'Bendición del Humor Sanguíneo': 'Bendición del humor sanguíneo',
+        'Vulnerable a la Tradición': 'Vulnerable a los remedios populares',
+        # las Habilidades sobrenaturales de las tradiciones: en el compendio, la Virtud mayor que las da
+        'Controlar Fertilidad': 'Fertilidad', 'Invocar Animales': 'Invocar animales', 'Silba el Viento': 'Silbo de viento',
+     }, 'nombres': {'SiḤr': 'Siḥr'}, 'subtitulos': True,
+        # sin línea de valor: «Invocar animales» / «Los personajes con esta Habilidad…»
+        'habilidades': {'Invocar animales', 'Fertilidad', 'Silbo de viento'}},
+    'RoP:M': {'nombre': 'Reinos de Poder: Magia', 'subtitulos': True, 'casar': {'Devoto de un espíritu': 'Devoto de los espíritus'}},
     'RoP:F': {'nombre': 'Reinos de Poder: Feérico'},
     'App': {'nombre': 'Aprendices'},
     'BCoC': {'nombre': 'Calebais: la alianza rota'},
@@ -117,13 +128,25 @@ EN_LINEA = re.compile(r'^([A-ZÁÉÍÓÚÑ(][^()]{2,60}?(?:\([^)]{1,30}\)[^()]{0
 MISTERIO = re.compile(r'^([A-ZÁÉÍÓÚÑ][^()]{2,60}?)\s*\((?:Misterio|Virtud) (Mayor|Menor)[^)]{0,50}\)\s*(.*)$')
 
 
+COLA = re.compile(r'^(\S.{0,35}?)\s+((?:Mayor|Menor|Gratuit[ao]|Especial)(?: o (?:Mayor|Menor))?, \w.*)$')
+NUEVA = re.compile(r'^Nuev[ao] (?:virtud|defecto):\s*(.*)$', re.I)
 HITO = re.compile(r'^La Vía .+? y (?:el|la) ((?:Hito|Umbral)\b.*)$')
 
 
-def lineas(ruta):
+def lineas(ruta, cfg=None):
+    cfg = cfg or {}
     ls = []
-    for p, l in D.lineas_libro(ruta):
-        l = unicodedata.normalize('NFC', l)
+    crudas = [(p, unicodedata.normalize('NFC', l)) for p, l in D.lineas_libro(ruta)]
+    for i, (p, l) in enumerate(crudas):
+        m = NUEVA.match(l)
+        if m:   # «Nueva virtud: custodia»: el prefijo fuera y la mayúscula al nombre (que puede ir en la línea siguiente)
+            if not m.group(1).strip(): continue
+            l = m.group(1).strip()
+            l = l[0].upper() + l[1:]
+        elif i and NUEVA.match(crudas[i - 1][1]) and not NUEVA.match(crudas[i - 1][1]).group(1).strip() and l:
+            l = l[0].upper() + l[1:]
+        if l in cfg.get('habilidades', ()) and next((x for _, x in crudas[i + 1:i + 3] if x), '').startswith('Los personajes con esta Habilidad'):
+            ls.append((p, l)); ls.append((p, 'Mayor, Sobrenatural')); continue
         m = MISTERIO.match(l)
         if m and not m.group(1).startswith(('Iniciación', 'Ejemplo')):
             ls.append((p, re.sub(r'^(El|La|Los|Las) ', '', m.group(1).strip()))); ls.append((p, (m.group(2) + ', Mistérica ' + m.group(3)).strip())); continue
@@ -141,6 +164,19 @@ def lineas(ruta):
             out.append((p, m.group(1))); out.append((p, 'Mayor, Mistérica'))
         else: out.append((p, l))
     ls = out
+    # el nombre en dos líneas y la segunda con el valor detrás: «Imbuido con el espíritu» / «de (Forma) Menor, Hermética El…»
+    partir = {}
+    for i, (p, l) in enumerate(ls):
+        m = COLA.match(l)
+        if not m or not i or D.es_valor(l) or set(L.norm(m.group(2).split(',', 1)[1]).split()[:1]) - (D.TIPOS | EXTRA): continue
+        k = i - 1
+        while k > 0 and not ls[k][1]: k -= 1
+        prev = ls[k][1]
+        if prev and len(prev) <= 45 and prev[-1] not in '.,;:!?»' and prev[0].isupper() and not D.es_valor(prev):
+            ls[k] = (ls[k][0], prev + ' ' + m.group(1)); ls[i] = (p, m.group(2))
+        elif (not prev or prev[-1] in '.!?»)') and m.group(1)[:1] in '(ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ' and '.' not in m.group(1):
+            partir[i] = m   # «(Ser) transformado Mayor, Sobrenatural El…»: el nombre y el valor en la misma línea
+    ls = [x for i, (p, l) in enumerate(ls) for x in ([(p, partir[i].group(1)), (p, partir[i].group(2))] if i in partir else [(p, l)])]
     for i, (p, l) in enumerate(ls):
         m = TV.match(l)
         if m and set(L.norm(m.group(1)).split()) <= D.TIPOS | EXTRA:
@@ -162,6 +198,13 @@ def sin_relleno(t):
         if w and (sum(1 for x in w if x in FUNC) / len(w) < 0.12 or sueltas / len(w) > 0.15): ps.pop()
         else: break
     return PARRAFO.join(ps)
+
+
+def cola(t):
+    """quita lo que queda tras la última frase si es un trozo corto sin punto: el nombre de la entrada siguiente o el de
+    una sección («… otros Defectos de historia. Defecto Protegido»)"""
+    m = re.search(r'^(.*[.!?»)])\s+([^.!?»]{1,45})$', t, re.S)
+    return m.group(1) if m else t
 
 
 def pal(t):
@@ -186,6 +229,7 @@ def titulo(ls, i):
     return len(sig) > 60
 
 
+SECCION = re.compile(r'^Nuev[ao]s? (virtud|defecto|virtudes|defectos)\b', re.I)
 SUBTIT = ('Ejemplo', 'Guía', 'Guías', 'Iniciación', 'Nuevo', 'Nueva', 'Nuevos', 'Nuevas', 'Requisitos', 'Bono', 'Total', 'Factor')
 
 
@@ -198,10 +242,14 @@ def encabezados(ls, desde=1, hasta=10 ** 6, subtitulos=False):
         fin = cab[n + 1][1][0][1] if n + 1 < len(cab) else min(len(ls), j + 80)
         if subtitulos:   # sigue tras los apartados de la entrada («Guías del Glamour»), no tras otro título
             raices = {w[:6] for v in vs for w in L.norm(v[0]).split() if len(w) >= 5}
-            propio = lambda t: t.startswith(SUBTIT) or bool(raices & {w[:6] for w in L.norm(t).split() if len(w) >= 5})
-            fin = next((i for i in range(j + 1, min(fin, j + 140)) if titulo(ls, i) and not propio(ls[i][1])), fin)
+            propio = lambda t: not SECCION.match(t) and (t.startswith(SUBTIT) or bool(raices & {w[:6] for w in L.norm(t).split() if len(w) >= 5}))
+            # un título en mitad de una frase es un recuadro que la maqueta mete en medio: el texto sigue después
+            corta = lambda i: next((x for _, x in reversed(ls[j:i]) if x), '.')[-1:] in '.!?»):'
+            fin = next((i for i in range(j + 1, min(fin, j + 140)) if titulo(ls, i) and not propio(ls[i][1]) and corta(i)), fin)
         else: fin = next((i for i in range(j + 1, min(fin, j + 140)) if titulo(ls, i)), fin)
         names = [limpio(v[0]) for v in vs]
+        if len(names) > 1 and names[0][:1].islower(): names = names[1:] + names[:1]
+        names = [n[:1].upper() + n[1:] for n in names]
         heads.append({'n': n, 'name': names[0], 'names': names, 'valor': ls[j][1], 'pag': ls[vs[0][1]][0], 'j': j, 'fin': min(fin, j + 140),
                       'ini': vs[0][1], 'pw': pal(' '.join(l for _, l in ls[j:min(fin, j + 140)]))})
     return heads
@@ -235,7 +283,7 @@ def casar(ab, ruta):
     """[(entrada, encabezado o None, modo, puntuación)] y los encabezados que no casan con nada"""
     cfg = LIBROS_ES[ab]
     ents = [e for e in L.entradas() if e['ab'] == ab]
-    ls = lineas(ruta)
+    ls = lineas(ruta, cfg)
     heads = encabezados(ls, subtitulos=cfg.get('subtitulos', False))
 
     def tipo_ok(e, h):
@@ -252,8 +300,8 @@ def casar(ab, ruta):
             if quiero:   # a mano: la misma cabecera puede servir a dos filas (las repetidas del compendio)
                 if L.norm(quiero) in [L.norm(x) for x in h['names']]: asig[k] = (h, 'a mano', 1.0); usados.add(h['n']); break
                 continue
-            if h['n'] in usados: continue
-            elif any(D.sin_parentesis(x) == D.sin_parentesis(e['es']) for x in h['names']) and D.valor_compatible(e['valor'], h['valor']):
+            # el mismo nombre: también la segunda de dos filas repetidas del compendio
+            if any(D.sin_parentesis(x) == D.sin_parentesis(e['es']) for x in h['names']) and D.valor_compatible(e['valor'], h['valor']):
                 asig[k] = (h, 'exacto', 1.0); usados.add(h['n']); break
     anc = sorted((ents[k]['ref'], h['pag']) for k, (h, m, _) in asig.items())
 
@@ -281,7 +329,7 @@ def casar(ab, ruta):
     res = []
     for k, e in enumerate(ents):
         h, modo, punt = asig.get(k, (None, '', 0))
-        texto = sin_relleno(D.cuerpo(ls, h['j'], h['fin'], e)) if h else ''
+        texto = cola(sin_relleno(D.cuerpo(ls, h['j'], h['fin'], e))) if h else ''
         res.append((e, h, modo, punt, texto))
     return res, [h for h in heads if h['n'] not in usados]
 
@@ -336,7 +384,9 @@ def main():
                 viejo = (r[0], r[2], r[3])
                 # «Sangre Feérica (Boina Roja)» es «Sangre Feérica» en el libro: el paréntesis la distingue de la del básico, se queda
                 par = re.search(r'\s*(\([^)]*\))\s*$', r[0])
-                nuevo = h['name'] + ' ' + par.group(1) if par and '(' not in h['name'] else h['name']
+                libro = LIBROS_ES[ab].get('nombres', {}).get(h['name'], h['name'])
+                nuevo = libro + ' ' + par.group(1) if par and '(' not in libro else libro
+                if nuevo.lower() == r[0].lower(): nuevo = r[0]
                 if nuevo != r[0]:
                     nl.append({'ab': ab, 'es': r[0], 'pag': r[5], 'en': r[1], 'tipo': r[2], 'valor': r[3], 'nuevo': nuevo})
                     if L.norm(r[0]) != L.norm(nuevo): alias[r[0]] = nuevo

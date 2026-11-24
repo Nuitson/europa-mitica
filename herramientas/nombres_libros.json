@@ -1366,5 +1366,293 @@
   "tipo": "Mistérica",
   "valor": "Mayor",
   "nuevo": "Ascenso al Salón de los Héroes"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Mago Leproso",
+  "pag": "HoH:S 93-94",
+  "en": "Leper Magus",
+  "tipo": "Hermética",
+  "valor": "Mayor",
+  "nuevo": "Magus leproso"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Controlar Fertilidad",
+  "pag": "HoH:S 105",
+  "en": "Control Fertility",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Fertilidad"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Silba el Viento",
+  "pag": "HoH:S 105",
+  "en": "Whistle Up The Wind",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Silbo de viento"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Guarda",
+  "pag": "HoH:S 112",
+  "en": "Warding",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Custodia"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Desaparecer",
+  "pag": "HoH:S 118",
+  "en": "Banishing",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Destierro"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Herboristería mítica",
+  "pag": "HoH:S 125",
+  "en": "Mythic Herbalism",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Herbología mítica"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Comprender Magia",
+  "pag": "HoH:S 128",
+  "en": "Comprehend Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Comprensión mágica"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Sihr",
+  "pag": "HoH:S 135-136",
+  "en": "",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Siḥr"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Canción de Sirena",
+  "pag": "HoH:S 139",
+  "en": "Siren Song",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Canto de sirena"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Magia Circular/Anillo",
+  "pag": "HoH:S 113",
+  "en": "Ring/Circle Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia anular"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Magia de Orfeo",
+  "pag": "HoH:S 122",
+  "en": "Orphic Magic",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Magia órfica"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Cortarraíces",
+  "pag": "HoH:S 126",
+  "en": "Root-Cutter",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Estaquillar"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Foco de Hechizos",
+  "pag": "HoH:S 132",
+  "en": "Spell Foci",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Foci de hechizos"
+ },
+ {
+  "ab": "HoH:S",
+  "es": "Vulnerable a la Tradición",
+  "pag": "HoH:S 107",
+  "en": "Vulnerable to Folk Tradition",
+  "tipo": "General",
+  "valor": "Mayor",
+  "nuevo": "Vulnerable a los remedios populares"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Devoto de un espíritu",
+  "pag": "RoP:M 88",
+  "en": "Spirit Votary",
+  "tipo": "Especial",
+  "valor": "Especial",
+  "nuevo": "Devoto de los espíritus"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Poder de foco",
+  "pag": "RoP:M 44",
+  "en": "Focus Power",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Poder focalizado"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Inmunidad mayor (privación)",
+  "pag": "RoP:M 44",
+  "en": "Greater Immunity (Deprivation)",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Inmunidad mayor (Carencias)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Transformado (Ser)",
+  "pag": "RoP:M 47",
+  "en": "Transformed (Being)",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "(Ser) transformado"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Inmune al Don",
+  "pag": "RoP:M 47",
+  "en": "Unaffected by The Gift",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Indiferente al don"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Extractor de vis de (Forma)",
+  "pag": "RoP:M 43",
+  "en": "Extractor of (Form) Vis",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Extractor de vis (Forma)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Imbuido del Espíritu de (Forma)",
+  "pag": "RoP:M 44",
+  "en": "Imbued with the Spirit of (Form)",
+  "tipo": "Hermética",
+  "valor": "Menor",
+  "nuevo": "Imbuido con el espíritu de (Forma)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Red de regiones (de un terreno)",
+  "pag": "RoP:M 45",
+  "en": "(Land) Regio Network",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Red de regiones de (Tipo de Terreno)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Amo de las criaturas de (Forma)",
+  "pag": "RoP:M 46",
+  "en": "Master of (Form) Creatures",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Señor de las criaturas de (Forma)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "(Forma) Monstruosa",
+  "pag": "RoP:M 48-49",
+  "en": "(Form) Monstrosity",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Monstruosidad de (Forma)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Aire mágico flagrante",
+  "pag": "RoP:M 47",
+  "en": "Blatant Magical Air",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Aire mágico estridente"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Anclado al (Terreno)",
+  "pag": "RoP:M 47",
+  "en": "Anchored to the (Land)",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Anclado a (Tipo de Terreno)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Circunstancias desfavorables",
+  "pag": "RoP:M 47",
+  "en": "Baneful Circumstances",
+  "tipo": "Sobrenatural",
+  "valor": "Menor",
+  "nuevo": "Circunstancias funestas"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Concentración Pobre",
+  "pag": "RoP:M 50",
+  "en": "Poor Concentration",
+  "tipo": "General",
+  "valor": "Menor",
+  "nuevo": "Falta de concentración"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Hambriento de Magia (Forma)",
+  "pag": "RoP:M 49",
+  "en": "Hunger for (Form) Magic",
+  "tipo": "Sobrenatural",
+  "valor": "Mayor",
+  "nuevo": "Sediento de la magia de (Forma)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Sirviente del (Terreno)",
+  "pag": "RoP:M 50",
+  "en": "Servant of the (Land)",
+  "tipo": "Historia",
+  "valor": "Mayor",
+  "nuevo": "Siervo de (Tipo de Terreno)"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Compañero (ser mágico)",
+  "pag": "RoP:M 49",
+  "en": "Magical (Being) Companion",
+  "tipo": "Historia",
+  "valor": "Menor",
+  "nuevo": "Compañero (Ser) mágico"
+ },
+ {
+  "ab": "RoP:M",
+  "es": "Sentidos deformados",
+  "pag": "RoP:M 50-51",
+  "en": "Warped Senses",
+  "tipo": "Personalidad",
+  "valor": "Menor",
+  "nuevo": "Sentidos informes"
  }
 ]

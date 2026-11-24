@@ -60,7 +60,7 @@ LIBROS = {
 # sin PDF propio con la abreviatura de otra hoja: «Grogs» y «Gr» son el mismo libro
 # libros que casa y rellena libros_castellano.py (el compendio los tenía con nombres traducidos por nuestra cuenta): esta
 # herramienta y descripciones_libros.py no recalculan sus páginas ni sus textos, para no deshacer lo casado
-PROPIOS = {'HoH:TL', 'TdI', 'HoH:MC', 'TMRE'}
+PROPIOS = {'HoH:TL', 'TdI', 'HoH:MC', 'TMRE', 'HoH:S', 'RoP:M'}
 
 
 def ruta_es(ab):
