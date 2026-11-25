@@ -79,10 +79,14 @@ function renderSagaSide() {
     const m = h('ul', null, h('li', null, docLink('#master', SVG.master, 'Pantalla del máster', /^master(--|$)/.test(raw) && raw !== 'master--tribunales', auraTxt(auraNow().tipo, auraNow().nivel))));
     const hidden = tribHidden(), tl = h('ul');
     TRIBUNALES.filter(([k]) => !hidden.has(k)).forEach(([k, n]) => {
-      const L = covenantsOf(k);
-      const sub = h('ul', null, L.map(c => h('li', null, h('a', { class: 't-doc t-pj', href: c.href, 'aria-current': c._id && raw === 'alianza--' + c._id ? 'page' : null, text: c.n }))));
+      const L = covenantsOf(k), vivas = L.filter(c => !c.ruinas), ruinas = L.filter(c => c.ruinas);
+      const es = c => c._id && (raw === 'alianza--' + c._id || raw.startsWith('alianza--' + c._id + '--'));
+      const li = c => h('li', null, h('a', { class: 't-doc t-pj', href: c.href, 'aria-current': es(c) ? 'page' : null, text: c.n }));
+      const sub = h('ul', null, vivas.map(li));
+      // the ruined covenants of the books, in their own fold
+      if (ruinas.length) sub.appendChild(foldLi('trib-' + k + '-ruinas', groupLabel('', 'En ruinas · ' + ruinas.length), h('ul', null, ruinas.map(li)), ruinas.some(es)));
       if (!L.length) sub.appendChild(h('li', { class: 't-none', text: 'Sin alianzas' }));
-      tl.appendChild(foldLi('trib-' + k, groupLabel('', n.replace(/^(el|los) /, '') + (L.length ? ' · ' + L.length : '')), sub, false));
+      tl.appendChild(foldLi('trib-' + k, groupLabel('', n.replace(/^(el|los) /, '') + (vivas.length ? ' · ' + vivas.length : '')), sub, L.some(es)));
     });
     tl.appendChild(h('li', null, h('a', { class: 't-doc t-more', href: '#master--tribunales', 'aria-current': raw === 'master--tribunales' ? 'page' : null,
       text: hidden.size ? 'Elegir tribunales (' + hidden.size + (hidden.size === 1 ? ' oculto)' : ' ocultos)') : 'Ocultar tribunales y añadir alianzas' })));

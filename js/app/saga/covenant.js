@@ -2,7 +2,7 @@
    cada Tribunal (alianzas/{id}), que añade el máster. Los Tribunales son los trece de la Orden en 1220 (ArM5 cap. 1); la
    alianza de la saga está en el suyo (saga/estado → tribunal; Arazas, en Iberia) y el máster puede ocultar los que no use
    (saga/estado → tribOcultos). */
-import { DOCS, h, LIBROS } from '../base.js';
+import { DOCS, h, LIBROS, scrollHint } from '../base.js';
 import { page } from '../views.js';
 import { S, SEASONS, tkey } from './state.js';
 import { confirmButton, datalist, dbWrite, field, inp, localDel, localPut, openModal, pjsSorted, sagaChanged, sagaCrumbs, seasonPicker, sel, stamp, statusNote, toast } from './core.js';
@@ -37,7 +37,7 @@ const bookOf = n => bookCovs().find(b => normName(b.n) === normName(n)) || null;
 function covenantsOf(k) {
   const L = Object.keys(S.al).map(id => Object.assign({ _id: id, href: '#alianza--' + id }, S.al[id])).filter(a => a.tribunal === k);
   const own = new Set(L.map(a => normName(a.n)).concat(sagaTrib() === k ? [normName(sagaCov().n)] : []));
-  bookCovs().filter(b => b.trib === k && !own.has(normName(b.n))).forEach(b => L.push({ _id: 'l-' + b.id, href: '#alianza--l-' + b.id, n: b.n, libro: b.ab }));
+  bookCovs().filter(b => b.trib === k && !own.has(normName(b.n))).forEach(b => L.push({ _id: 'l-' + b.id, href: '#alianza--l-' + b.id, n: b.n, libro: b.ab, ruinas: !!b.estado }));
   L.sort((a, b) => String(a.n || '').localeCompare(String(b.n || ''), 'es'));
   return (sagaTrib() === k ? [sagaCov()] : []).concat(L);
 }
@@ -122,9 +122,9 @@ function openCroEditor(id) {
 }
 
 /* ---------- other covenants */
-function viewAlianza(id) {
+function viewAlianza(id, tab) {
   page.innerHTML = '';
-  if (String(id).startsWith('l-')) { viewBookCov(id.slice(2)); return; }
+  if (String(id).startsWith('l-')) { viewBookCov(id.slice(2), tab); return; }
   const a = S.al[id];
   page.appendChild(sagaCrumbs([['Alianzas', canWrite() && S.owner === true ? '#master--tribunales' : null], [a ? a.n : 'Alianza', null]]));
   const content = h('div', { class: 'content' });
@@ -137,40 +137,44 @@ function viewAlianza(id) {
   page.appendChild(h('h1', { class: 'doc-title', text: a.n }));
   document.title = a.n + ' — Europa Mítica';
   page.appendChild(h('div', { class: 'doc-meta' }, [h('span', { text: tribTitle(a.tribunal) }), a.fundada ? h('span', { text: 'Fundada en ' + a.fundada }) : null, a.estacion ? h('span', { text: 'Estación de ' + a.estacion.toLowerCase() }) : null]));
-  if (canWrite() && S.owner === true) page.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => openAlEditor(id) }, 'Editar')));
-  String(a.notas || '').split(/\n{2,}/).filter(p => p.trim()).forEach(p => content.appendChild(h('p', { text: p.trim() })));
   const b = bookOf(a.n);
-  if (!String(a.notas || '').trim() && !b) content.appendChild(h('p', { class: 'note', text: 'Sin notas todavía.' }));
-  if (b) content.appendChild(bookCovBody(b));
+  const acts = [canWrite() && S.owner === true ? h('button', { type: 'button', class: 'btn ghost', onclick: () => openAlEditor(id) }, 'Editar') : null,
+    b ? h('a', { class: 'btn ghost', href: '#alianza--l-' + b.id, text: 'La alianza en ' + libroTit(b.ab) }) : null].filter(Boolean);
+  if (acts.length) page.appendChild(h('div', { class: 'actions' }, acts));
+  String(a.notas || '').split(/\n{2,}/).filter(p => p.trim()).forEach(p => content.appendChild(h('p', { text: p.trim() })));
+  if (!String(a.notas || '').trim()) content.appendChild(h('p', { class: 'note', text: b ? 'Sin notas de la saga todavía: su ficha, su descripción y sus magi, en el libro (el botón de arriba).' : 'Sin notas todavía.' }));
   page.appendChild(content);
 }
 
-/* a covenant of a Tribunal book: where it is in the book, and its magi with their sheets */
+/* a covenant of a Tribunal book (data/alianzas.json): the tabs Ficha (what the book says of it: its box in Iberia and Rome, what its
+   text says in the others), Descripción (its text in the book) and Magi (each with its text and its sheet). The texts are one file per
+   book (data/alianzas/<libro>.json), fetched the first time one of its covenants is opened. */
+const TEXTOS = {}, TEXTOS_P = {};
+function bookTexts(ab) {
+  const f = BOOK && BOOK.libros[ab] && BOOK.libros[ab].f;
+  if (!f) return null;
+  if (!TEXTOS_P[ab]) TEXTOS_P[ab] = fetch('data/alianzas/' + f + '.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => { TEXTOS[ab] = d; sagaChanged(); }).catch(() => { TEXTOS_P[ab] = null; });
+  return TEXTOS[ab] || null;
+}
+const libroTit = ab => ((BOOK && BOOK.libros[ab]) || { t: ab }).t;
+const ESCANEADO = new Set(['ToH:R']);   // tercera edición, escaneada: el texto tiene errores de reconocimiento
 function bookRef(ab, p, text) {
   const bk = LIBROS.libros[ab], info = (BOOK && BOOK.libros[ab]) || { t: ab, idi: 'en' };
   const url = bk && (info.idi === 'es' ? bk.es : bk.en);
   return url ? h('a', { class: 'ref-a', href: url + '#page=' + p, target: '_blank', rel: 'noopener', title: 'Abrir «' + info.t + '» en la página ' + p + ' del PDF', text: text })
     : h('span', { text: text });
 }
-function bookCovBody(b) {
-  const box = h('div', { class: 'bal' });
-  const info = (BOOK && BOOK.libros[b.ab]) || { t: b.ab };
-  box.appendChild(h('p', { class: 'bal-src' }, ['Del libro ', h('i', { text: info.t }), ', ', bookRef(b.ab, b.p, 'página ' + b.p + ' del PDF'), '.']));
-  if (!b.magos.length) { box.appendChild(h('p', { class: 'note', text: 'El libro no da sus magi con nombre propio en un encabezado: mira la sección de la alianza en el PDF.' })); return box; }
-  const nf = b.magos.filter(m => m.ficha).length;
-  box.appendChild(h('h2', { class: 'bal-h', text: 'Magi' + ' · ' + b.magos.length + (nf ? ' (' + nf + (nf === 1 ? ' con ficha)' : ' con ficha)') : '') }));
-  const ul = h('ul', { class: 'bal-l' });
-  b.magos.forEach(m => {
-    const head = [h('b', { class: 'bal-n', text: m.n }), m.casa ? h('span', { class: 'vtag', text: m.casa }) : null, m.cargo ? h('span', { class: 'bal-c', text: m.cargo }) : null,
-      h('span', { class: 'bal-p' }, bookRef(b.ab, m.p, 'p. ' + m.p))];
-    ul.appendChild(h('li', { class: 'bal-m' }, m.ficha
-      ? h('details', null, [h('summary', null, head.concat(h('span', { class: 'bal-f', text: 'Ficha' }))), h('div', { class: 'bal-ficha', text: m.ficha })])
-      : h('div', { class: 'bal-row' }, head)));
+const paginas = b => b.pf && b.pf !== b.p ? 'páginas ' + b.p + '–' + b.pf : 'página ' + b.p;
+function textoLibro(bls) {
+  const out = [];
+  (bls || []).forEach(([hd, ps]) => {
+    if (hd) out.push(h('h3', { class: 'bal-sh', text: hd }));
+    ps.forEach(p => out.push(h('p', { text: p })));
   });
-  box.appendChild(ul);
-  return box;
+  return out;
 }
-function viewBookCov(id) {
+function viewBookCov(id, tab) {
   bookCovs();
   const b = BOOK && BOOK.alianzas.find(x => x.id === id);
   page.appendChild(sagaCrumbs([['Alianzas', canWrite() && S.owner === true ? '#master--tribunales' : null], [b ? b.n : 'Alianza', null]]));
@@ -181,11 +185,52 @@ function viewBookCov(id) {
     page.appendChild(content);
     return;
   }
+  const sheets = [['ficha', 'Ficha'], ['descripcion', 'Descripción']].concat(b.magos.length ? [['magi', 'Magi · ' + b.magos.length]] : []);
+  const cur = sheets.some(s => s[0] === tab) ? tab : 'ficha';
+  const curT = sheets.find(s => s[0] === cur)[1];
   page.appendChild(h('h1', { class: 'doc-title', text: b.n }));
-  document.title = b.n + ' — Europa Mítica';
-  page.appendChild(h('div', { class: 'doc-meta' }, [h('span', { text: tribTitle(b.trib) }), h('span', { text: ((BOOK.libros[b.ab] || {}).t || b.ab) })]));
-  content.appendChild(bookCovBody(b));
+  document.title = b.n + (cur !== 'ficha' ? ' · ' + curT.replace(/ · \d+$/, '') : '') + ' — Europa Mítica';
+  page.appendChild(h('div', { class: 'doc-meta' }, [h('span', { text: tribTitle(b.trib) }), h('span', { text: libroTit(b.ab) }), b.estado ? h('span', { text: 'En ruinas' }) : null]));
+  const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de ' + b.n },
+    sheets.map(([k, t]) => h('a', { class: 'tab', href: '#alianza--l-' + b.id + (k === 'ficha' ? '' : '--' + k), 'aria-current': k === cur ? 'page' : null, text: t })));
+  page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
+  scrollHint(tabs, tabs.querySelector('[aria-current="page"]'));
   page.appendChild(content);
+  content.appendChild(h('h2', { class: 'sheet-h', text: curT.replace(/ · \d+$/, '') }));
+  const T = bookTexts(b.ab), t = T && T[b.id];
+  const fuente = ['De ', h('i', { text: libroTit(b.ab) }), ', ', bookRef(b.ab, b.p, paginas(b) + ' del PDF'), '.'];
+  if (cur === 'ficha') {
+    const dl = h('dl', { class: 'kv' });
+    b.ficha.forEach(([k, v]) => { dl.appendChild(h('dt', { text: k })); dl.appendChild(h('dd', { text: v })); });
+    dl.appendChild(h('dt', { text: 'Libro' }));
+    dl.appendChild(h('dd', null, [h('i', { text: libroTit(b.ab) }), ', ', bookRef(b.ab, b.p, paginas(b) + ' del PDF')]));
+    content.appendChild(dl);
+    content.appendChild(h('p', { class: 'note bal-nota', text: b.ab === 'TdI' ? 'La ficha es el recuadro de la alianza en el libro.'
+      : ESCANEADO.has(b.ab) ? 'La ficha es el recuadro de la alianza en el libro (tercera edición, escaneada: puede tener errores de reconocimiento).'
+      : 'La estación, el año de fundación, el aura, la domus magna y el espíritu patrón salen del texto del libro cuando lo dice; si falta alguno, el libro no lo da de forma explícita.' }));
+    return;
+  }
+  if (!t) { content.appendChild(h('p', { class: 'note', text: TEXTOS_P[b.ab] ? 'Cargando los textos del libro…' : 'No se han podido cargar los textos del libro.' })); return; }
+  if (ESCANEADO.has(b.ab)) content.appendChild(h('p', { class: 'note bal-nota', text: 'Texto del escaneado de la tercera edición: tiene errores de reconocimiento y algún párrafo de la columna de al lado. Ante la duda, abre el PDF.' }));
+  if (cur === 'descripcion') {
+    content.appendChild(h('p', { class: 'bal-src' }, fuente));
+    const ps = textoLibro(t.desc);
+    if (ps.length) ps.forEach(n => content.appendChild(n));
+    else content.appendChild(h('p', { class: 'note', text: 'Sin texto: mira la página del libro.' }));
+    return;
+  }
+  // magi: cada uno con su texto y su ficha
+  content.appendChild(h('p', { class: 'bal-src' }, fuente));
+  b.magos.forEach((m, i) => {
+    const x = t.magos[i] || { t: [], f: '' };
+    const sec = h('section', { class: 'bal-mago' }, [
+      h('div', { class: 'bal-mh' }, [h('h3', { class: 'bal-n', text: m.n }), m.casa ? h('span', { class: 'vtag', text: m.casa }) : null,
+        m.cargo ? h('span', { class: 'bal-c', text: m.cargo }) : null, m.p ? h('span', { class: 'bal-p' }, bookRef(b.ab, m.p, 'p. ' + m.p)) : null])]);
+    textoLibro(x.t).forEach(n => sec.appendChild(n));
+    if (x.f) sec.appendChild(h('details', { class: 'bal-fd', open: !x.t.length ? true : null }, [h('summary', { text: 'Ficha' }), h('div', { class: 'bal-ficha', text: x.f })]));
+    if (!x.t.length && !x.f) sec.appendChild(h('p', { class: 'note', text: 'El libro solo lo nombra aquí: mira su página.' }));
+    content.appendChild(sec);
+  });
 }
 function openAlEditor(id, trib) {
   const ex = id ? S.al[id] : null;
@@ -247,8 +292,11 @@ function masterTribunales() {
     const L = covenantsOf(k);
     if (!L.length) return;
     list.appendChild(h('h3', { class: 'm-sub', text: tribTitle(k) + (hidden.has(k) ? ' · oculto en el índice' : '') }));
-    list.appendChild(h('ul', { class: 'm-cov-l' }, L.map(a => h('li', null, [h('a', { class: 'lnk', href: a.href, text: a.n }), a.propia ? h('small', { text: ' · la alianza de la saga' })
-      : a.libro ? h('small', { text: ' · ' + a.libro }) : can ? h('button', { type: 'button', class: 'lnk', onclick: () => openAlEditor(a._id) }, ' Editar') : null]))));
+    const li = a => h('li', null, [h('a', { class: 'lnk', href: a.href, text: a.n }), a.propia ? h('small', { text: ' · la alianza de la saga' })
+      : a.libro ? h('small', { text: ' · ' + a.libro }) : can ? h('button', { type: 'button', class: 'lnk', onclick: () => openAlEditor(a._id) }, ' Editar') : null]);
+    list.appendChild(h('ul', { class: 'm-cov-l' }, L.filter(a => !a.ruinas).map(li)));
+    const R = L.filter(a => a.ruinas);
+    if (R.length) list.appendChild(h('details', { class: 'm-ruinas' }, [h('summary', { text: 'En ruinas o desaparecidas · ' + R.length }), h('ul', { class: 'm-cov-l' }, R.map(li))]));
   });
   sec.appendChild(list);
   return sec;

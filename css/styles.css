@@ -907,7 +907,17 @@ table.mini .note { font-size: 14.5px; }
 .bal-c { color: var(--ink-2); font-style: italic; }
 .bal-p { margin-left: auto; font: 400 12.5px/1 var(--f-ui); }
 .bal-f { font: 500 10.5px/1.2 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 99px; padding: 3px 7px; }
-.bal-ficha { white-space: pre-wrap; font: 400 14px/1.5 var(--f-body); background: var(--card); border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; }
+.bal-sh { font: 500 13px/1.3 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--blood-ink); margin: 22px 0 6px; }
+.bal-nota { margin-top: 14px; }
+.bal-mago { padding: 6px 0 14px; border-bottom: 1px solid var(--rule-2); }
+.bal-mago + .bal-mago { margin-top: 10px; }
+.bal-mh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 8px 0 4px; }
+.bal-mh h3 { margin: 0; font: 500 21px/1.25 var(--f-head); }
+.bal-fd summary { cursor: pointer; font: 500 12px/1 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); padding: 8px 0; }
+.bal-fd summary:hover { color: var(--blood-ink); }
+.m-ruinas { margin: 4px 0 10px; }
+.m-ruinas summary { cursor: pointer; font: 500 12.5px/1.4 var(--f-ui); color: var(--ink-2); }
+.bal-ficha { white-space: pre-wrap; overflow-wrap: anywhere; font: 400 14px/1.5 var(--f-body); background: var(--card); border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; }
 /* the master's formulas */
 .fo-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .fo-q { flex: 1 1 260px; min-width: 0; font: 400 15px/1.3 var(--f-ui); padding: 9px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); color: var(--ink); }

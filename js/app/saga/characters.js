@@ -514,7 +514,7 @@ function sagaRoute(raw) {
   if (raw === 'personajes') { viewCharacters(); return true; }
   if (raw === 'armeria') { viewArmeria(); return true; }
   if (raw === 'cronica') { viewCronica(); return true; }
-  if (raw.startsWith('alianza--')) { viewAlianza(raw.split('--')[1]); return true; }
+  if (raw.startsWith('alianza--')) { const p = raw.split('--'); viewAlianza(p[1], p[2]); return true; }
   if (raw === 'master' || raw.startsWith('master--')) { viewMaster(raw.split('--')[1]); return true; }
   if (raw === 'hb' || raw.startsWith('hb--')) { const p = raw.split('--'); viewHb(p[1], p[2]); return true; }
   if (raw.startsWith('hbal--')) { const p = raw.split('--'); viewCov(p[1], p[2]); return true; }
