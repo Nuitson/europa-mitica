@@ -892,6 +892,22 @@ table.mini .note { font-size: 14.5px; }
 .hb-tog-i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-size: 12px; line-height: 1; color: var(--ink-2); }
 .hb-tog[aria-pressed="true"] { border-color: var(--blood); background: color-mix(in srgb, var(--blood) 9%, transparent); }
 .hb-tog[aria-pressed="true"] .hb-tog-i { background: var(--blood); border-color: var(--blood); color: #fff; }
+/* the covenants of the Tribunal books and their magi */
+.bal { display: flex; flex-direction: column; gap: 10px; }
+.bal-src { color: var(--ink-2); }
+.bal-h { margin: 10px 0 0; }
+.bal-l { list-style: none; margin: 0; padding: 0; }
+.bal-m { border-bottom: 1px dotted var(--rule-2); }
+.bal-row, .bal-m summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 9px 0; }
+.bal-m summary { cursor: pointer; list-style: none; }
+.bal-m summary::-webkit-details-marker { display: none; }
+.bal-m summary::before { content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); margin-right: 2px; color: var(--ink-3); align-self: center; }
+.bal-m details[open] summary::before { transform: rotate(45deg); }
+.bal-n { font-weight: 600; }
+.bal-c { color: var(--ink-2); font-style: italic; }
+.bal-p { margin-left: auto; font: 400 12.5px/1 var(--f-ui); }
+.bal-f { font: 500 10.5px/1.2 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 99px; padding: 3px 7px; }
+.bal-ficha { white-space: pre-wrap; font: 400 14px/1.5 var(--f-body); background: var(--card); border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; }
 /* the master's formulas */
 .fo-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .fo-q { flex: 1 1 260px; min-width: 0; font: 400 15px/1.3 var(--f-ui); padding: 9px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); color: var(--ink); }

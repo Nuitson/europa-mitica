@@ -2,10 +2,10 @@
    cada Tribunal (alianzas/{id}), que añade el máster. Los Tribunales son los trece de la Orden en 1220 (ArM5 cap. 1); la
    alianza de la saga está en el suyo (saga/estado → tribunal; Arazas, en Iberia) y el máster puede ocultar los que no use
    (saga/estado → tribOcultos). */
-import { DOCS, h } from '../base.js';
+import { DOCS, h, LIBROS } from '../base.js';
 import { page } from '../views.js';
 import { S, SEASONS, tkey } from './state.js';
-import { confirmButton, datalist, dbWrite, field, inp, localDel, localPut, openModal, pjsSorted, sagaCrumbs, seasonPicker, sel, stamp, statusNote, toast } from './core.js';
+import { confirmButton, datalist, dbWrite, field, inp, localDel, localPut, openModal, pjsSorted, sagaChanged, sagaCrumbs, seasonPicker, sel, stamp, statusNote, toast } from './core.js';
 import { canWrite, curSeason, numv, skey, sname } from './rules.js';
 import { writeEstado } from './seasons.js';
 
@@ -22,10 +22,23 @@ function sagaCov() {
   const doc = Object.values(DOCS).find(d => d.saga && d.kind === 'alianza' && /ficha/i.test(d.id + ' ' + d.title)) || Object.values(DOCS).find(d => d.saga && d.kind === 'alianza');
   return { n: n, href: doc ? '#' + doc.id : '#saga', propia: true };
 }
-/* the covenants of a Tribunal: the saga's own first, then the master's, by name */
+/* the covenants of the Tribunal books (data/alianzas.json, made by herramientas/alianzas_libros.py): with their magi and, when the
+   book has it, each magus's sheet. Loaded once, the first time the Tribunals are drawn; then everything is redrawn. */
+let BOOK = null, BOOK_P = null;
+const normName = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function bookCovs() {
+  if (!BOOK_P) BOOK_P = fetch('data/alianzas.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => { BOOK = d; sagaChanged(); }).catch(() => { BOOK_P = null; });
+  return BOOK ? BOOK.alianzas : [];
+}
+const bookOf = n => bookCovs().find(b => normName(b.n) === normName(n)) || null;
+/* the covenants of a Tribunal: the saga's own first, then the master's and the books', by name (one added by the master with a
+   book covenant's name is that one, with the book's magi) */
 function covenantsOf(k) {
-  const L = Object.keys(S.al).map(id => Object.assign({ _id: id, href: '#alianza--' + id }, S.al[id])).filter(a => a.tribunal === k)
-    .sort((a, b) => String(a.n || '').localeCompare(String(b.n || ''), 'es'));
+  const L = Object.keys(S.al).map(id => Object.assign({ _id: id, href: '#alianza--' + id }, S.al[id])).filter(a => a.tribunal === k);
+  const own = new Set(L.map(a => normName(a.n)).concat(sagaTrib() === k ? [normName(sagaCov().n)] : []));
+  bookCovs().filter(b => b.trib === k && !own.has(normName(b.n))).forEach(b => L.push({ _id: 'l-' + b.id, href: '#alianza--l-' + b.id, n: b.n, libro: b.ab }));
+  L.sort((a, b) => String(a.n || '').localeCompare(String(b.n || ''), 'es'));
   return (sagaTrib() === k ? [sagaCov()] : []).concat(L);
 }
 
@@ -111,6 +124,7 @@ function openCroEditor(id) {
 /* ---------- other covenants */
 function viewAlianza(id) {
   page.innerHTML = '';
+  if (String(id).startsWith('l-')) { viewBookCov(id.slice(2)); return; }
   const a = S.al[id];
   page.appendChild(sagaCrumbs([['Alianzas', canWrite() && S.owner === true ? '#master--tribunales' : null], [a ? a.n : 'Alianza', null]]));
   const content = h('div', { class: 'content' });
@@ -125,7 +139,52 @@ function viewAlianza(id) {
   page.appendChild(h('div', { class: 'doc-meta' }, [h('span', { text: tribTitle(a.tribunal) }), a.fundada ? h('span', { text: 'Fundada en ' + a.fundada }) : null, a.estacion ? h('span', { text: 'Estación de ' + a.estacion.toLowerCase() }) : null]));
   if (canWrite() && S.owner === true) page.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => openAlEditor(id) }, 'Editar')));
   String(a.notas || '').split(/\n{2,}/).filter(p => p.trim()).forEach(p => content.appendChild(h('p', { text: p.trim() })));
-  if (!String(a.notas || '').trim()) content.appendChild(h('p', { class: 'note', text: 'Sin notas todavía.' }));
+  const b = bookOf(a.n);
+  if (!String(a.notas || '').trim() && !b) content.appendChild(h('p', { class: 'note', text: 'Sin notas todavía.' }));
+  if (b) content.appendChild(bookCovBody(b));
+  page.appendChild(content);
+}
+
+/* a covenant of a Tribunal book: where it is in the book, and its magi with their sheets */
+function bookRef(ab, p, text) {
+  const bk = LIBROS.libros[ab], info = (BOOK && BOOK.libros[ab]) || { t: ab, idi: 'en' };
+  const url = bk && (info.idi === 'es' ? bk.es : bk.en);
+  return url ? h('a', { class: 'ref-a', href: url + '#page=' + p, target: '_blank', rel: 'noopener', title: 'Abrir «' + info.t + '» en la página ' + p + ' del PDF', text: text })
+    : h('span', { text: text });
+}
+function bookCovBody(b) {
+  const box = h('div', { class: 'bal' });
+  const info = (BOOK && BOOK.libros[b.ab]) || { t: b.ab };
+  box.appendChild(h('p', { class: 'bal-src' }, ['Del libro ', h('i', { text: info.t }), ', ', bookRef(b.ab, b.p, 'página ' + b.p + ' del PDF'), '.']));
+  if (!b.magos.length) { box.appendChild(h('p', { class: 'note', text: 'El libro no da sus magi con nombre propio en un encabezado: mira la sección de la alianza en el PDF.' })); return box; }
+  const nf = b.magos.filter(m => m.ficha).length;
+  box.appendChild(h('h2', { class: 'bal-h', text: 'Magi' + ' · ' + b.magos.length + (nf ? ' (' + nf + (nf === 1 ? ' con ficha)' : ' con ficha)') : '') }));
+  const ul = h('ul', { class: 'bal-l' });
+  b.magos.forEach(m => {
+    const head = [h('b', { class: 'bal-n', text: m.n }), m.casa ? h('span', { class: 'vtag', text: m.casa }) : null, m.cargo ? h('span', { class: 'bal-c', text: m.cargo }) : null,
+      h('span', { class: 'bal-p' }, bookRef(b.ab, m.p, 'p. ' + m.p))];
+    ul.appendChild(h('li', { class: 'bal-m' }, m.ficha
+      ? h('details', null, [h('summary', null, head.concat(h('span', { class: 'bal-f', text: 'Ficha' }))), h('div', { class: 'bal-ficha', text: m.ficha })])
+      : h('div', { class: 'bal-row' }, head)));
+  });
+  box.appendChild(ul);
+  return box;
+}
+function viewBookCov(id) {
+  bookCovs();
+  const b = BOOK && BOOK.alianzas.find(x => x.id === id);
+  page.appendChild(sagaCrumbs([['Alianzas', canWrite() && S.owner === true ? '#master--tribunales' : null], [b ? b.n : 'Alianza', null]]));
+  const content = h('div', { class: 'content' });
+  if (!b) {
+    page.appendChild(h('h1', { class: 'doc-title', text: 'Alianza' }));
+    content.appendChild(h('p', { class: 'note', text: BOOK ? 'Esta alianza no está en los libros.' : 'Cargando las alianzas de los libros…' }));
+    page.appendChild(content);
+    return;
+  }
+  page.appendChild(h('h1', { class: 'doc-title', text: b.n }));
+  document.title = b.n + ' — Europa Mítica';
+  page.appendChild(h('div', { class: 'doc-meta' }, [h('span', { text: tribTitle(b.trib) }), h('span', { text: ((BOOK.libros[b.ab] || {}).t || b.ab) })]));
+  content.appendChild(bookCovBody(b));
   page.appendChild(content);
 }
 function openAlEditor(id, trib) {
@@ -165,7 +224,7 @@ function saveModal(title, col, key, id, ex, body, build) {
 function masterTribunales() {
   const sec = h('section', { class: 'm-sec', 'aria-labelledby': 'm-tr-h' });
   sec.appendChild(h('h2', { class: 'm-h', id: 'm-tr-h', text: 'Tribunales y alianzas' }));
-  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Los Tribunales salen en el índice, en la sección del máster, con sus alianzas dentro. Oculta los que no uses en la saga y añade las alianzas que aparezcan.' }));
+  sec.appendChild(h('p', { class: 'doc-blurb', text: 'Los Tribunales salen en el índice, en la sección del máster, con sus alianzas dentro: las de los libros de Tribunales (con sus magi y sus fichas) y las que añadas. Oculta los que no uses en la saga.' }));
   const hidden = tribHidden(), can = canWrite();
   sec.appendChild(field('Tribunal de la alianza de la saga', sel(TRIBUNALES, sagaTrib(), v => { writeEstado({ tribunal: v }, sagaCov().n + ': ' + tribTitle(v)); }, { disabled: can ? null : true, style: 'max-width:320px' })));
   const row = h('div', { class: 'hb-row m-trib', role: 'group', 'aria-label': 'Tribunales que salen en el índice' });
@@ -188,7 +247,8 @@ function masterTribunales() {
     const L = covenantsOf(k);
     if (!L.length) return;
     list.appendChild(h('h3', { class: 'm-sub', text: tribTitle(k) + (hidden.has(k) ? ' · oculto en el índice' : '') }));
-    list.appendChild(h('ul', { class: 'm-cov-l' }, L.map(a => h('li', null, [h('a', { class: 'lnk', href: a.href, text: a.n }), a.propia ? h('small', { text: ' · la alianza de la saga' }) : can ? h('button', { type: 'button', class: 'lnk', onclick: () => openAlEditor(a._id) }, ' Editar') : null]))));
+    list.appendChild(h('ul', { class: 'm-cov-l' }, L.map(a => h('li', null, [h('a', { class: 'lnk', href: a.href, text: a.n }), a.propia ? h('small', { text: ' · la alianza de la saga' })
+      : a.libro ? h('small', { text: ' · ' + a.libro }) : can ? h('button', { type: 'button', class: 'lnk', onclick: () => openAlEditor(a._id) }, ' Editar') : null]))));
   });
   sec.appendChild(list);
   return sec;
