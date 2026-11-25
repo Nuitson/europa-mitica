@@ -29,6 +29,16 @@ const tipoTxt = d => d.clase + ' ' + (d.valor || '').toLowerCase() + ' de ' + d.
 const artesDe = D => D.tecnicas.concat(D.formas);
 /* los ajustes que dependen de algo («+(Inteligencia + Teoría Mágica del ayudante) Calidad General»): [[texto, Característica]] */
 const variables = d => (d.var || []).map(t => /^\+\((.+)\) (Calidad General|Seguridad)$/.exec(t)).filter(Boolean).map(m => [m[1], m[2]]);
+/* Calefacción Mágica e Iluminación Mágica funcionan como la de Calidad o la Excesiva (x.alt), sin su Mantenimiento ni su sitio */
+const COMO = { 'Calefacción Mágica': ['Calefacción de Calidad', 'Calefacción Excesiva'], 'Iluminación Mágica': ['Iluminación de Calidad', 'Iluminación Excesiva'] };
+const comoDe = x => COMO[x.n].includes(x.alt) ? x.alt : COMO[x.n][0];
+function efectivo(d, x, D) {
+  const b = COMO[d.n] && D.vd.find(v => v.n === comoDe(x));
+  if (!b) return d;
+  const mods = Object.assign({}, b.mods);
+  delete mods['Mantenimiento'];
+  return Object.assign({}, d, { mods: mods, esp: b.esp || [], var: [] });
+}
 
 /* qué Especializaciones puede elegir una Virtud o Defecto para su punto o puntos */
 function opciones(g, x, d, lab, D) {
@@ -51,7 +61,7 @@ function labCalc(lab, D) {
   const car = {};
   D.car.forEach(k => { car[k] = 0; });
   const perf = Math.round(numv(lab.perf));
-  const items = (lab.vd || []).map(x => ({ x: x, d: D.vd.find(v => v.n === x.n) })).filter(o => o.d);
+  const items = (lab.vd || []).map(x => { const d = D.vd.find(v => v.n === x.n); return { x: x, d: d && efectivo(d, x, D) }; }).filter(o => o.d);
   // el Tamaño, con lo que le sumen sus Virtudes (Regio: +3), da el sitio para Virtudes
   const tam = Math.round(numv(lab.tam)) + items.reduce((s, o) => s + (o.d.mods['Tamaño'] || 0), 0);
   let pv = 0, pd = 0;
@@ -150,11 +160,14 @@ function pjLab(content, id, pj) {
   content.appendChild(h('h3', { text: 'Virtudes y defectos' }));
   if ((lab.vd || []).length) {
     content.appendChild(h('ul', { class: 'lab-vd-l' }, lab.vd.map(x => {
-      const d = D && D.vd.find(v => v.n === x.n);
-      const extra = [x.dist ? 'Distintivo: ' + x.dist : '', (x.sel || []).filter(Boolean).length ? 'Especialización: ' + x.sel.filter(Boolean).join(', ') : '', x.nota || ''].filter(Boolean).join(' · ');
+      const d = D && D.vd.find(v => v.n === x.n) && efectivo(D.vd.find(v => v.n === x.n), x, D);
+      const extra = [COMO[x.n] ? 'Como ' + comoDe(x) + ', sin Mantenimiento' : '', x.dist ? 'Distintivo: ' + x.dist : '', (x.sel || []).filter(Boolean).length ? 'Especialización: ' + x.sel.filter(Boolean).join(', ') : '', x.nota || ''].filter(Boolean).join(' · ');
       return h('li', null, [h('b', { text: x.n }), d ? h('span', { class: 'vtag', text: tipoTxt(d) }) : null, d ? h('span', { class: 'lab-ef', text: efectoTxt(d) }) : null, extra ? h('span', { class: 'fh', text: extra }) : null]);
     })));
   } else content.appendChild(h('p', { class: 'note', text: 'Ninguno: un laboratorio estándar.' }));
+  // lo que no sale de la lista (objetos mágicos, o lo que una ficha tenga distinto del libro)
+  const ajustes = [lab.ajuste, lab.espAjuste].map(o => Object.keys(o || {}).filter(k => numv(o[k])).map(k => k + ' ' + fmt(numv(o[k])))).flat();
+  if (ajustes.length) content.appendChild(h('p', { class: 'fh', text: 'Ajustes que no salen de la lista: ' + ajustes.join(', ') + '.' }));
   if (lab.rasgos) { content.appendChild(h('h3', { text: 'Rasgos de personalidad' })); content.appendChild(h('p', { text: lab.rasgos })); }
   if (lab.foco) { content.appendChild(h('h3', { text: 'Distintivos y foco' })); content.appendChild(h('p', { text: lab.foco })); }
   if (lab.desc) { content.appendChild(h('h3', { text: 'Descripción' })); String(lab.desc).split(/\n{2,}/).forEach(p => content.appendChild(h('p', { text: p }))); }
@@ -204,8 +217,9 @@ function openLabEditor(labId, pjId, base) {
       if (!dd) { lista.appendChild(h('div', { class: 'lab-vd' }, [h('b', { text: x.n }), h('span', { class: 'fh', text: 'No está en la lista del libro.' })])); return; }
       const ctl = [];
       if (/^Distintivo/.test(dd.n)) ctl.push(field('Distintivo', sel([['', '— cuál —']].concat(D.distintivos.map(z => [z.n, z.n + ' (' + z.de.join(', ') + ')'])), x.dist || '', v => { x.dist = v; x.sel = []; draw(); })));
+      if (COMO[dd.n]) ctl.push(field('Funciona como', sel(COMO[dd.n].map(v => [v, v + ' (sin Mantenimiento)']), comoDe(x), v => { x.alt = v; draw(); })));
       let si = 0;
-      (dd.esp || []).forEach(g => {
+      (efectivo(dd, x, D).esp || []).forEach(g => {
         if (!g.libre && g.de && g.de.length === 1) return;
         const ops = opciones(g, x, dd, d, D), n = g.libre ? g.v : 1;
         for (let k = 0; k < n; k++) {

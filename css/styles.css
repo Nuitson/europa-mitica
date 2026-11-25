@@ -917,6 +917,14 @@ table.mini .note { font-size: 14.5px; }
 .lab-ch { list-style: none; margin: 0; padding: 0; }
 .lab-ch li { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px dotted var(--rule-2); }
 .lab-ch li > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lab-ch li > div > .vtag { align-self: flex-start; }
+/* the covenant sheet of a saga made in the web (saga/covenant.js: viewSagaCov, openFichaEditor) */
+.fa-rows { display: flex; flex-direction: column; gap: 6px; }
+.fa-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.fa-row input { flex: 1 1 160px; min-width: 0; }
+.fa-row input.fa-n { flex: 0 0 78px; }
+.fa-row input.fa-m { flex: 0 1 130px; }
+.fa-rows > .btn { align-self: flex-start; }
 .lab-ch li .btn, .lab-ch li button { flex: none; }
 .lab-ej-t { color: var(--ink-2); font-size: 14px; }
 /* the covenants of the Tribunal books and their magi */

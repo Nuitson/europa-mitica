@@ -2,11 +2,11 @@
    cada Tribunal (alianzas/{id}), que añade el máster. Los Tribunales son los trece de la Orden en 1220 (ArM5 cap. 1); la
    alianza de la saga está en el suyo (saga/estado → tribunal; Arazas, en Iberia) y el máster puede ocultar los que no use
    (saga/estado → tribOcultos). */
-import { DOCS, h, LIBROS, scrollHint } from '../base.js';
+import { DOCS, h, LIBROS, R, scrollHint } from '../base.js';
 import { page } from '../views.js';
 import { S, SEASONS, tkey } from './state.js';
 import { confirmButton, datalist, dbWrite, field, inp, localDel, localPut, openModal, pjsSorted, sagaChanged, sagaCrumbs, seasonPicker, sel, stamp, statusNote, toast } from './core.js';
-import { canWrite, curSeason, numv, skey, sname } from './rules.js';
+import { canWrite, curSeason, numv, sagaAura, skey, sname } from './rules.js';
 import { writeEstado } from './seasons.js';
 
 const TRIBUNALES = [['hibernia', 'Hibernia'], ['loch-leglean', 'Loch Leglean'], ['stonehenge', 'Stonehenge'], ['normandia', 'Normandía'], ['rin', 'el Rin'],
@@ -16,11 +16,13 @@ const tribName = k => { const t = TRIBUNALES.find(x => x[0] === k); return t ? t
 const tribTitle = k => { const n = tribName(k); return 'Tribunal ' + (/^(el|los) /.test(n) ? n.replace(/^el /, 'del ').replace(/^los /, 'de los ') : 'de ' + n); };
 const sagaTrib = () => (S.estado && S.estado.tribunal) || 'iberia';
 const tribHidden = () => new Set((S.estado && Array.isArray(S.estado.tribOcultos)) ? S.estado.tribOcultos : []);
-/* the saga's own covenant: its name and where it opens (the covenant's sheet in the saga's archive, or the saga's page) */
+/* the covenant's sheet in the saga's archive (Arazas: «Ficha de Arazas»), if it has one */
+function fichaArchivo() { return Object.values(DOCS).find(d => d.saga && d.kind === 'alianza' && /ficha/i.test(d.id + ' ' + d.title)) || null; }
+/* the saga's own covenant: its name and where it opens (its sheet in the archive or, without one, the sheet kept in the web) */
 function sagaCov() {
   const W = window.EM_WEB, n = (W.saga && W.saga.alianza) || 'La alianza de la saga';
-  const doc = Object.values(DOCS).find(d => d.saga && d.kind === 'alianza' && /ficha/i.test(d.id + ' ' + d.title)) || Object.values(DOCS).find(d => d.saga && d.kind === 'alianza');
-  return { n: n, href: doc ? '#' + doc.id : '#saga', propia: true };
+  const doc = fichaArchivo();
+  return doc ? { n: n, href: '#' + doc.id, propia: true } : { _id: 'propia', n: n, href: '#alianza--propia', propia: true };
 }
 /* the covenants of the Tribunal books (data/alianzas.json, made by herramientas/alianzas_libros.py): with their magi and, when the
    book has it, each magus's sheet. Loaded once, the first time the Tribunals are drawn; then everything is redrawn. */
@@ -124,6 +126,7 @@ function openCroEditor(id) {
 /* ---------- other covenants */
 function viewAlianza(id, tab) {
   page.innerHTML = '';
+  if (id === 'propia') { viewSagaCov(); return; }
   if (String(id).startsWith('l-')) { viewBookCov(id.slice(2), tab); return; }
   const a = S.al[id];
   page.appendChild(sagaCrumbs([['Alianzas', canWrite() && S.owner === true ? '#master--tribunales' : null], [a ? a.n : 'Alianza', null]]));
@@ -144,6 +147,78 @@ function viewAlianza(id, tab) {
   String(a.notas || '').split(/\n{2,}/).filter(p => p.trim()).forEach(p => content.appendChild(h('p', { text: p.trim() })));
   if (!String(a.notas || '').trim()) content.appendChild(h('p', { class: 'note', text: b ? 'Sin notas de la saga todavía: su ficha, su descripción y sus magi, en el libro (el botón de arriba).' : 'Sin notas todavía.' }));
   page.appendChild(content);
+}
+
+/* the saga's own covenant sheet, when its archive has none (a saga made in the web): saga/estado → ficha, which the master fills in,
+   like the «Ficha» of Arazas: where it is, when it was founded, its Aegis, its Boons and Hooks, its Reputations and its lands */
+const FILAS = [['dones', 'Dones', ['Don', 'Puntos']], ['ganchos', 'Ganchos', ['Gancho', 'Puntos']], ['reputaciones', 'Reputaciones', ['Reputación', 'Nivel']]];
+const TIERRAS_H = ['Tierra', 'Área / dimensiones / pisos', 'Habitantes', 'Notas'];
+function fichaDe() {
+  const f = Object.assign({ lugar: '', fundada: '', estacion: '', aegis: '', notas: '' }, JSON.parse(JSON.stringify((S.estado && S.estado.ficha) || {})));
+  ['dones', 'ganchos', 'reputaciones', 'tierras'].forEach(k => { if (!Array.isArray(f[k])) f[k] = []; });
+  return f;
+}
+function viewSagaCov() {
+  const c = sagaCov(), f = fichaDe(), can = canWrite() && S.owner === true;
+  page.appendChild(sagaCrumbs([['Alianza', null], ['Ficha', null]]));
+  page.appendChild(h('h1', { class: 'doc-title', text: c.n }));
+  document.title = 'Ficha de ' + c.n + ' — Europa Mítica';
+  page.appendChild(h('div', { class: 'doc-meta' }, [h('span', { text: tribTitle(sagaTrib()) }), f.fundada ? h('span', { text: 'Fundada en ' + f.fundada }) : null,
+    f.estacion ? h('span', { text: 'Estación de ' + f.estacion.toLowerCase() }) : null]));
+  if (can) page.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn', onclick: () => openFichaEditor() }, 'Editar la ficha')));
+  const content = h('div', { class: 'content' });
+  const note = statusNote(); if (note) content.appendChild(note);
+  const [a, e] = curSeason();
+  const kv = [['Año actual', sname(a, e)], ['Año de fundación', f.fundada], ['Tribunal', tribName(sagaTrib()).replace(/^(el|los) /, '')], ['Lugar', f.lugar],
+    ['Aura', 'Mágica de nivel ' + sagaAura()], ['Aegis de la Alianza', f.aegis]].filter(x => String(x[1]).trim());
+  content.appendChild(R.kv({ items: kv.map(([k, v]) => [k, String(v)]) }));
+  const cols = FILAS.filter(([k]) => f[k].length).map(([k, t, head]) => [{ t: 'h3', x: t }, { t: 'grid', head: head, body: f[k], cls: 'narrow', _k: 'fa-' + k }]);
+  if (cols.length) content.appendChild(R.cols({ items: cols }));
+  if (f.tierras.length) { content.appendChild(R.h3({ x: 'Tierras y posesiones' })); content.appendChild(R.grid({ head: TIERRAS_H, body: f.tierras, _k: 'fa-tierras' })); }
+  String(f.notas || '').split(/\n{2,}/).filter(p => p.trim()).forEach(p => content.appendChild(h('p', { text: p.trim() })));
+  if (!cols.length && !f.tierras.length && !String(f.lugar + f.fundada + f.aegis + f.notas).trim())
+    content.appendChild(h('p', { class: 'note', text: can ? 'La ficha está por rellenar: con «Editar la ficha» pones dónde está la alianza, cuándo se fundó, su Aegis, sus Dones y Ganchos, sus Reputaciones y sus tierras.'
+      : 'El máster aún no ha rellenado la ficha de la alianza.' }));
+  page.appendChild(content);
+}
+/* rows to edit (Dones, Ganchos…): each with its inputs and «Quitar», and a button that adds an empty one. cols: [[label, placeholder, class]] */
+function filasEditor(rows, cols, add) {
+  const box = h('div', { class: 'fa-rows' });
+  const draw = () => {
+    box.innerHTML = '';
+    rows.forEach((r, i) => box.appendChild(h('div', { class: 'fa-row' }, cols.map(([l, ph, cl], j) => inp(r[j] == null ? '' : r[j], v => { r[j] = v; }, { placeholder: ph || '', 'aria-label': l, class: cl || null }))
+      .concat(h('button', { type: 'button', class: 'lnk', onclick: () => { rows.splice(i, 1); draw(); } }, 'Quitar')))));
+    box.appendChild(h('button', { type: 'button', class: 'btn ghost', onclick: () => { rows.push(cols.map(() => '')); draw(); const x = box.querySelectorAll('.fa-row'); if (x.length) x[x.length - 1].querySelector('input').focus(); } }, add));
+  };
+  draw();
+  return box;
+}
+function openFichaEditor() {
+  if (S.owner !== true) return;
+  const f = fichaDe(), d = { tribunal: sagaTrib() };
+  const grupo = (t, k, cols, add) => h('div', { class: 'fld' }, [h('span', { class: 'fl', text: t }), filasEditor(f[k], cols, add)]);
+  const body = [
+    h('div', { class: 'fld-row tri' }, [field('Tribunal', sel(TRIBUNALES, d.tribunal, v => { d.tribunal = v; })),
+      field('Fundada en', inp(f.fundada, v => { f.fundada = v; }, { type: 'number', inputmode: 'numeric' })),
+      field('Estación', sel([['', '—'], 'Primavera', 'Verano', 'Otoño', 'Invierno'], f.estacion, v => { f.estacion = v; }))]),
+    h('div', { class: 'fld-row' }, [field('Lugar', inp(f.lugar, v => { f.lugar = v; }, { placeholder: 'Al pie de las Tres Sorores…' })),
+      field('Aegis de la Alianza', inp(f.aegis, v => { f.aegis = v; }, { placeholder: 'Nivel 40' }))]),
+    grupo('Dones', 'dones', [['Don', 'Entorno Pintoresco…'], ['Puntos', '1', 'fa-n']], 'Añadir un don'),
+    grupo('Ganchos', 'ganchos', [['Gancho', 'Frontera disputada…'], ['Puntos', '1', 'fa-n']], 'Añadir un gancho'),
+    grupo('Reputaciones', 'reputaciones', [['Reputación', 'Hechiceros…'], ['Nivel', '1', 'fa-n']], 'Añadir una reputación'),
+    grupo('Tierras y posesiones', 'tierras', [['Tierra', 'Valle de Ordesa…'], ['Área', '4,5 km²', 'fa-m'], ['Habitantes', '70', 'fa-n'], ['Notas', 'Notas']], 'Añadir una tierra'),
+    field('Notas', h('textarea', { rows: 5, oninput: ev => { f.notas = ev.target.value; } }, f.notas || ''), 'Su historia, sus vecinos… Una línea en blanco separa los párrafos.')];
+  const save = h('button', { type: 'button', class: 'btn' }, 'Guardar');
+  const close = openModal('Ficha de ' + sagaCov().n, body, [save, h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancelar')]);
+  save.addEventListener('click', async () => {
+    const t = v => String(v == null ? '' : v).trim();
+    const ficha = { lugar: t(f.lugar), fundada: parseInt(f.fundada, 10) || '', estacion: f.estacion || '', aegis: t(f.aegis), notas: t(f.notas) };
+    ['dones', 'ganchos', 'reputaciones', 'tierras'].forEach(k => { ficha[k] = f[k].map(r => r.map(t)).filter(r => r[0]); });
+    save.disabled = true;
+    const ok = await writeEstado({ tribunal: d.tribunal, ficha: ficha }, 'Ficha de la alianza guardada');
+    save.disabled = false;
+    if (ok) close();
+  });
 }
 
 /* a covenant of a Tribunal book (data/alianzas.json): the tabs Ficha (what the book says of it: its box in Iberia and Rome, what its
@@ -302,4 +377,4 @@ function masterTribunales() {
   return sec;
 }
 
-export { covenantsOf, masterTribunales, TRIBUNALES, tribHidden, tribName, viewAlianza, viewArmeria, viewCronica };
+export { covenantsOf, fichaArchivo, masterTribunales, sagaCov, TRIBUNALES, tribHidden, tribName, viewAlianza, viewArmeria, viewCronica };

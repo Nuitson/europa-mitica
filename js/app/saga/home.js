@@ -1,7 +1,7 @@
 /* La saga en la barra lateral, en el inicio y en las cifras vivas de las hojas. */
 import { ARTS, ARTS_T, DOCS, esc, fmt, h, ICON, R, signed } from '../base.js';
 import { foldLi, folderLabel } from '../tree.js';
-import { covenantsOf, TRIBUNALES, tribHidden } from './covenant.js';
+import { covenantsOf, fichaArchivo, TRIBUNALES, tribHidden } from './covenant.js';
 import { S, SEASONS } from './state.js';
 import { monogram, pjsSorted, sagaChanged, statusNote } from './core.js';
 import { hbActive, hbSync, hbTitle } from './homebrew.js';
@@ -68,9 +68,14 @@ function renderSagaSide() {
   }
   hbSync(sagaChanged);
   box.appendChild(h('div', { class: 'tree' }, u));
-  // the covenant: its sheet, library and vis from the archive, and the armoury and chronicle kept in the web
+  // the covenant: its sheet, library and vis from the archive, and the armoury and chronicle kept in the web; a saga whose archive
+  // has no covenant sheet (one made in the web) has its sheet in the web (saga/covenant.js: viewSagaCov)
   const narm = Object.keys(S.arm).length, ncro = Object.keys(S.cro).length;
   const cov = h('ul', null, sd.cov.map(d => h('li', null, sheetLink(d, raw))));
+  if (!fichaArchivo()) {
+    const n = window.EM_WEB.saga && window.EM_WEB.saga.alianza;
+    cov.insertBefore(h('li', null, docLink('#alianza--propia', ICON.sheet, n ? 'Ficha de ' + n : 'Ficha de la alianza', raw === 'alianza--propia')), cov.firstChild);
+  }
   cov.appendChild(h('li', null, docLink('#armeria', SVG.arm, 'Armería', raw === 'armeria', narm ? String(narm) : '')));
   cov.appendChild(h('li', null, docLink('#cronica', SVG.cro, 'Crónica', raw === 'cronica', ncro ? String(ncro) : '')));
   box.appendChild(h('div', { class: 'tree t-sec' }, h('ul', null, foldLi('alianza', folderLabel('Alianza'), cov))));
