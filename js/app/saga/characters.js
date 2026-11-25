@@ -3,12 +3,13 @@ import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, scrollH
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
-import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
+import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, labBonos, labDe, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
 import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
 import { viewEditor } from '../creation/editor.js';
 import { labSummary } from './library.js';
+import { pjLab } from './laboratory.js';
 import { viewAlianza, viewArmeria, viewCronica } from './covenant.js';
 import { viewMaster } from '../master.js';
 import { viewCov, viewHb } from './hbview.js';
@@ -86,8 +87,10 @@ function viewPj(id, tab) {
   hi.appendChild(h('div', { class: 'actions' }, acts));
   head.appendChild(hi);
   page.appendChild(head);
-  const TABS = [['ficha', 'Ficha'], ['avance', 'Avance'], ['hechizos', 'Hechizos'], ['virtudes', 'Virtudes y defectos'], ['notas', 'Notas']]
-    .filter(t => t[0] !== 'hechizos' || (pj.hechizos || []).length || /^(Magus|Maga|Aprendiz)$/.test(pj.tipo || '') || tab === 'hechizos');
+  // the laboratory: for the magi (and anyone who has one assigned)
+  const TABS = [['ficha', 'Ficha'], ['avance', 'Avance'], ['hechizos', 'Hechizos'], ['laboratorio', 'Laboratorio'], ['virtudes', 'Virtudes y defectos'], ['notas', 'Notas']]
+    .filter(t => t[0] !== 'hechizos' || (pj.hechizos || []).length || /^(Magus|Maga|Aprendiz)$/.test(pj.tipo || '') || tab === 'hechizos')
+    .filter(t => t[0] !== 'laboratorio' || /^(Magus|Maga)$/.test(pj.tipo || '') || labDe(id) || tab === 'laboratorio');
   const cur = TABS.some(t => t[0] === tab) ? tab : 'ficha';
   const tabs = h('div', { class: 'tabs', role: 'navigation', 'aria-label': 'Pestañas de ' + pj.nombre }, TABS.map(([k, t]) => h('a', { class: 'tab', href: '#pj--' + id + '--' + k, 'aria-current': k === cur ? 'page' : null, text: t + (k === 'avance' && entries.length ? ' · ' + entries.length : k === 'hechizos' && (pj.hechizos || []).length ? ' · ' + pj.hechizos.length : '') })));
   page.appendChild(h('div', { class: 'tabs-wrap' }, tabs));
@@ -96,6 +99,7 @@ function viewPj(id, tab) {
   const note = statusNote(); if (note) content.appendChild(note);
   if (cur === 'ficha') pjFicha(content, pj, c, id);
   else if (cur === 'avance') pjAvance(content, id, entries, c);
+  else if (cur === 'laboratorio') pjLab(content, id, pj);
   else if (cur === 'hechizos') {
     const aura = castAura(pj, c), cer = ceremonialOn() && canCeremony(c);
     const ms = s => Math.max(0, Math.round(numv(s.maestria)));
@@ -352,9 +356,10 @@ function sheetArts(pj, c, id) {
     const imp = impBox && impioOn();
     const low = (t, f) => imp ? Math.min(lv(t), lv(f)) : 0;
     const extra = lab ? int + mt + labAura : aura + cer + mal;
-    const parts = (t, f) => [t + ' ' + lv(t), f + ' ' + lv(f)].concat(imp ? ['acto impío ' + low(t, f)] : []).concat(lab ? ['Inteligencia ' + sgn(int), teo + ' ' + mt, 'aura ' + sgn(labAura)]
+    const parts = (t, f) => [t + ' ' + lv(t), f + ' ' + lv(f)].concat(imp ? ['acto impío ' + low(t, f)] : []).concat(lab ? ['Inteligencia ' + sgn(int), teo + ' ' + mt, 'aura ' + sgn(labAura)].concat(labBonos(labDe(id), t, f).map(([l, v]) => l + ' ' + sgn(v)))
       : [castCar(t) + ' ' + sgn(carT(t)), 'aura ' + sgn(aura)].concat(cer ? ['ceremonial ' + sgn(cer)] : [], mal ? ['malus ' + sgn(mal)] : [], esp && ESP.fat ? ['tirada ' + roll] : [])).join(' + ');
-    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra + (lab ? 0 : carT(t)); return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
+    const labB = (t, f) => lab ? labBonos(labDe(id), t, f).reduce((s, x) => s + x[1], 0) : 0;
+    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra + labB(t, f) + (lab ? 0 : carT(t)); return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
     const vals = ARTS_F.map(f => ARTS_T.map(t => val(t, f)));
     const all = [].concat(...vals), max = Math.max(...all), min = Math.min(...all);
     tb.innerHTML = '';
@@ -374,7 +379,8 @@ function sheetArts(pj, c, id) {
     const malTxt = mal ? ' + malus por heridas y fatiga (' + sgn(mal) + ')' : '';
     const auraTxt = String(aura) === String(castAura(pj, c)) ? castAuraTxt(pj, c) : sgn(aura);
     note.textContent = lab
-      ? 'Laboratorio: Técnica + Forma + Inteligencia (' + sgn(int) + ') + ' + teo + ' (' + mt + ') + aura de la alianza (' + (labA.reino !== 'magica' || labA.lore ? magiaAuraTxt(labA) : sagaAura()) + '). Incluye las Mañas; sin dado ni otras virtudes.'
+      ? 'Laboratorio: Técnica + Forma + Inteligencia (' + sgn(int) + ') + ' + teo + ' (' + mt + ') + aura de la alianza (' + (labA.reino !== 'magica' || labA.lore ? magiaAuraTxt(labA) : sagaAura()) + ')'
+        + (labDe(id) ? ' + su laboratorio (Calidad General y las Especializaciones de la Técnica y la Forma; las de actividades, en cada estación)' : '') + '. Incluye las Mañas; sin dado ni otras virtudes.'
       : esp ? (ESP.fat
         ? 'Espontáneo con fatiga: (Técnica + Forma + ' + carNote() + ' + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ' + tirada (' + (String(ESP.tirada).trim() === '' ? 'sin poner, cuenta 0' : roll) + ')) ÷ 2. Cuesta un nivel de fatiga.'
         : 'Espontáneo sin fatiga: (Técnica + Forma + ' + carNote() + ' + aura (' + auraTxt + ')' + (cer ? ' + Artes Liberales y Filosofía (' + sgn(cer) + ')' : '') + malTxt + ') ÷ 5, sin tirada.')

@@ -11,6 +11,7 @@ import { norm } from '../base.js';
      virtudes/{id}        virtues and flaws made for this saga alone (creation/vdtab.js); new sagas start without them
      textos/{id}          laboratory texts added in the web to the saga's library sheet (saga/library.js), which the seasons learn, invent, decipher and translate
      armeria/{id}         the covenant's armoury: weapons, armour and gear (saga/covenant.js)
+     laboratorios/{id}    the magi's laboratories (Covenants, section 9): dueno = the character's id, or '' when free (saga/laboratory.js)
      cronica/{id}         the saga's chronicle, one entry per season or event (saga/covenant.js)
      alianzas/{id}        other covenants, by Tribunal, that the master adds (saga/covenant.js)
    The Excel pages stay as the archive; these views grow season by season. */
@@ -53,7 +54,7 @@ Object.keys(ABIL_STD).forEach(c => ABIL_STD[c].forEach(n => { CAT_OF[tkey(n)] = 
 
 /* js/gate.js sets window.EM_WEB (saga, role, database) before starting the page; keys in this browser carry the saga */
 const KEYP = (window.EM_WEB.saga ? window.EM_WEB.saga.id : 'invitado') + ':';
-const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, tx: {}, arm: {}, cro: {}, al: {}, estado: null, seen: {}, fresh: {}, timer: null };
-const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['textos', 'tx'], ['armeria', 'arm'], ['cronica', 'cro'], ['alianzas', 'al'], ['saga/estado', 'estado']];
+const S = { db: null, assets: null, uid: null, canWrite: null, owner: null, status: 'loading', pj: {}, av: {}, vis: {}, tes: {}, vd: {}, tx: {}, arm: {}, cro: {}, al: {}, lab: {}, estado: null, seen: {}, fresh: {}, timer: null };
+const SUBS = [['personajes', 'pj'], ['avance', 'av'], ['vis', 'vis'], ['tesoreria', 'tes'], ['virtudes', 'vd'], ['textos', 'tx'], ['armeria', 'arm'], ['cronica', 'cro'], ['alianzas', 'al'], ['laboratorios', 'lab'], ['saga/estado', 'estado']];
 
 export { ABIL_CATS, ABIL_STD, ACT_TIPOS, CASAS, CAT_OF, CHARS, KEYP, S, SEASONS, SUBS, TIPOS, TIPOS_PL, tkey, VD_CATS };

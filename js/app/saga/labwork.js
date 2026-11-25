@@ -80,7 +80,7 @@ function labPanel(pjId, pj, base, origId) {
       const chosen = w.textos.map(id => byId.get(id)).filter(Boolean);
       if (!chosen.length) { sum.appendChild(h('p', { class: 'fh', text: 'Marca los textos de los que aprende esta estación.' })); return; }
       const t0 = chosen[0];
-      const LT = labTotal(pj, base, t0.tec, t0.forma, { ajeno: chosen.some(ajeno), mod: w.mod });
+      const LT = labTotal(pj, base, t0.tec, t0.forma, { ajeno: chosen.some(ajeno), mod: w.mod, pjId: pjId, act: ['Hechizos', 'Textos'] });
       const niv = chosen.reduce((s, t) => s + numv(t.nivel), 0), av = [];
       if (chosen.some(t => t.tec !== t0.tec || t.forma !== t0.forma)) av.push('En una estación solo se aprenden textos de la misma Técnica y Forma.');
       if (niv > LT.total) av.push('Los niveles suman ' + niv + ' y el Total de Laboratorio es ' + LT.total + ': no le da para todos.');
@@ -139,7 +139,7 @@ function labPanel(pjId, pj, base, origId) {
       sum.innerHTML = '';
       const x = cur ? cur.hechizo : w.hechizo, nivel = numv(x.nivel);
       if (!artOf(x.tec) || !artOf(x.forma) || !nivel) { sum.appendChild(h('p', { class: 'fh', text: 'Elige el hechizo, su Técnica, su Forma y su nivel.' })); return; }
-      const LT = labTotal(pj, base, x.tec, x.forma, { inventar: true, mod: w.mod });
+      const LT = labTotal(pj, base, x.tec, x.forma, { inventar: true, mod: w.mod, pjId: pjId, act: ['Hechizos'] });
       const pts = Math.max(0, LT.total - nivel), acc = (cur ? cur.acc : 0) + pts, av = [];
       if (LT.total <= nivel) av.push('El Total de Laboratorio (' + LT.total + ') tiene que superar el nivel del hechizo (' + nivel + ').');
       if (spells.has(tkey(x.n))) av.push((x.n || 'Ese hechizo') + ': ya lo conoce.');
@@ -162,7 +162,7 @@ function labPanel(pjId, pj, base, origId) {
       sum.innerHTML = '';
       const t = byId.get(w.texto);
       if (!t) { sum.appendChild(h('p', { class: 'fh', text: 'Elige las notas cifradas que estudia.' })); return; }
-      const LT = labTotal(pj, base, t.tec, t.forma, { mod: w.mod }), before = decAcc(t._id), acc = before + LT.total, nivel = numv(t.nivel);
+      const LT = labTotal(pj, base, t.tec, t.forma, { mod: w.mod, pjId: pjId, act: ['Textos'] }), before = decAcc(t._id), acc = before + LT.total, nivel = numv(t.nivel);
       sum.appendChild(h('p', { class: 'fh', text: 'Total de Laboratorio de ' + tefo(t) + ': ' + labTxt(LT) + '. Acumula ' + acc + ' de ' + nivel + (before ? ' (llevaba ' + before + ')' : '') + '.' }));
       sum.appendChild(okLine(acc >= nivel ? 'Lo descifra: puede usar y traducir las notas de ' + t.cifra + ' hasta nivel ' + nivel + '.' : 'Faltan ' + (nivel - acc) + ' puntos: necesita más estaciones.'));
     };
@@ -212,7 +212,7 @@ function labPanel(pjId, pj, base, origId) {
     if (kind === 'aprender') {
       const chosen = w.textos.map(id => byId.get(id)).filter(Boolean);
       if (!chosen.length) return { error: 'Marca al menos un texto del que aprende.' };
-      const t0 = chosen[0], LT = labTotal(pj, base, t0.tec, t0.forma, { ajeno: chosen.some(ajeno), mod: w.mod });
+      const t0 = chosen[0], LT = labTotal(pj, base, t0.tec, t0.forma, { ajeno: chosen.some(ajeno), mod: w.mod, pjId: pjId, act: ['Hechizos', 'Textos'] });
       return { lab: { tipo: kind, textos: chosen.map(t => t._id), hechizos: chosen.map(txLabel), tec: t0.tec, forma: t0.forma, total: LT.total, mod: numv(w.mod) || 0 },
         add: chosen.filter(t => !spells.has(tkey(t.n))).map(spellOf) };
     }
@@ -220,7 +220,7 @@ function labPanel(pjId, pj, base, origId) {
       const cur = projects().get(w.proyecto), x = cur ? cur.hechizo : w.hechizo, nivel = numv(x.nivel);
       if (!String(x.n || '').trim() || !artOf(x.tec) || !artOf(x.forma) || !nivel) return { error: 'Escribe el hechizo que inventa, su Técnica, su Forma y su nivel.' };
       const hech = spellOf(Object.assign({}, x, { n: String(x.n).trim(), tec: artOf(x.tec), forma: artOf(x.forma) }));
-      const LT = labTotal(pj, base, hech.tec, hech.forma, { inventar: true, mod: w.mod });
+      const LT = labTotal(pj, base, hech.tec, hech.forma, { inventar: true, mod: w.mod, pjId: pjId, act: ['Hechizos'] });
       const pts = Math.max(0, LT.total - nivel), acc = (cur ? cur.acc : 0) + pts, fin = acc >= nivel;
       const lab = { tipo: kind, proyecto: w.proyecto || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)), hechizo: hech, total: LT.total, puntos: pts, acumulado: acc, fin: fin, mod: numv(w.mod) || 0 };
       return { lab: lab, add: fin && !spells.has(tkey(hech.n)) ? [hech] : [] };
@@ -228,7 +228,7 @@ function labPanel(pjId, pj, base, origId) {
     if (kind === 'descifrar') {
       const t = byId.get(w.texto);
       if (!t) return { error: 'Elige las notas cifradas que descifra.' };
-      const LT = labTotal(pj, base, t.tec, t.forma, { mod: w.mod }), acc = decAcc(t._id) + LT.total;
+      const LT = labTotal(pj, base, t.tec, t.forma, { mod: w.mod, pjId: pjId, act: ['Textos'] }), acc = decAcc(t._id) + LT.total;
       return { lab: { tipo: kind, texto: t._id, nombre: txLabel(t), nivel: numv(t.nivel), autor: first(t.cifra), autorTxt: t.cifra, tec: t.tec, forma: t.forma, total: LT.total, puntos: LT.total, acumulado: acc, mod: numv(w.mod) || 0 }, add: [] };
     }
     const chosen = w.textos.map(id => byId.get(id)).filter(Boolean);

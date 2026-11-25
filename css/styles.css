@@ -892,6 +892,33 @@ table.mini .note { font-size: 14.5px; }
 .hb-tog-i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-size: 12px; line-height: 1; color: var(--ink-2); }
 .hb-tog[aria-pressed="true"] { border-color: var(--blood); background: color-mix(in srgb, var(--blood) 9%, transparent); }
 .hb-tog[aria-pressed="true"] .hb-tog-i { background: var(--blood); border-color: var(--blood); color: #fff; }
+/* the magi's laboratories (saga/laboratory.js) */
+.lab-acts .btn { min-width: 210px; }
+.lab-n { margin: 6px 0 0; }
+.lab-ef-l { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.lab-vd-l { list-style: none; margin: 0; padding: 0; }
+.lab-vd-l li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 7px 0; border-bottom: 1px dotted var(--rule-2); }
+.lab-ef { color: var(--ink-2); font: 400 13.5px/1.4 var(--f-ui); }
+.lab-vds { display: flex; flex-direction: column; gap: 10px; }
+.lab-vd { border: 1px solid var(--rule-2); border-radius: 8px; padding: 10px 12px; background: var(--card); }
+.lab-vd-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.lab-vd-h .lnk { margin-left: auto; }
+.lab-vd-c { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; }
+.lab-vd-c .fld { flex: 1 1 180px; min-width: 0; }
+.lab-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lab-pick { flex: 1 1 320px; min-width: 0; max-width: 100%; }
+.lab-prev { margin: 0; white-space: pre-wrap; }
+.lab-aj summary { cursor: pointer; font: 500 12.5px/1.4 var(--f-ui); color: var(--ink-2); padding: 4px 0; }
+.lab-aj-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 12px; margin: 6px 0; }
+.lab-sub { margin: 16px 0 6px; }
+.lab-res { display: flex; flex-direction: column; gap: 8px; }
+.lab-res .warn { color: var(--blood-ink); margin: 0; }
+.lab-desc { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lab-ch { list-style: none; margin: 0; padding: 0; }
+.lab-ch li { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px dotted var(--rule-2); }
+.lab-ch li > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lab-ch li .btn, .lab-ch li button { flex: none; }
+.lab-ej-t { color: var(--ink-2); font-size: 14px; }
 /* the covenants of the Tribunal books and their magi */
 .bal { display: flex; flex-direction: column; gap: 10px; }
 .bal-src { color: var(--ink-2); }

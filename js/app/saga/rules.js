@@ -284,6 +284,24 @@ function habLevel(c, name) { const hb = c.hab.find(x => tkey(x.n) === tkey(name)
    Returns { total, parts: [[label, value]] } */
 const LAB_VD = { aplicado: ['adept-laboratory-student', 'estudiante-aplicado'], malEst: ['weak-scholar', 'mal-estudiante'], bloqueo: ['creative-block', 'bloqueo-creativo'] };
 const hasVd = (pj, keys) => (pj.virtudes || []).concat(pj.defectos || []).some(x => x && (keys.includes(tkey(x.en)) || keys.includes(tkey(x.n))));
+/* the magus' laboratory (laboratorios/{id} with «dueno» = his id; saga/laboratory.js keeps its calculation in «calc») */
+function labDe(pjId) {
+  if (!pjId) return null;
+  const L = Object.keys(S.lab || {}).filter(k => S.lab[k] && S.lab[k].dueno === pjId).map(k => Object.assign({ _id: k }, S.lab[k]));
+  return L.sort((a, b) => numv(b.actualizado) - numv(a.actualizado))[0] || null;
+}
+/* what the laboratory adds to a Lab Total (Covenants p. 149–152): its General Quality, always; the Specialization of the Technique
+   and of the Form; and those of the activities done (act: ['Hechizos', 'Textos']…). [[label, value]] */
+function labBonos(lab, tec, forma, act) {
+  const c = lab && lab.calc;
+  if (!c) return [];
+  const out = [], esp = c.esp || {};
+  const q = numv(c.car && c.car['Calidad General']);
+  if (q) out.push(['Calidad General del laboratorio', q]);
+  [...new Set([artOf(tec), artOf(forma)])].forEach(a => { if (a && numv(esp[a])) out.push(['laboratorio en ' + a, numv(esp[a])]); });
+  (act || []).forEach(x => { if (numv(esp[x])) out.push(['laboratorio en ' + x, numv(esp[x])]); });
+  return out;
+}
 function labTotal(pj, c, tec, forma, o) {
   o = o || {};
   const parts = [];
@@ -292,6 +310,7 @@ function labTotal(pj, c, tec, forma, o) {
   add('Inteligencia', numv(pjCar(pj).Inteligencia));
   add('Teoría Mágica', habLevel(c, 'Teoría Mágica'));
   add('aura', sagaAura());
+  if (o.pjId) labBonos(labDe(o.pjId), tec, forma, o.act).forEach(([l, v]) => add(l, v));
   if (o.ajeno && hasVd(pj, LAB_VD.aplicado)) add('Estudiante Aplicado', 6);
   if (o.ajeno && hasVd(pj, LAB_VD.malEst)) add('Mal estudiante', -6);
   if (o.inventar && hasVd(pj, LAB_VD.bloqueo)) add('Bloqueo Creativo', -3);
@@ -308,4 +327,4 @@ function traitLevel(c, name) {
   return hb ? { lv: abLvl(hb.xp), xp: hb.xp } : { lv: 0, xp: 0, nuevo: true };
 }
 
-export { habLevel, labTotal, labTxt, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };
+export { habLevel, labBonos, labDe, labTotal, labTxt, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, edadTxt, abCost, abLvl, academic, afXp, artCost, artLvl, AURA_TIPOS, AURA_X, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, clone, currentRaw, curSeason, entriesOf, estadoFisico, estadoTxt, formaActiva, formaBlock, formaButtons, formasOf, guessCat, HER, isRitual, malusOf, manaArt, manaHab, newId, numv, pjCar, REALM_POW, realmMod, refocusCer, sagaAura, saveHurt, sgn, skey, sname, snext, spellTotal, sprev, traitLevel, vdCards, vdTreeCards };
