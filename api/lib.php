@@ -575,11 +575,14 @@ function archivo(array $saga): Crudo {
     return new Crudo('{"rev":' . json_encode($saga['archivo_rev']) . ',"archivo":' . $a . '}');
 }
 
+/* la copia de la saga: sus documentos y, si tiene, su archivo (las hojas de cálculo traídas de Drive), que «importar» vuelve a poner */
 function exportar(array $saga): Crudo {
     $trozos = [];
     foreach (consulta('SELECT ruta, datos FROM docs WHERE saga = ?', [$saga['id']]) as $f) $trozos[] = json_encode($f['ruta'], JSON_OUT) . ':' . $f['datos'];
     $info = ['nombre' => $saga['nombre'], 'alianza' => $saga['alianza'], 'anio' => (int) $saga['anio'], 'est' => (int) $saga['est'], 'aura' => (int) $saga['aura']];
-    return new Crudo('{"formato":"europa-mitica/1","saga":' . json_encode($info, JSON_OUT) . ',"fecha":' . ahora() . ',"docs":{' . implode(',', $trozos) . '}}');
+    $arc = consulta('SELECT datos FROM archivos WHERE saga = ?', [$saga['id']])->fetchColumn();
+    return new Crudo('{"formato":"europa-mitica/1","saga":' . json_encode($info, JSON_OUT) . ',"fecha":' . ahora() . ',"docs":{' . implode(',', $trozos) . '}'
+        . (is_string($arc) && $arc !== '' ? ',"archivo":' . $arc : '') . '}');
 }
 
 /* importar: «reemplazar» vacía antes la saga (sin perder de quién era cada documento); si no, junta lo importado con lo que hay */

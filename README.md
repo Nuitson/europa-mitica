@@ -112,7 +112,20 @@ Necesita PHP 8.1 o superior con la extensión PDO MySQL (en Plesk: «Selector PH
 
 Si al importar una copia grande falla, sube `post_max_size` en el Selector PHP.
 
-**Copias de seguridad:** el plan del hosting hace copias de la base de datos, y cada máster puede descargar una copia de su saga desde la pantalla del máster.
+**Publicar desde GitHub (automático).** La web de <https://conciliodearazas.com> se publica sola desde la rama `main` de este repositorio, con «Desplegar mediante Git» de Plesk (Sitios web y dominios → Git):
+
+- Repositorio remoto `https://github.com/Nuitson/europa-mitica.git`, desplegado en `/httpdocs`.
+- Acción de despliegue adicional, que quita lo que no es de la web (la base de datos local con sus cuentas, las herramientas y los scripts de local):
+
+  ```
+  for d in . httpdocs; do if [ -f "$d/index.html" ] && [ -d "$d/api" ] && [ -f "$d/sw.js" ]; then (cd "$d" && rm -rf datos herramientas servir.bat servir.ps1 README.md .gitignore .gitattributes); fi; done
+  ```
+
+- En GitHub, Settings → Webhooks, la dirección de webhook que da Plesk en la página del repositorio: así cada `push` a `main` avisa a Plesk y se publica al momento.
+- `api/config.php` no está en git: publicar nunca lo toca. Los datos de las sagas tampoco, porque están en MySQL.
+- Si el repositorio pasa a privado, Plesk deja de poder leerlo por https: cambia la URL a `git@github.com:Nuitson/europa-mitica.git` y añade en GitHub (Settings → Deploy keys) la clave SSH que enseña Plesk, solo de lectura.
+
+**Copias de seguridad:** el plan del hosting hace copias de la base de datos, y cada máster puede descargar una copia de su saga desde la pantalla del máster. La copia lleva todos sus documentos y, si la saga las tiene, sus hojas de cálculo traídas de Drive (su archivo); al importarla se vuelve a poner todo.
 
 **Pasar una saga desde Drive:** `python herramientas/migrar_desde_drive.py --help` (hace falta una cuenta con permiso para crear sagas).
 
@@ -170,7 +183,39 @@ Cómo trabajar:
 Dos precauciones:
 
 - Los `.sqlite-wal`, `.sqlite-shm` y `-journal` están ignorados a propósito: la base de datos se guarda sin ellos (`journal_mode=DELETE`) para que `datos/europa.sqlite` sea siempre un archivo completo. Si copias o subes el archivo con el servidor en medio de una escritura, espera a que termine.
-- `datos/` es solo para trabajar en local. **No la subas al hosting**: allí los datos viven en MySQL, y la carpeta lleva un `.htaccess` que impide descargarla por si acaso. Para llevar los datos del equipo al hosting, descarga una copia desde la pantalla del máster y impórtala allí (o usa la herramienta de migración).
+- `datos/` es solo para trabajar en local. **No la subas al hosting**: allí los datos viven en MySQL, y la carpeta lleva un `.htaccess` que impide descargarla por si acaso. Para llevar los datos del equipo al hosting, descarga una copia desde la pantalla del máster (con las hojas de Drive incluidas) e impórtala allí, en una saga creada para ello, con «Sustituir lo que hay» (o usa la herramienta de migración). Las cuentas no van en la copia: cada uno se registra en el hosting y el máster lo añade.
+
+## Colaborar desde un fork
+
+Para mejorar la web sin tocar directamente el repositorio principal (`Nuitson/europa-mitica`): cada uno trabaja en su copia de GitHub (un *fork*) y propone sus cambios con una *pull request*, que Nuitson revisa y fusiona.
+
+**La primera vez**
+
+1. En GitHub, abre <https://github.com/Nuitson/europa-mitica> y pulsa **Fork**: se crea `tu-usuario/europa-mitica`. Si el repositorio es privado, Nuitson tiene que añadirte antes como colaborador (Settings → Collaborators → Add people).
+2. Clona tu fork y enlázalo con el principal:
+
+   ```
+   git clone https://github.com/tu-usuario/europa-mitica.git
+   cd europa-mitica
+   git remote add upstream https://github.com/Nuitson/europa-mitica.git
+   ```
+
+3. Arráncala como en «Probarla en local» (`servir.bat`) y abre <http://localhost:8080>.
+
+**Cada mejora**
+
+1. Ponte al día con el principal: `git checkout main`, `git pull upstream main` y `git push origin main` (o el botón **Sync fork** de tu fork en GitHub, y luego `git pull`).
+2. Haz una rama para la mejora: `git checkout -b nombre-de-la-mejora`.
+3. Cambia y prueba en local. Guarda con `git add` de los archivos que hayas cambiado (no `git add .` ni `git add -A`: así no se cuela `datos/europa.sqlite`), `git commit` y `git push origin nombre-de-la-mejora`.
+4. En GitHub, en tu fork, pulsa **Contribute → Open pull request** hacia `Nuitson/europa-mitica` (rama `main`) y explica qué cambia y cómo probarlo.
+5. Nuitson la revisa y la fusiona en `main`. Al fusionarla, la web del dominio se actualiza sola (ver «Publicar desde GitHub»): lo que entra en `main` es lo que ve todo el mundo, así que pruébalo bien antes.
+
+**Para que las pull requests encajen**
+
+- **Sin datos:** `datos/europa.sqlite` no va en las pull requests. Es un único archivo que git no sabe mezclar, y los datos de verdad de la saga están en el dominio. Para probar con ellos, descarga una copia en la pantalla del máster del dominio e impórtala en tu web local.
+- **Sin contraseñas:** nunca `api/config.php` (git ya lo ignora) ni claves en el código.
+- Si cambias archivos de la web, sube la versión de `CACHE` en `sw.js`; si añades un módulo, enlázalo en `index.html` y en `FILES` de `sw.js` (ver «Archivos»).
+- Una mejora por pull request, con un título que diga qué hace.
 
 El catálogo de hechizos y las descripciones de virtudes y defectos están resumidos en castellano a partir del material de Ars Magica publicado con licencia abierta:
 

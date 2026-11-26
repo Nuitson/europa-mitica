@@ -578,7 +578,8 @@ function masterWeb() {
       const a = h('a', { href: URL.createObjectURL(blob), download: tkey(s.nombre) + '-' + new Date().toISOString().slice(0, 10) + '.json' });
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      toast('Copia descargada: ' + Object.keys(r.docs || {}).length + ' documentos.');
+      const hojas = r.archivo && Array.isArray(r.archivo.docs) ? r.archivo.docs.length : 0;
+      toast('Copia descargada: ' + Object.keys(r.docs || {}).length + ' documentos' + (hojas ? ' y ' + hojas + (hojas === 1 ? ' hoja de cálculo' : ' hojas de cálculo') : '') + '.');
     } catch (e) { toast(e.message || 'No se ha podido descargar la copia.'); }
     down.disabled = false;
   });
@@ -600,7 +601,7 @@ function masterWeb() {
     } catch (e) { toast(e.message || 'No se ha podido importar.'); }
   });
   sec.appendChild(h('h3', { class: 'm-sub', text: 'Copia de seguridad' }));
-  sec.appendChild(h('p', { class: 'note', text: 'Una copia de todos los personajes, estaciones y movimientos en un archivo. Importarla junta su contenido con el de la saga; marca la casilla para sustituir lo que hay.' }));
+  sec.appendChild(h('p', { class: 'note', text: 'Una copia de todos los personajes, estaciones y movimientos en un archivo, con las hojas de cálculo de la saga si las tiene. Importarla junta su contenido con el de la saga (las hojas que traiga sustituyen a las que hay); marca la casilla para sustituir todo lo demás.' }));
   sec.appendChild(h('div', { class: 'actions' }, [down, up, file, h('label', { class: 'chk', for: 'm-repl' }, [repl, h('span', { text: 'Sustituir lo que hay' })])]));
   return sec;
 }
