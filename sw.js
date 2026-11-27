@@ -2,8 +2,12 @@
    Network first: online, every file comes fresh from the server (and refreshes the copy); offline, or when the network
    takes too long, the copy answers. The saga's server (api/api.php) is never cached: its data stay live, and writes
    (POST) never reach this worker.
+   The hosting tells browsers to keep .js and .css for a month (Cache-Control: max-age=2592000), so «fresh from the
+   server» has to say so: every request asks the server (cache: 'no-cache', a short 304 when nothing changed), and a new
+   version fetches all its files again (cache: 'reload'). When a new version replaces an older one, the open tabs
+   reload once, so they stop running the old files.
    Keep FILES in step with the repository: a new module, image or data file goes here too. */
-const CACHE = 'europa-mitica-v40';
+const CACHE = 'europa-mitica-v41';
 const FILES = [
   './',
   'index.html',
@@ -62,16 +66,21 @@ const FONTS = /^(fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
 const TIMEOUT = 4000; // after this, answer from the copy and let the network refresh it in the background
 
 self.addEventListener('install', e => {
-  // one missing file must not leave the whole site without a copy
-  e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => c.add(f).catch(() => null)))).then(() => self.skipWaiting()));
+  // one missing file must not leave the whole site without a copy; each comes from the server, not the browser's cache
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => c.add(new Request(f, { cache: 'reload' })).catch(() => null)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('europa-mitica-') && k !== CACHE).map(k => caches.delete(k))))
-    .then(() => self.clients.claim()));
+  e.waitUntil((async () => {
+    const viejas = (await caches.keys()).filter(k => k.startsWith('europa-mitica-') && k !== CACHE);
+    await Promise.all(viejas.map(k => caches.delete(k)));
+    await self.clients.claim();
+    // an update, not the first visit: the open tabs still run the old files
+    if (viejas.length) (await self.clients.matchAll({ type: 'window' })).forEach(c => { if (c.navigate) c.navigate(c.url).catch(() => null); });
+  })());
 });
 
 async function fromNetwork(req, cache) {
-  const res = await fetch(req);
+  const res = await fetch(req, { cache: 'no-cache' });
   if (res.ok || res.type === 'opaque') await cache.put(req, res.clone());
   return res;
 }

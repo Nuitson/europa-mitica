@@ -63,7 +63,7 @@ Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar 
 
 ## Sin conexión
 
-`sw.js` guarda en el navegador una copia de la página, de los datos y de las imágenes. Con conexión, todo llega siempre del servidor (y la copia se renueva); sin conexión, o si la red tarda más de 4 segundos, responde la copia. El servidor de la saga nunca se guarda en la copia: sus datos siempre llegan en vivo.
+`sw.js` guarda en el navegador una copia de la página, de los datos y de las imágenes. Con conexión, todo llega siempre del servidor (y la copia se renueva); sin conexión, o si la red tarda más de 4 segundos, responde la copia. El servidor de la saga nunca se guarda en la copia: sus datos siempre llegan en vivo. El hosting manda los `.js` y `.css` con un mes de caché del navegador; por eso `sw.js` pregunta siempre al servidor (si nada ha cambiado, la respuesta es corta), descarga de nuevo todos los archivos al cambiar de versión y recarga una vez las pestañas abiertas cuando llega una versión nueva.
 
 Si no hay conexión, la entrada ofrece abrir la última saga abierta en ese navegador con solo las ayudas de juego. Las fichas, las estaciones y la pantalla del máster necesitan el servidor.
 
