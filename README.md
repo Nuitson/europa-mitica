@@ -17,6 +17,7 @@ libros/en, libros/es  los PDF de los libros (en inglés y en castellano) a los q
                         aplica herramientas/nombres_libros.json, los nombres que el libro llama de otra forma, revisados a mano)
                         homebrew_csv.py: convierte los CSV de material de blogs en data/homebrew/
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
+.htaccess             quita las ETag, que el hosting no reconoce al revalidar: así contesta 304 por fecha y no vuelve a mandar cada archivo
 css/styles.css        los estilos
 js/gate.js            la entrada: abre la cuenta y la saga, carga los datos y arranca la aplicación
 js/cuenta.js          las pantallas de la cuenta: entrar, crear cuenta, recuperar la contraseña y «Mi zona»

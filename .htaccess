@@ -1,0 +1,8 @@
+# Sin ETag. En este hosting (Plesk de Loading) la ETag que manda Apache nunca coincide al revalidar: una pregunta con
+# If-None-Match siempre recibe el archivo entero, y los navegadores mandan esa pregunta siempre que tienen ETag. Sin ella,
+# preguntan por la fecha (If-Modified-Since) y el servidor contesta 304 cuando el archivo no ha cambiado.
+# Que los navegadores revaliden siempre (Cache-Control: no-cache) está puesto en Plesk, en «Encabezados adicionales».
+FileETag None
+<IfModule mod_headers.c>
+    Header unset ETag
+</IfModule>
