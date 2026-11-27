@@ -6,7 +6,7 @@
 (function () {
 'use strict';
 const CFG = window.EM_CONFIG || {};
-const K_ED = 'em:ayudas-ediciones', K_SES = 'em:sesion', K_ARC = 'em:archivo:', K_MSG = 'em:aviso', K_ZONA = 'em:zona', K_LAST = 'em:ultima';
+const K_ED = 'em:ayudas-ediciones', K_SES = 'em:sesion', K_ARC = 'em:archivo:', K_MSG = 'em:aviso', K_ZONA = 'em:zona', K_LAST = 'em:ultima', K_INV = 'em:unirse';
 const POLL_MS = 15000;
 const APP = new URL('app/main.js', document.currentScript.src).href; // the app's modules, next to this script
 const CUENTA = new URL('cuenta.js', document.currentScript.src).href; // the account screens, loaded when needed
@@ -148,9 +148,13 @@ const CTX = { el: el, api: api, showGate: showGate, busy: busy, errBox: errBox, 
 async function gateStart() {
   const rec = /^#recuperar=([0-9a-f]{64})$/.exec(location.hash);
   if (rec) { putSession(null); (await cuenta()).auth({ recuperar: rec[1] }); return; }
+  // an invitation link (#unirse=CODE): kept for this tab until the account is open, and then the account joins that saga
+  const inv = INV_RE.exec(location.hash);
+  if (inv) { lsSet(K_INV, inv[1], true); history.replaceState(null, '', location.pathname + location.search); }
   const ses = getSession();
   if (!ses) {
-    if (location.hash === '#entrar') (await cuenta()).auth(); else openGuest();
+    if (lsGet(K_INV, true)) (await cuenta()).auth({ nota: 'Te han invitado a una saga: entra con tu cuenta, o crea una, y pasarás dentro.' });
+    else if (location.hash === '#entrar') (await cuenta()).auth(); else openGuest();
     return;
   }
   if (location.hash === '#entrar') history.replaceState(null, '', location.pathname + location.search);
@@ -164,15 +168,34 @@ async function gateStart() {
   }
   const zona = lsGet(K_ZONA, true);
   lsSet(K_ZONA, null, true);
-  if (zona) (await cuenta()).zona(ses); else continuar(ses);
+  if (lsGet(K_INV, true)) unirse(ses); else if (zona) (await cuenta()).zona(ses); else continuar(ses);
 }
-/* with the account open: into the last saga, into the only one it has, or «Mi zona» */
+/* with the account open: into the saga it was invited to, the last saga, the only one it has, or «Mi zona» */
 async function continuar(ses) {
+  if (lsGet(K_INV, true)) return unirse(ses);
   const sagas = ses.perfil.sagas;
   const last = lsGet(K_LAST);
   const id = sagas.some(s => s.id === last) ? last : sagas.length === 1 ? sagas[0].id : null;
   if (id) openSaga(ses, id); else (await cuenta()).zona(ses);
 }
+/* the invitation this tab brought (gateStart): the server adds the account as a player, and the saga opens.
+   A code that no longer works sends it to «Mi zona», saying why. */
+const INV_RE = /^#unirse=([A-Za-z0-9-]{4,24})$/;
+async function unirse(ses) {
+  const codigo = lsGet(K_INV, true);
+  lsSet(K_INV, null, true);
+  busy('Entrando en la saga…');
+  let r;
+  try { r = await api('unirse', { token: ses.token, codigo: codigo }); }
+  catch (e) {
+    if (e.code === 'sesion') { lsSet(K_INV, codigo, true); return sessionLost(e.message); }   // after signing in again, it joins
+    return aZona(e.message);
+  }
+  ses.perfil = r.perfil;
+  openSaga(ses, r.saga.id);
+}
+// an invitation link opened in a tab that already shows the web: only the hash changes, so start again to follow it
+window.addEventListener('hashchange', () => { if (INV_RE.test(location.hash)) location.reload(); });
 
 /* ================================================================== guests: the public part, with no account and no saga */
 async function openGuest() {

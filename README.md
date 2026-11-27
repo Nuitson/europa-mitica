@@ -71,34 +71,36 @@ Si no hay conexión, la entrada ofrece abrir la última saga abierta en ese nave
 
 `index.html` lleva una política de seguridad de contenidos (CSP): solo se ejecutan los scripts de la propia web, y la página solo se conecta consigo misma, y el servidor de la saga está en el mismo sitio (`api/api.php`). Si el servidor pasara a otra dirección, habría que añadirla a `connect-src` en esa política.
 
-Cambiar la estación actual y el aura de la alianza es cosa del máster: los jugadores no ven esos botones. Qué puede hacer cada rol lo decide, en todo caso, el servidor: copia de seguridad, importar, miembros y asignar personajes son solo del máster.
+Cambiar la estación actual y el aura de la alianza es cosa del máster: los jugadores no ven esos botones. Qué puede hacer cada rol lo decide, en todo caso, el servidor: copia de seguridad, importar, miembros, el código de invitación y asignar personajes son solo del máster.
 
 ## Cuentas y sagas
 
 Cada persona tiene su **cuenta** (usuario, contraseña, correo, nombre que se ve e imagen). Las contraseñas se guardan con bcrypt; entrar mal muchas veces bloquea unos minutos; las sesiones duran 120 días y se pueden cerrar en todos los dispositivos desde «Mi perfil». Quien olvida la contraseña la cambia con un enlace que llega por correo (vale una hora y una sola vez).
 
-- **Registrarse es libre**, pero una cuenta nueva no ve ninguna saga. Para entrar en una, el **máster la añade con su usuario** (pantalla del máster → «Quién está en la saga») como jugador o como máster. No hay códigos de saga.
+- **Registrarse es libre**, pero una cuenta nueva no ve ninguna saga. Para entrar en una hay dos caminos:
+  - **El enlace de invitación** (o su código). Cada saga tiene un código de 8 caracteres (`ABCD-EFGH`, sin 0, O, 1, I ni L). El máster lo ve en su pantalla («La saga en la web» → «Quién está en la saga»), con su enlace (`…/#unirse=ABCD-EFGH`); puede copiar los dos y cambiar el código, y entonces el anterior deja de valer. Quien abre el enlace entra con su cuenta, o se crea una, y queda dentro de la saga como jugador. Con el código, se une desde «Mi zona» → «Unirme a una saga con un código». Probar códigos a ciegas está frenado, por cuenta y por dirección.
+  - **El máster la añade con su usuario**, en el mismo sitio, como jugador o como máster.
 - **Administrador:** nivel por encima del máster. Entra en **todas** las sagas como máster (leer y editar todo, aunque no sea miembro), puede crear sagas y, en las tablas de las ayudas de juego, pulsar «Editar celdas» y cambiar cualquier celda: el cambio se guarda en el servidor (tabla `docs`, saga `_global`, ruta `ayudas/ediciones`), se aplica encima de `data/ayudas.json` para todas las sagas y también lo ven los invitados. Se da con `php api/usuarios.php admin <usuario>` (y se quita con `… admin <usuario> no`). Los documentos de la propia saga (sus hojas de cálculo) no son de las ayudas y no se editan así.
 - **Crear sagas:** solo las cuentas con permiso. La primera cuenta que se registra en una web nueva lo tiene; a otra se le da con `php api/usuarios.php crea-sagas <usuario>`. Quien crea una saga es su máster.
-- **Mi zona** (se abre con «Mi zona» en la barra lateral, o al entrar si no hay saga): *Mis sagas* (con el rol de cada una), *Mis creaciones* (todo lo que has creado, repartido en personajes, hechizos, libros estudiados, actividades de estación y movimientos de vis y tesorería, con la saga a la que pertenece y un botón para abrirlo) y *Mi perfil* (imagen, nombre, correo, contraseña y sesiones).
+- **Mi zona** (se abre con «Mi zona» en la barra lateral, o al entrar si no hay saga): *Mis sagas* (con el rol de cada una, y para unirte a otra con un código), *Mis creaciones* (todo lo que has creado, repartido en personajes, hechizos, libros estudiados, actividades de estación y movimientos de vis y tesorería, con la saga a la que pertenece y un botón para abrirlo) y *Mi perfil* (imagen, nombre, correo, contraseña y sesiones).
 - **De quién es cada cosa:** cada documento guarda la cuenta que lo creó, y no cambia al editarlo otra persona. Los personajes que ya existían (por ejemplo, los traídos de Drive) no tienen dueño: el máster los asigna en su pantalla, en «Personajes y jugadores».
 - **«Libros»:** la web no tiene libros como pieza aparte; salen en «Libros estudiados» las actividades de estación de tipo «Estudio: summa» o «Estudio: tractatus», con su nota como título.
 
 **Administrar desde la línea de órdenes** (por SSH en el hosting, o en tu PC):
 
 ```
-php api/usuarios.php listar                       cuentas, sagas y sus miembros
+php api/usuarios.php listar                       cuentas, sagas (con su código de invitación) y sus miembros
 php api/usuarios.php master <usuario> <saga>      hace máster de esa saga a esa cuenta
 php api/usuarios.php miembro <usuario> <saga>     la añade como jugador
 php api/usuarios.php crea-sagas <usuario> [no]    da (o quita) el permiso de crear sagas
 php api/usuarios.php contrasena <usuario>         pone una contraseña nueva al azar (para quien no pueda recuperarla)
 ```
 
-**Primera vez con una saga que ya existe** (por ejemplo, la Saga de Arazas traída de Drive): regístrate en la web, y después `php api/usuarios.php master <tu-usuario> arazas`. A partir de ahí añades tú al resto desde la pantalla del máster.
+**Primera vez con una saga que ya existe** (por ejemplo, la Saga de Arazas traída de Drive): regístrate en la web, y después `php api/usuarios.php master <tu-usuario> arazas`. A partir de ahí, al resto les mandas el enlace de invitación (o los añades tú) desde la pantalla del máster.
 
 ## El servidor
 
-Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos, virtudes y defectos propios) y las cuentas viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON. Las acciones de cuenta son `registrar`, `entrar`, `perfil`, `actualizarPerfil`, `cambiarPassword`, `cerrarSesiones`, `recuperar`, `restablecer`, `contenido` y `crear`. Las de una saga (llevan `token` y `saga`) son `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar`, `miembros`, `anadirMiembro`, `cambiarRol`, `quitarMiembro`, `asignar` y `autores`. El servidor comprueba siempre el rol de la cuenta en la saga.
+Los datos de las sagas (personajes, estaciones, vis, tesorería, retratos, virtudes y defectos propios) y las cuentas viven en una base de datos MySQL. `api/api.php` recibe un POST con `{accion: …}` y responde con JSON. Las acciones de cuenta son `registrar`, `entrar`, `perfil`, `actualizarPerfil`, `cambiarPassword`, `cerrarSesiones`, `recuperar`, `restablecer`, `contenido`, `crear` y `unirse` (entrar en una saga con su código de invitación). Las de una saga (llevan `token` y `saga`) son `info`, `leer`, `escribir`, `archivo`, `exportar`, `importar`, `miembros`, `anadirMiembro`, `cambiarRol`, `quitarMiembro`, `invitacion`, `nuevaInvitacion`, `asignar` y `autores`. El servidor comprueba siempre el rol de la cuenta en la saga.
 
 Necesita PHP 8.1 o superior con la extensión PDO MySQL (en Plesk: «Selector PHP»).
 
@@ -160,7 +162,7 @@ return [
 ];
 ```
 
-La base de datos del equipo ya trae las cuentas y sagas que haya (ver «La base de datos compartida en git»). Si todavía no tienes cuenta, créala en la entrada («Crear una cuenta»); para que un máster te añada a su saga, dale tu usuario. Si necesitas empezar de cero (por ejemplo, para pruebas), borra `datos/europa.sqlite`: se crea vacía en la primera petición; la primera cuenta que registres podrá crear sagas.
+La base de datos del equipo ya trae las cuentas y sagas que haya (ver «La base de datos compartida en git»). Si todavía no tienes cuenta, créala en la entrada («Crear una cuenta»); para entrar en una saga, pide al máster su enlace de invitación (o dale tu usuario para que te añada). Si necesitas empezar de cero (por ejemplo, para pruebas), borra `datos/europa.sqlite`: se crea vacía en la primera petición; la primera cuenta que registres podrá crear sagas.
 
 En local no hay servidor de correo: con el modo `archivo` de arriba, «He olvidado mi contraseña» no envía nada, sino que escribe el mensaje (con el enlace) en `datos/correo.log`, que git ignora.
 

@@ -9,6 +9,7 @@ import { writeEstado } from './saga/seasons.js';
 import { spellInfo } from './info.js';
 import { GENERO_TXT } from './creation/rules.js';
 import { masterTribunales } from './saga/covenant.js';
+import { borrarPj } from './saga/pjfile.js';
 import { cargarAstro, cielo, cuando, fechaError, hora, MESES } from './astro.js';
 
 /* ================================================================== PANTALLA DEL MÁSTER
@@ -491,7 +492,7 @@ function masterCard(p, compact) {
 }
 
 /* ================================================================== PANTALLA DEL MÁSTER · LA SAGA EN LA WEB
-   The saga's members, who plays each character, a backup copy and importing one. */
+   The saga's members, who plays each character (and deleting one), a backup copy and importing one. */
 function masterWeb() {
   const W = window.EM_WEB;
   const sec = h('section', { class: 'm-sec m-web', 'aria-labelledby': 'm-web-h' }, [h('h2', { class: 'm-h', id: 'm-web-h', text: 'La saga en la web' })]);
@@ -538,8 +539,40 @@ function masterWeb() {
     catch (e) { toast(e.message || 'No se ha podido añadir.'); }
     add.disabled = false;
   });
+  // the invitation: a link (and its code) that lets a player in with their own account, without the master doing anything
+  const inv = h('div', { class: 'm-inv' });
+  let codigo = null;
+  const conGuion = c => c.slice(0, 4) + '-' + c.slice(4);
+  const enlace = () => location.origin + location.pathname + '#unirse=' + conGuion(codigo);
+  async function copiar(texto, ok) {
+    try { await navigator.clipboard.writeText(texto); toast(ok); return; } catch (e) { /* no clipboard API (an address without https): the old way */ }
+    const t = h('textarea', { readonly: '', 'aria-hidden': 'true', style: 'position:fixed;top:0;left:-9999px' });
+    t.value = texto;
+    document.body.appendChild(t);
+    t.select();
+    let hecho = false;
+    try { hecho = document.execCommand('copy'); } catch (e) { hecho = false; }
+    t.remove();
+    toast(hecho ? ok : 'No he podido copiarlo: selecciónalo y cópialo a mano.');
+  }
+  const cambiar = confirmButton('Cambiar el código', 'Pulsa otra vez: el actual dejará de valer', async () => {
+    try { codigo = (await W.api('nuevaInvitacion')).codigo; pintaInv(); toast('Código cambiado: el anterior y su enlace ya no valen.'); }
+    catch (e) { toast(e.message || 'No se ha podido cambiar el código.'); }
+  });
+  function pintaInv() {
+    inv.innerHTML = '';
+    if (!codigo) { inv.appendChild(h('p', { class: 'note', text: 'Cargando el código de invitación…' })); return; }
+    inv.appendChild(h('div', { class: 'm-inv-cod' }, [h('span', { class: 'm-inv-l', text: 'Código de invitación' }), h('code', { text: conGuion(codigo) })]));
+    inv.appendChild(h('p', { class: 'm-inv-url' }, h('code', { text: enlace() })));
+    inv.appendChild(h('div', { class: 'actions' }, [
+      h('button', { type: 'button', class: 'btn', onclick: () => copiar(enlace(), 'Enlace copiado: mándaselo a tus jugadores.') }, 'Copiar el enlace'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => copiar(conGuion(codigo), 'Código copiado.') }, 'Copiar el código'), cambiar]));
+  }
   sec.appendChild(h('h3', { class: 'm-sub', text: 'Quién está en la saga' }));
-  sec.appendChild(h('p', { class: 'note', text: 'Cada persona entra con su cuenta. Para que alguien juegue en la saga, tiene que crearse una cuenta y tú la añades aquí con su usuario. Un máster puede cambiar los roles y quitar a cualquiera; la saga siempre necesita al menos un máster.' }));
+  sec.appendChild(h('p', { class: 'note', text: 'Cada persona entra con su cuenta. Para que alguien juegue en la saga, mándale el enlace de invitación (o el código): al abrirlo entra con su cuenta, o se crea una, y queda dentro como jugador. Si el código llega a quien no debe, cámbialo y el anterior deja de valer. También puedes añadir a alguien tú, con su usuario. Un máster puede cambiar los roles y quitar a cualquiera; la saga siempre necesita al menos un máster.' }));
+  sec.appendChild(inv);
+  pintaInv();
+  W.api('invitacion').then(r => { codigo = r.codigo; pintaInv(); }, e => { inv.innerHTML = ''; inv.appendChild(h('p', { class: 'note', text: e.message || 'No se ha podido cargar el código de invitación.' })); });
   sec.appendChild(lista);
   sec.appendChild(h('div', { class: 'fld-row fx' }, [field('Usuario', nuevo), field('Rol', nuevoRol)]));
   sec.appendChild(h('div', { class: 'actions' }, [add]));
@@ -558,11 +591,15 @@ function masterWeb() {
         try { await W.api('asignar', { ruta: 'personajes/' + p._id, usuario: s.value || null }); autores['personajes/' + p._id] = s.value; toast(s.value ? p.nombre + ' asignado.' : p.nombre + ' ya no es de nadie.'); }
         catch (e) { toast(e.message || 'No se ha podido asignar.'); s.value = autores['personajes/' + p._id] || ''; }
       });
-      asig.appendChild(h('div', { class: 'member' }, [h('div', { class: 'member-t' }, [h('b', { text: p.nombre }), h('small', { text: [p.tipo, p.jugador ? 'jugador: ' + p.jugador : ''].filter(Boolean).join(' · ') })]), s]));
+      const n = entriesOf(p._id).length;
+      const borrar = confirmButton('Borrar', 'Pulsa otra vez para borrar', () => borrarPj(p._id));
+      asig.appendChild(h('div', { class: 'member pj-row' }, [h('div', { class: 'member-t' }, [h('b', { text: p.nombre }),
+        h('small', { text: [p.tipo, p.jugador ? 'jugador: ' + p.jugador : '', n ? (n === 1 ? '1 estación' : n + ' estaciones') : ''].filter(Boolean).join(' · ') })]), s, borrar]));
     });
   }
   sec.appendChild(h('h3', { class: 'm-sub', text: 'Personajes y jugadores' }));
   sec.appendChild(h('p', { class: 'note', text: 'Elige de quién es cada personaje: aparecerá en «Mis creaciones» de esa cuenta, junto con sus hechizos. Lo que cada uno crea desde ahora queda a su nombre sin hacer nada.' }));
+  sec.appendChild(h('p', { class: 'note', text: '«Borrar» quita el personaje de la saga con sus estaciones y su retrato, y deja libre su laboratorio; los movimientos de vis y de tesorería se quedan. No se puede deshacer: si dudas, descarga antes una copia (abajo, en «Copia de seguridad»).' }));
   sec.appendChild(asig);
   pintaMiembros(); pintaAsignar();
   Promise.all([W.api('miembros'), W.api('autores')]).then(([m, a]) => { miembros = m.miembros; autores = a.autores || {}; pintaMiembros(); pintaAsignar(); },

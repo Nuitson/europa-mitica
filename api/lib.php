@@ -5,8 +5,8 @@
    Los JSON se guardan y se devuelven tal cual (sin decodificar siempre), para que un objeto vacío {} no se convierta en una lista []. */
 declare(strict_types=1);
 
-const VERSION = '2026-11-19';
-const ESQUEMA = '3';
+const VERSION = '2026-11-27';
+const ESQUEMA = '4';
 const DIAS_SESION = 120;
 const MAX_DOC = 2500000;        // un retrato reducido cabe de sobra
 const MAX_AVATAR = 200000;      // caracteres del avatar (la web lo reduce a 256 px)
@@ -110,6 +110,7 @@ function crearTablas(): void {
         anio INT NOT NULL, est INT NOT NULL, aura INT NOT NULL,
         rev VARCHAR(20) NOT NULL DEFAULT \'1\',
         archivo_rev VARCHAR(20) NULL,
+        invitacion VARCHAR(20) NULL,
         creada BIGINT NOT NULL
     )' . $fin);
     $db->exec('CREATE TABLE IF NOT EXISTS miembros (
@@ -135,6 +136,9 @@ function crearTablas(): void {
     if (!tieneColumna('docs', 'autor')) $db->exec('ALTER TABLE docs ADD COLUMN autor VARCHAR(20) NULL');
     if (!tieneColumna('usuarios', 'admin')) $db->exec('ALTER TABLE usuarios ADD COLUMN admin INT NOT NULL DEFAULT 0');
     foreach (['hj', 'hm', 'gen'] as $col) if (tieneColumna('sagas', $col)) $db->exec("ALTER TABLE sagas DROP COLUMN $col");
+    // el código de invitación de cada saga: las que ya había reciben uno
+    if (!tieneColumna('sagas', 'invitacion')) $db->exec('ALTER TABLE sagas ADD COLUMN invitacion VARCHAR(20) NULL');
+    foreach (consulta('SELECT id FROM sagas WHERE invitacion IS NULL')->fetchAll(PDO::FETCH_COLUMN) as $id) consulta('UPDATE sagas SET invitacion = ? WHERE id = ?', [nuevoCodigoInvitacion(), $id]);
     $db->exec("DELETE FROM ajustes WHERE clave = 'crear'");
     ponerAjuste('esquema', ESQUEMA);
 }
@@ -399,8 +403,8 @@ function idDe(string $nombre): string {
 function nuevaSaga(string $nombre, string $alianza, int $anio, int $est, int $aura, string $masterId): array {
     return transaccion(function () use ($nombre, $alianza, $anio, $est, $aura, $masterId) {
         $id = idDe($nombre);
-        consulta('INSERT INTO sagas (id, nombre, alianza, anio, est, aura, rev, creada) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [$id, $nombre, $alianza, $anio, $est, $aura, (string) ahora(), ahora()]);
+        consulta('INSERT INTO sagas (id, nombre, alianza, anio, est, aura, rev, invitacion, creada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$id, $nombre, $alianza, $anio, $est, $aura, (string) ahora(), nuevoCodigoInvitacion(), ahora()]);
         consulta('INSERT INTO miembros (saga, usuario, rol, desde) VALUES (?, ?, \'master\', ?)', [$id, $masterId, ahora()]);
         guardarDoc($id, 'saga/estado', json_encode(['anio' => $anio, 'est' => $est, 'aura' => $aura, 'actualizado' => ahora()], JSON_OUT), ahora(), $masterId);
         return sagaPorId($id);
@@ -461,6 +465,48 @@ function quitarMiembro(array $saga, string $rolPropio, array $u, array $p): arra
     if ($actual === 'master' && numMasters($saga['id']) < 2) throw new Fallo('master', 'La saga necesita al menos un máster.');
     consulta('DELETE FROM miembros WHERE saga = ? AND usuario = ?', [$saga['id'], $o['id']]);
     return $o['id'] === $u['id'] ? ['ok' => true, 'perfil' => perfil($u)] : miembros($saga);
+}
+
+/* ---------- el código de invitación: quien lo tiene entra en la saga como jugador, con su propia cuenta.
+   Son 8 caracteres sin los que se confunden (0, O, 1, I, L) y se enseñan como ABCD-EFGH. Solo lo ven los másteres, que
+   pueden cambiarlo (el anterior deja de valer). Probar códigos a ciegas está frenado, por cuenta y por dirección. */
+const INVITACION_LETRAS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+function nuevoCodigoInvitacion(): string {
+    do {
+        $c = '';
+        for ($i = 0; $i < 8; $i++) $c .= INVITACION_LETRAS[random_int(0, strlen(INVITACION_LETRAS) - 1)];
+    } while (consulta('SELECT 1 FROM sagas WHERE invitacion = ?', [$c])->fetchColumn() !== false);
+    return $c;
+}
+
+function invitacion(array $saga): array {
+    $c = (string) ($saga['invitacion'] ?? '');
+    if ($c === '') { $c = nuevoCodigoInvitacion(); consulta('UPDATE sagas SET invitacion = ? WHERE id = ?', [$c, $saga['id']]); }
+    return ['codigo' => $c];
+}
+
+function nuevaInvitacion(array $saga): array {
+    $c = nuevoCodigoInvitacion();
+    consulta('UPDATE sagas SET invitacion = ? WHERE id = ?', [$c, $saga['id']]);
+    return ['codigo' => $c];
+}
+
+/* entrar en una saga con su código: como jugador (quien ya estaba en ella se queda con su rol) */
+function unirse(array $u, array $p): array {
+    $anotarIp = freno('unirse:' . ip());
+    $anotarCuenta = freno('unirse:' . $u['id'], 10);
+    $c = (string) preg_replace('/[^A-Z0-9]/', '', strtoupper((string) ($p['codigo'] ?? '')));
+    $saga = strlen($c) === 8 ? consulta('SELECT * FROM sagas WHERE invitacion = ?', [$c])->fetch() : false;
+    if (!$saga) { $anotarIp(); $anotarCuenta(); throw new Fallo('invitacion', 'Ese código de invitación no vale: revisa que esté bien copiado o pide al máster el de ahora.'); }
+    $rol = transaccion(function () use ($saga, $u) {
+        bloquear($saga['id']);
+        $r = rolEn($saga['id'], $u['id']);
+        if ($r) return $r;
+        consulta('INSERT INTO miembros (saga, usuario, rol, desde) VALUES (?, ?, \'jugador\', ?)', [$saga['id'], $u['id'], ahora()]);
+        return 'jugador';
+    });
+    return ['saga' => publica($saga), 'rol' => $rol, 'perfil' => perfil(usuarioPorId($u['id']))];
 }
 
 /* el máster dice de quién es un personaje (null: de nadie): así sale en «Mis creaciones» de esa cuenta */
@@ -663,6 +709,7 @@ function atender(array $p) {
             case 'cerrarSesiones': return cerrarSesiones(sesion($p['token'] ?? ''));
             case 'contenido': return contenido(sesion($p['token'] ?? ''));
             case 'crear': return crear(sesion($p['token'] ?? ''), $p);
+            case 'unirse': return unirse(sesion($p['token'] ?? ''), $p);
             // ayudas de juego (las leen todos, también sin cuenta; las escribe un administrador)
             case 'ayudasLeer': return ayudasLeer();
             case 'ayudasEscribir': return ayudasEscribir(sesion($p['token'] ?? ''), $p);
@@ -677,6 +724,8 @@ function atender(array $p) {
             case 'anadirMiembro': [$s] = acceso($p, 'master'); return anadirMiembro($s, $p);
             case 'cambiarRol': [$s] = acceso($p, 'master'); return cambiarRol($s, $p);
             case 'quitarMiembro': [$s, $rol, $u] = acceso($p); return quitarMiembro($s, $rol, $u, $p);
+            case 'invitacion': [$s] = acceso($p, 'master'); return invitacion($s);
+            case 'nuevaInvitacion': [$s] = acceso($p, 'master'); return nuevaInvitacion($s);
             case 'asignar': [$s] = acceso($p, 'master'); return asignar($s, $p);
             case 'autores': [$s] = acceso($p, 'master'); return autores($s);
             default: return ['error' => 'accion', 'mensaje' => 'Acción desconocida.'];

@@ -171,12 +171,34 @@ function crear(ctx) {
     /* ---------- mis sagas */
     function pSagas() {
       const p = ses.perfil;
-      if (!p.sagas.length) panel.appendChild(el('p', { class: 'gate-hint', text: 'Todavía no estás en ninguna saga. Pide al máster que te añada con tu usuario: @' + p.usuario + '.' }));
+      if (!p.sagas.length) panel.appendChild(el('p', { class: 'gate-hint', text: 'Todavía no estás en ninguna saga. Si el máster te ha mandado un enlace o un código de invitación, úsalo; si no, pídele que te añada con tu usuario: @' + p.usuario + '.' }));
       p.sagas.forEach(s => panel.appendChild(el('div', { class: 'saga-card' }, [
         el('div', { class: 'saga-card-t' }, [el('b', { text: s.nombre }), s.alianza ? el('small', { text: 'Alianza ' + s.alianza }) : null]),
         el('span', { class: 'chip' + (s.rol === 'master' ? ' chip-master' : ''), text: s.rol === 'master' ? 'Máster' : 'Jugador' }),
         el('button', { type: 'button', class: 'gbtn', text: 'Entrar', onclick: () => ctx.openSaga(ses, s.id) })])));
-      if (p.creaSagas) panel.appendChild(el('div', { class: 'gate-act' }, [el('button', { type: 'button', class: 'glink', text: 'Crear una saga nueva', onclick: pNueva })]));
+      panel.appendChild(el('div', { class: 'gate-act' }, [
+        el('button', { type: 'button', class: p.sagas.length ? 'glink' : 'gbtn', text: 'Unirme a una saga con un código', onclick: pUnirse }),
+        p.creaSagas ? el('button', { type: 'button', class: 'glink', text: 'Crear una saga nueva', onclick: pNueva }) : null]));
+    }
+
+    /* el código de invitación que da el máster (o el que trae su enlace, #unirse=…, que entra solo: js/gate.js) */
+    function pUnirse() {
+      panel.innerHTML = '';
+      const err = errBox();
+      const cod = campo('u-codigo', 'text', { placeholder: 'ABCD-EFGH', autofocus: true, maxlength: '24', autocapitalize: 'characters' });
+      const go = el('button', { type: 'submit', class: 'gbtn', text: 'Unirme' });
+      const back = el('button', { type: 'button', class: 'glink', text: 'Volver', onclick: pinta });
+      const form = el('form', { class: 'gate-form gate-plain', novalidate: true }, [
+        el('h3', { class: 'gate-h2', text: 'Unirme a una saga' }),
+        el('p', { class: 'gate-hint', text: 'Escribe el código de invitación que te ha dado el máster: entrarás en su saga como jugador.' }),
+        fld('u-codigo', 'Código de invitación', cod), err, el('div', { class: 'gate-act' }, [go, back])]);
+      enviar(form, go, err, 'Entrando…', async () => {
+        if (!cod.value.trim()) { cod.focus(); throw new Error('Escribe el código que te ha dado el máster.'); }
+        const r = await api('unirse', { token: ses.token, codigo: cod.value });
+        ses.perfil = r.perfil;
+        ctx.openSaga(ses, r.saga.id);
+      });
+      panel.appendChild(form);
     }
 
     function pNueva() {
@@ -191,7 +213,7 @@ function crear(ctx) {
       const back = el('button', { type: 'button', class: 'glink', text: 'Volver', onclick: pinta });
       const form = el('form', { class: 'gate-form gate-plain', novalidate: true }, [
         el('h3', { class: 'gate-h2', text: 'Saga nueva' }),
-        el('p', { class: 'gate-hint', text: 'Serás su máster; después podrás añadir a los jugadores por su usuario.' }),
+        el('p', { class: 'gate-hint', text: 'Serás su máster. Para que entren los jugadores, mándales el enlace de invitación que tendrás en la pantalla del máster.' }),
         fld('s-nombre', 'Nombre de la saga', nombre), fld('s-alianza', 'Alianza', alianza),
         el('div', { class: 'gate-row' }, [
           el('div', { class: 'gate-fld' }, [el('span', { class: 'gate-lab', text: 'Primera estación' }), el('div', { class: 'gate-pair' }, [est, anio])]),

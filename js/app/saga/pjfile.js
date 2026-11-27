@@ -1,8 +1,8 @@
-/* Exportar e importar personajes: un archivo JSON con la ficha, sus estaciones (avance) y su retrato.
+/* Exportar, importar y borrar personajes: un archivo JSON con la ficha, sus estaciones (avance) y su retrato.
    Importar crea siempre un personaje nuevo, en esta saga o en otra: nunca toca los que ya hay. */
 import { h } from '../base.js';
 import { S, SEASONS, tkey } from './state.js';
-import { dbWrite, localPut, openModal, stamp, toast } from './core.js';
+import { dbWrite, localDel, localPut, openModal, stamp, toast } from './core.js';
 import { canWrite, clone, entriesOf, newId, sname } from './rules.js';
 
 const FORMATO = 'europa-mitica/personaje/1';
@@ -92,6 +92,31 @@ async function crearPj(x) {
   return pid;
 }
 
+/* ---------- delete: the sheet with its seasons and its portrait; its laboratory stays in the covenant, free.
+   The vis and treasury movements stay too: they are the covenant's stores, not the character's */
+async function borrarPj(id) {
+  const pj = S.pj[id];
+  if (!pj) { toast('No se encuentra el personaje.'); return false; }
+  const nombre = pj.nombre || 'el personaje';
+  const ops = entriesOf(id).map(e => ['av', 'avance/' + e._id]);
+  const ret = pj.retrato && pj.retrato.id;
+  if (ret && !Object.keys(S.pj).some(k => k !== id && S.pj[k].retrato && S.pj[k].retrato.id === ret)) ops.push(['retratos', ret]);
+  Object.keys(S.lab).forEach(k => { if (S.lab[k].dueno === id) ops.push(['lab', 'laboratorios/' + k, Object.assign({}, S.lab[k], { dueno: '' })]); });
+  ops.push(['pj', 'personajes/' + id]); // the sheet last: if a very long history needs several requests and one fails, «Borrar» again finishes it
+  for (let i = 0; i < ops.length; i += MAX_OPS) {
+    const part = ops.slice(i, i + MAX_OPS);
+    const last = i + MAX_OPS >= ops.length;
+    const ok = await dbWrite(() => { const b = S.db.batch(); part.forEach(([, ruta, datos]) => { if (datos) b.set(ruta, datos); else b.delete(ruta); }); return b.commit(); },
+      last ? 'Personaje borrado: ' + nombre + '.' : null);
+    if (!ok) {
+      if (i) toast('No se ha terminado de borrar a ' + nombre + ': vuelve a pulsar «Borrar».');
+      return false;
+    }
+    part.forEach(([key, ruta, datos]) => { if (key === 'retratos') return; const k = ruta.slice(ruta.indexOf('/') + 1); if (datos) localPut(key, k, datos); else localDel(key, k); });
+  }
+  return true;
+}
+
 function importDialog(x) {
   const p = x.p, n = x.estaciones.length;
   const repe = Object.keys(S.pj).filter(k => tkey(S.pj[k].nombre) === tkey(p.nombre)).length;
@@ -138,4 +163,4 @@ function importButton() {
   return [h('button', { type: 'button', class: 'btn ghost', onclick: () => file.click() }, 'Importar personaje'), file];
 }
 
-export { exportPj, importButton };
+export { borrarPj, exportPj, importButton };

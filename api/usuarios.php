@@ -1,6 +1,6 @@
 <?php
 /* Gestión de cuentas desde la línea de órdenes (para quien administra la web, con acceso por SSH):
-     php api/usuarios.php listar                          cuentas y sagas, con sus miembros
+     php api/usuarios.php listar                          cuentas y sagas, con sus miembros y su código de invitación
      php api/usuarios.php master <usuario> <saga>         hace máster de esa saga a esa cuenta (la añade si no estaba)
      php api/usuarios.php miembro <usuario> <saga> [rol]  la añade como jugador (o como master)
      php api/usuarios.php admin <usuario> [si|no]         hace administrador a esa cuenta (o le quita el nivel): ve y edita todas las sagas
@@ -34,7 +34,7 @@ switch ($cmd) {
         foreach (consulta('SELECT * FROM usuarios ORDER BY creado')->fetchAll() as $u)
             echo "- {$u['usuario']} ({$u['nombre']}, {$u['email']})" . ($u['admin'] ? ' [ADMIN]' : '') . ($u['crea_sagas'] ? ' [puede crear sagas]' : '') . "\n";
         foreach (consulta('SELECT * FROM sagas ORDER BY nombre')->fetchAll() as $s) {
-            echo "\n{$s['id']} — {$s['nombre']}\n";
+            echo "\n{$s['id']} — {$s['nombre']}" . (!empty($s['invitacion']) ? ' · invitación ' . substr($s['invitacion'], 0, 4) . '-' . substr($s['invitacion'], 4) : '') . "\n";
             foreach (consulta('SELECT u.usuario, m.rol FROM miembros m JOIN usuarios u ON u.id = m.usuario WHERE m.saga = ?', [$s['id']]) as $m) echo "    {$m['usuario']}: {$m['rol']}\n";
         }
         break;

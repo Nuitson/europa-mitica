@@ -2,7 +2,8 @@
 import { ARTS, ARTS_F, ARTS_T, artVar, fmt, h, load, norm, scrollHint, store } from '../base.js';
 import { page } from '../views.js';
 import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../saga/state.js';
-import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localDel, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
+import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
+import { borrarPj } from '../saga/pjfile.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
 import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, casaVariantes, creationCheck, DRAFT_KEY, ensureGift, ensureHouse, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdReinoFijo, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
@@ -625,12 +626,7 @@ function viewEditor(id, override) {
   const save = h('button', { type: 'button', class: 'btn', id: 'pj-save' }, orig ? 'Guardar cambios' : 'Crear personaje');
   const bar = h('div', { class: 'form-bar' }, [showRules ? chips : null, save, h('a', { class: 'btn ghost', href: orig ? '#pj--' + id : '#personajes', text: 'Cancelar' })]);
   if (orig) bar.appendChild(confirmButton('Borrar personaje', entries.length ? 'Pulsa otra vez: se borra con sus ' + entries.length + ' estaciones' : 'Pulsa otra vez para borrar', async () => {
-    let n = 0;
-    const ok = await dbWrite(async () => {
-      for (const e of entries) { await S.db.doc('avance/' + e._id).delete(); n++; if (n % 10 === 0) toast('Borrando estaciones… ' + n + ' de ' + entries.length); }
-      await S.db.doc('personajes/' + id).delete();
-    }, 'Personaje borrado');
-    if (ok) { localDel('av', entries.map(e => e._id)); localDel('pj', id); location.hash = '#personajes'; }
+    if (await borrarPj(id)) location.hash = '#personajes';
   }));
   f.appendChild(bar);
   // live check
