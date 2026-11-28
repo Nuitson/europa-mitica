@@ -723,10 +723,21 @@ function drawPanel(panel, r) {
     h('span', { class: 'm', text: l.st === 'over' ? 'te pasas' : l.st === 'under' ? 'sin gastar del todo' : 'justo' })]))));
   if (r.errors.length || r.avisos.length) panel.appendChild(h('ul', { class: 'cc-issues' }, r.errors.map(t => h('li', { class: 'err', text: t })).concat(r.avisos.map(t => h('li', { class: 'warn', text: t })))));
   else panel.appendChild(h('p', { class: 'cc-ok', text: 'Todo cuadra con las reglas de creación.' }));
-  panel.appendChild(h('details', { class: 'cc-more' }, [h('summary', { text: 'De dónde sale el presupuesto de experiencia' }),
-    h('ul', null, r.parts.map(p => h('li', { text: p[0] + ': ' + p[1] + ' px' })).concat(r.spBudget ? [h('li', { text: 'Hechizos: ' + r.spBudget + ' niveles' })] : [], r.shared ? [h('li', { text: 'Años tras el Guantelete: ' + r.shared + ' puntos para PX o niveles de hechizo (30 por año)' })] : [],
+  // each source of experience, its rule, how much of it is used and on what; and what no source may pay for
+  const rep = (r.reparto || []).map(p => h('li', { class: 'cc-src' + (p.used < p.px ? (p.regla ? ' left' : ' free') : '') }, [
+    h('div', { class: 'cc-src-h' }, [h('b', { text: p.n }), h('span', { class: 'cc-src-n', text: p.used + ' / ' + p.px + ' px' })]),
+    h('small', { text: p.regla ? 'Solo para ' + p.regla + '.' : 'Sin restricción: Artes y habilidades.' }),
+    p.items.length ? h('span', { class: 'cc-src-i', text: p.items.map(([n, px]) => n + ' ' + px).join(' · ') }) : null]));
+  if (r.sinOrigen && r.sinOrigen.length) rep.push(h('li', { class: 'cc-src over' }, [h('div', { class: 'cc-src-h' }, [h('b', { text: 'Sin origen válido' }),
+    h('span', { class: 'cc-src-n', text: r.sinOrigen.reduce((s, t) => s + t.px, 0) + ' px' })]),
+    h('small', { text: 'Ninguna fuente de experiencia puede pagar estos px con sus reglas: quítalos o cámbialos de sitio.' }),
+    h('span', { class: 'cc-src-i', text: r.sinOrigen.map(t => t.n + ' ' + t.px).join(' · ') })]));
+  panel.appendChild(h('details', { class: 'cc-more', open: r.sinOrigen && r.sinOrigen.length ? true : null }, [h('summary', { text: 'De dónde sale cada px' }),
+    h('ul', { class: 'cc-srcs' }, rep),
+    h('ul', null, (r.spBudget ? [h('li', { text: 'Hechizos: ' + r.spBudget + ' niveles' })] : []).concat(r.shared ? [h('li', { text: 'Años tras el Guantelete: ' + r.shared + ' puntos para PX o niveles de hechizo (30 por año)' })] : [],
       r.msBonus ? [h('li', { text: 'Hechizos dominados: ' + r.msBonus + ' px para maestría de hechizos' })] : [],
       [h('li', { text: 'Límite de habilidad por edad: ' + r.cap + (r.age != null ? ' (' + r.age + ' años)' : '') + '; ' + (r.cap + 2) + ' con Afinidad' })])),
+    h('p', { class: 'fh', text: 'Los px de la ficha se reparten solos entre las fuentes, primero las que tienen regla: así cada fuente solo paga lo que sus reglas permiten.' }),
     h('p', { class: 'fh', text: 'Reglas de creación de Ars Magica 5.ª edición (capítulos 3 y 4) y, para aprendices, del suplemento Apprentices. Los paquetes de infancia salen de tu Excel.' })]));
 }
 /* childhood packages from the saga's Excel: slots resolve to this character's language and homeland */

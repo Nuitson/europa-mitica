@@ -551,6 +551,47 @@ function accessOf(d) {
 }
 const grpOf = c => c === 'Lenguas muertas' ? 'Académicas' : c; // a dead language is an Academic Ability
 /* ---------- the rules: what a new character may spend, and what it spends */
+/* the Abilities of early childhood (ArM5, cap. 3) and of Feral Upbringing (the virtue's text), by key */
+const INFANCIA_K = ['atencion', 'atletismo', 'encanto', 'don-de-gentes', 'embaucar', 'nadar', 'pelea', 'sigilo', 'supervivencia'];
+const FERAL_K = ['atencion', 'atletismo', 'cazar', 'manejo-de-animales', 'nadar', 'pelea', 'sigilo', 'supervivencia'];
+/* where each px comes from: the sources (pools: {n, px, regla, ok(t), pri}) pay for the px written on the sheet (targets:
+   {n, px, …}) as a flow, the most restricted sources first (pri); a later source can take over what an earlier one paid
+   for, so the restricted px go where only they can. Returns each source with what it pays ({used, items: [[name, px]]})
+   in the order given, and the px no source may pay for (sinOrigen). */
+function repartoPx(pools, targets) {
+  const P = pools.length, T = targets.length;
+  const ok = pools.map(p => targets.map(t => !!p.ok(t)));
+  const f = pools.map(() => targets.map(() => 0)), pf = pools.map(() => 0), tf = targets.map(() => 0);
+  const order = pools.map((p, i) => i).sort((a, b) => pools[a].pri - pools[b].pri || a - b);
+  order.forEach(s => {
+    while (pf[s] < pools[s].px) {
+      // a path pool s → target … → a target that still needs px, undoing what other pools pay for on the way
+      const prevT = new Array(T).fill(-1), prevP = new Array(P).fill(-2);
+      prevP[s] = -1;
+      const q = [s];
+      let end = -1;
+      while (q.length && end < 0) {
+        const i = q.shift();
+        for (let j = 0; j < T && end < 0; j++) {
+          if (!ok[i][j] || prevT[j] !== -1) continue;
+          prevT[j] = i;
+          if (tf[j] < targets[j].px) { end = j; break; }
+          for (let i2 = 0; i2 < P; i2++) if (prevP[i2] === -2 && f[i2][j] > 0) { prevP[i2] = j; q.push(i2); }
+        }
+      }
+      if (end < 0) break;
+      let b = Math.min(pools[s].px - pf[s], targets[end].px - tf[end]);
+      for (let j = end, i = prevT[j]; i !== s; j = prevP[i], i = prevT[j]) b = Math.min(b, f[i][prevP[i]]);
+      for (let j = end, i = prevT[j]; ; j = prevP[i], i = prevT[j]) { f[i][j] += b; if (i === s) break; f[i][prevP[i]] -= b; }
+      pf[s] += b; tf[end] += b;
+    }
+  });
+  return {
+    pools: pools.map((p, i) => ({ n: p.n, px: p.px, regla: p.regla, pri: p.pri, used: pf[i], items: targets.map((t, j) => [t.n, f[i][j]]).filter(x => x[1] > 0) })),
+    sinOrigen: targets.map((t, j) => ({ n: t.n, px: t.px - tf[j] })).filter(t => t.px > 0)
+  };
+}
+
 /* the highest spell a character can learn: Technique + Form + Intelligence + Magic Theory (Magia Sagrada's Ability, if it
    stands in for it) + 3, with the Arts and the Ability as the sheet counts them: starting px, the seasons' if given,
    Affinity and Puissant */
@@ -650,79 +691,90 @@ function creationCheck(d) {
   if (outR.length) avisos.push('Fuera del rango normal de −3 a +3: ' + outR.join(', ') + '. Por encima hace falta Característica Notable y por debajo, Característica Mediocre.');
   if (badAdj.length) avisos.push('Característica Notable y Mediocre se aplican a una característica que ya está en +3 o −3 antes de la virtud: ' + badAdj.join(', ') + '.');
   lines.push({ k: 'car', l: 'Características', s: 'Car.', short: cSpent + '/' + cBudget, txt: cSpent + ' de ' + cBudget + ' puntos', st: cSpent > cBudget ? 'over' : cSpent < cBudget ? 'under' : 'ok' });
-  // 3. experience by age, plus what virtues and statuses add
-  const parts = [];
+  // 3. experience by where it comes from: each source (childhood, the apprenticeship, a virtue…) pays only for what its
+  //    rule allows (ArM5, cap. 3 and the virtues' own text); repartoPx matches the px written on the sheet to them
+  const habT = t => !t.art && !t.ms;
+  const enCat = cs => t => habT(t) && cs.includes(t.cat);
+  const enK = ks => t => habT(t) && ks.includes(t.k);
+  const pools = [];   // [label, px, the rule in words (null: none), who it pays for, priority: the most restricted pay first]
+  const pool = (n, px, regla, ok, pri) => { if (px > 0) pools.push({ n: n, px: px, regla: regla, ok: ok, pri: pri }); };
   const preset = cr.infancia ? PRESETS().find(p => p.n === cr.infancia) : null;
-  parts.push([preset ? 'Infancia: paquete «' + preset.n + '»' : hasD('feral') ? 'Infancia entre fieras (120, sin lengua materna)' : 'Lengua materna (75) e infancia (45)', preset ? preset.total : 120]);
+  if (preset) {
+    const ks = new Set((cr.infAplicada || []).map(it => tkey(it.n)));
+    pool('Infancia: paquete «' + preset.n + '»', preset.total, 'las habilidades del paquete', ks.size ? enK([...ks]) : t => habT(t) && (INFANCIA_K.includes(t.k) || ['Conocimientos de área', 'Idiomas vivos'].includes(t.cat)), 1);
+  } else if (hasD('feral')) {
+    pool('Infancia entre fieras', 120, 'Atención, Atletismo, Cazar, Conocimiento de área, Manejo de animales, Nadar, Pelea, Sigilo y Supervivencia', t => habT(t) && (FERAL_K.includes(t.k) || t.cat === 'Conocimientos de área'), 3);
+  } else {
+    pool('Lengua materna', 75, 'la lengua materna (idiomas vivos)', enCat(['Idiomas vivos']), 1);
+    pool('Infancia (primeros 5 años)', 45, 'Atención, Atletismo, Encanto, Don de gentes, Embaucar, Nadar, Pelea, Sigilo, Supervivencia, Conocimiento de área e idiomas vivos',
+      t => habT(t) && (INFANCIA_K.includes(t.k) || ['Conocimientos de área', 'Idiomas vivos'].includes(t.cat)), 3);
+  }
   let spBudget = 0, shared = 0;
   const ea = Math.max(5, Math.min(30, parseInt(cr.edadAprendizaje, 10) || 10));
   if (isMagic(cls)) {
-    if (ea > 5) parts.push(['Antes del aprendizaje (' + (ea - 5) + ' años × 15)', (ea - 5) * 15]);
+    pool('Vida temprana, antes del aprendizaje (' + (ea - 5) + ' años × 15)', (ea - 5) * 15, 'habilidades, no Artes', habT, 5);
     if (cls === 'mago') {
-      parts.push(['Aprendizaje (15 años)', 240 + (hasV('maestro') ? 60 : 0) - (hasD('malMaestro') ? 60 : 0)]);
+      pool('Aprendizaje de magus (15 años)', 240 + (hasV('maestro') ? 60 : 0) - (hasD('malMaestro') ? 60 : 0), null, () => true, 7);
       spBudget = 120 + (hasV('maestro') ? 30 : 0) - (hasD('malMaestro') ? 30 : 0);
       if (age != null && age < ea + 15) avisos.push('Con ' + age + ' años y el aprendizaje empezado a los ' + ea + ', aún no habría pasado el Guantelete (el aprendizaje dura 15 años).');
       shared = age != null ? Math.max(0, age - (ea + 15)) * 30 : 0;
     } else {
       const yrs = age != null ? Math.max(0, Math.min(15, age - ea)) : 0;
-      parts.push(['Aprendizaje (' + yrs + (yrs === 1 ? ' año' : ' años') + ')', 19 * Math.min(yrs, 12) + 6 * Math.max(0, yrs - 12)]);
+      pool('Aprendizaje (' + yrs + (yrs === 1 ? ' año' : ' años') + ')', 19 * Math.min(yrs, 12) + 6 * Math.max(0, yrs - 12), null, () => true, 7);
       spBudget = 40 * Math.max(0, yrs - 12);
     }
   } else if (cls !== 'otro') {
     const yrs = age != null ? Math.max(0, age - 5) : 0;
     const per = hasV('rico') ? 20 : hasD('pobre') ? 10 : 15;
-    parts.push(['Vida posterior (' + yrs + ' años × ' + per + ')', yrs * per]);
+    pool('Vida posterior (' + yrs + ' años × ' + per + ')', yrs * per, 'habilidades', habT, 5);
   }
-  if (hasV('crianza')) parts.push(['Infancia Privilegiada', 50]);
-  if (hasV('guerrero')) parts.push(['Guerrero (habilidades marciales)', 50]);
-  if (hasV('instruido')) parts.push(['Instruido (Latín y Artes Liberales)', 50]);
-  if (hasV('arcano')) parts.push(['Conocimiento arcano (habilidades arcanas)', 50]);
-  if (hasV('trotamundos')) parts.push(['Trotamundos', 50]);
-  if (hasV('magister')) parts.push(['Magister in Artibus (8 años de universidad × 30)', 240]);
+  if (hasV('crianza')) pool('Infancia Privilegiada', 50, 'habilidades generales, académicas o marciales', enCat(['Generales', 'Académicas', 'Marciales']), 3);
+  if (hasV('guerrero')) pool('Guerrero', 50, 'habilidades marciales', enCat(['Marciales']), 2);
+  if (hasV('instruido')) pool('Instruido', 50, 'Latín y Artes Liberales', enK(['latin', 'artes-liberales']), 1);
+  if (hasV('arcano')) pool('Conocimiento arcano', 50, 'habilidades arcanas', enCat(['Arcanas']), 2);
+  if (hasV('trotamundos')) pool('Trotamundos', 50, 'habilidades', habT, 5);
+  if (hasV('magister')) pool('Magister in Artibus (8 años de universidad × 30)', 240, 'habilidades académicas, lenguas muertas o Enseñanza', t => habT(t) && (['Académicas', 'Lenguas muertas'].includes(t.cat) || t.k === 'ensenanza'), 2);
   if (hasV('redcap')) {
     const y = age != null ? Math.max(0, Math.min(15, age - 5)) : 0;
-    if (y) parts.push(['Boina Roja (' + y + ' años de formación a 20 px en vez de 15)', y * 5]);
+    pool('Boina Roja (' + y + ' años de formación a 20 px en vez de 15)', y * 5, 'habilidades', habT, 5);
   }
-  const xpBudget = parts.reduce((s, p) => s + p[1], 0);
+  const xpBudget = pools.reduce((s, p) => s + p.px, 0);
+  const parts = pools.map(p => [p.n, p.px]);
   // what is spent: the px typed in each row (Affinity raises them when they count, not here)
-  let xpSpent = 0, artXp = 0, latAL = 0, teach = 0;
-  const byCat = {};
+  const targets = [];
+  let artXp = 0;
   (d.hab || []).forEach(x => {
-    if (!String(x.n || '').trim()) return;
-    const b = Math.max(0, numv(x.base)), c = x.cat || guessCat(x.n), k = tkey(x.n);
-    xpSpent += b;
-    byCat[c] = (byCat[c] || 0) + b;
-    if (k === 'latin' || k === 'artes-liberales') latAL += b;
-    if (k === 'ensenanza') teach += b;
+    const n = String(x.n || '').trim(), b = Math.max(0, numv(x.base));
+    if (n && b) targets.push({ n: n, px: b, cat: x.cat || guessCat(n), k: tkey(n) });
   });
-  ARTS.forEach(a => { const b = Math.max(0, numv(d.artes && d.artes[a])); artXp += b; xpSpent += b; });
+  ARTS.forEach(a => { const b = Math.max(0, numv(d.artes && d.artes[a])); artXp += b; if (b) targets.push({ n: a, px: b, art: true }); });
   // spell mastery: a score bought like an Ability (1 = 5 px, 2 = 15, 3 = 30); Hechizos dominados pays the first 50
   const msXp = (d.hechizos || []).filter(x => String(x.n || '').trim()).reduce((s, x) => s + abCost(Math.max(0, Math.round(numv(x.maestria)))), 0);
   const msBonus = hasV('dominados') ? 50 : 0;
-  xpSpent += Math.max(0, msXp - msBonus);
+  if (msXp > msBonus) targets.push({ n: 'Maestría de hechizos', px: msXp - msBonus, ms: true });
+  const xpSpent = targets.reduce((s, t) => s + t.px, 0);
   if (!isMagic(cls) && cls !== 'otro' && artXp > 0) errors.push('Solo los magos y los aprendices tienen Artes.');
   const spSpent = (d.hechizos || []).filter(x => String(x.n || '').trim()).reduce((s, x) => s + Math.max(0, numv(x.nivel)), 0);
-  const overXp = Math.max(0, xpSpent - xpBudget), overSp = Math.max(0, spSpent - spBudget);
-  const usedShared = overXp + overSp;
+  const overSp = Math.max(0, spSpent - spBudget);
+  // after the Gauntlet: points for px or spell levels; the spells that do not fit their budget take theirs first
+  pool('Tras el Guantelete', Math.max(0, shared - overSp), null, () => true, 9);
+  const reparto = repartoPx(pools, targets);
+  const sinOrigen = reparto.sinOrigen, overXp = sinOrigen.reduce((s, t) => s + t.px, 0);
+  const sharedXp = (reparto.pools.find(p => p.n === 'Tras el Guantelete') || { used: 0 }).used;
+  const usedShared = sharedXp + overSp;
   const native = (d.hab || []).some(x => (x.cat || guessCat(x.n)) === 'Idiomas vivos' && numv(x.base) >= 75);
   if (cls !== 'otro') {
-    if (usedShared > shared) {
-      if (overXp && overSp) errors.push('Te pasas: ' + overXp + ' px y ' + overSp + ' niveles de hechizo' + (shared ? ' (lo que hay tras el Guantelete son ' + shared + ' puntos)' : '') + '.');
-      else if (overXp) errors.push('La experiencia gastada (' + xpSpent + ' px) supera el presupuesto (' + xpBudget + (shared ? ' + ' + shared + ' tras el Guantelete' : '') + ').');
-      else errors.push('Los hechizos suman ' + spSpent + ' niveles y el presupuesto es de ' + spBudget + (shared ? ' (+' + shared + ' tras el Guantelete)' : '') + '.');
-    }
+    if (overSp > shared) errors.push('Los hechizos suman ' + spSpent + ' niveles y el presupuesto es de ' + spBudget + (shared ? ' (+' + shared + ' tras el Guantelete)' : '') + '.');
+    if (overXp) errors.push((xpSpent > xpBudget + Math.max(0, shared - overSp) ? 'La experiencia gastada (' + xpSpent + ' px) supera el presupuesto. ' : '')
+      + 'Estos px no tienen de dónde salir con las reglas de reparto: ' + sinOrigen.map(t => t.n + ' (' + t.px + ' px)').join(', ') + '. Mira «De dónde sale cada px».');
     if (!native && !(preset && !preset.nativa) && !hasD('feral')) avisos.push('Falta la lengua materna, a nivel 5 (sus 75 px ya están en el presupuesto).');
-    lines.push({ k: 'px', l: 'Experiencia', s: 'PX', short: xpSpent + '/' + xpBudget, txt: xpSpent + ' de ' + xpBudget + ' px', st: usedShared > shared && overXp ? 'over' : xpSpent < xpBudget ? 'under' : 'ok' });
-    if (isMagic(cls)) lines.push({ k: 'hz', l: 'Hechizos', s: 'Hechizos', short: spSpent + '/' + spBudget, txt: spSpent + ' de ' + spBudget + ' niveles', st: usedShared > shared && overSp ? 'over' : spSpent < spBudget ? 'under' : 'ok' });
-    if (shared) lines.push({ k: 'post', l: 'Tras el Guantelete', s: 'Post', short: usedShared + '/' + shared, txt: usedShared + ' de ' + shared + ' puntos (PX o niveles)', st: usedShared > shared ? 'over' : usedShared < shared ? 'under' : 'ok' });
+    lines.push({ k: 'px', l: 'Experiencia', s: 'PX', short: xpSpent + '/' + xpBudget, txt: xpSpent + ' de ' + xpBudget + ' px', st: overXp ? 'over' : xpSpent < xpBudget ? 'under' : 'ok' });
+    if (isMagic(cls)) lines.push({ k: 'hz', l: 'Hechizos', s: 'Hechizos', short: spSpent + '/' + spBudget, txt: spSpent + ' de ' + spBudget + ' niveles', st: overSp > shared ? 'over' : spSpent < spBudget ? 'under' : 'ok' });
+    if (shared) lines.push({ k: 'post', l: 'Tras el Guantelete', s: 'Post', short: usedShared + '/' + shared, txt: usedShared + ' de ' + shared + ' puntos (PX o niveles)', st: overSp > shared || overXp ? 'over' : usedShared < shared ? 'under' : 'ok' });
     if (msBonus) lines.push({ k: 'ms', l: 'Maestría de hechizos', s: 'Maest.', short: Math.min(msXp, msBonus) + '/' + msBonus,
       txt: Math.min(msXp, msBonus) + ' de ' + msBonus + ' px' + (msXp > msBonus ? ' (y ' + (msXp - msBonus) + ' de la experiencia)' : ''), st: msXp < msBonus ? 'under' : 'ok' });
-    // the extra experience of some virtues has to go to their Abilities
-    const need = (on, have, amt, what) => { if (on && have < amt) avisos.push('Los ' + amt + ' px de ' + what + ' (' + have + ' gastados).'); };
-    need(hasV('guerrero'), byCat['Marciales'] || 0, 50, 'Guerrero son para habilidades marciales');
-    need(hasV('instruido'), latAL, 50, 'Instruido son para Latín y Artes Liberales');
-    need(hasV('arcano'), byCat['Arcanas'] || 0, 50, 'Conocimiento arcano son para habilidades arcanas');
-    need(hasV('magister'), (byCat['Académicas'] || 0) + (byCat['Lenguas muertas'] || 0) + teach, 240, 'Magister in Artibus son para habilidades académicas o Enseñanza');
+    // the px of a source with a rule that are left: nothing else may use them
+    reparto.pools.forEach(p => { if (p.regla && p.pri <= 3 && p.used < p.px && !(p.n === 'Lengua materna' && !native)) avisos.push('Quedan ' + (p.px - p.used) + ' de los ' + p.px + ' px de «' + p.n + '» sin gastar: solo valen para ' + p.regla + '.'); });
   }
   // 4. limits on abilities (Affinity lets one pass the age cap by 2)
   const cap = abilityCap(age);
@@ -756,7 +808,7 @@ function creationCheck(d) {
     if (big.length) avisos.push('Hechizos por encima de Técnica + Forma + Inteligencia + ' + teo + ' + 3: ' + big.join(', ') + '.');
   }
   if (cls !== 'otro' && !(d.personalidad || []).some(t => String(t.n || '').trim())) avisos.push('Faltan los rasgos de personalidad: tres, con valores de −3 a +3.');
-  return { cls, age, lines, errors, avisos, parts, xpBudget, xpSpent, spBudget, spSpent, shared, cBudget, cSpent, vdCap, pv, pd, cap, unknown, msXp, msBonus };
+  return { cls, age, lines, errors, avisos, parts, reparto: reparto.pools, sinOrigen, xpBudget, xpSpent, spBudget, spSpent, shared, cBudget, cSpent, vdCap, pv, pd, cap, unknown, msXp, msBonus };
 }
 
 /* ---------- drop-down options */
