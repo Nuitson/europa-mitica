@@ -114,7 +114,10 @@ function fatTrack(pj) {
     const p2 = [].concat(...mid.map(x => x.split('/').map(y => Number(y.replace(/[−–]/g, '-').trim()))));
     if (p2.length && p2.every(n => isFinite(n))) pens = p2;
   }
-  return [{ n: 'Descansado', p: 0 }].concat(pens.map(p => ({ n: FAT_N[String(p)] || 'Cansancio ' + sgn(p), p: p }))).concat([{ n: 'Inconsciente', p: null }]);
+  // the rest that takes away each level (ArM5, Fatigue): 2 minutes, 10, 30, an hour; unconscious, two hours
+  const DESCANSO = ['2 min', '10 min', '30 min', '1 hora'];
+  return [{ n: 'Descansado', p: 0 }].concat(pens.map((p, i) => ({ n: FAT_N[String(p)] || 'Cansancio ' + sgn(p), p: p, t: DESCANSO[Math.min(i, DESCANSO.length - 1)] })))
+    .concat([{ n: 'Inconsciente', p: null, t: '2 horas' }]);
 }
 function estadoFisico(pj) {
   const hw = pj && pj.heridas && typeof pj.heridas === 'object' ? pj.heridas : {};

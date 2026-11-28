@@ -259,7 +259,8 @@ function sheetHurt(pj, id) {
       paint();
       saveHurt(id, { fatiga: i });
     });
-    fl.appendChild(h('label', { class: 'fat-l' + (i === e.fl ? ' on' : '') }, [rb, h('span', { text: lv.n }), h('small', { text: lv.p === null ? 'no puede actuar' : lv.p ? sgn(lv.p) : 'sin malus' })]));
+    fl.appendChild(h('label', { class: 'fat-l' + (i === e.fl ? ' on' : ''), title: lv.t ? 'Se recupera con ' + lv.t + ' de descanso' : null }, [rb, h('span', null, [lv.n, lv.t ? h('small', { class: 'fat-t', text: lv.t + ' de descanso' }) : null]),
+      h('small', { text: lv.p === null ? 'no puede actuar' : lv.p ? sgn(lv.p) : 'sin malus' })]));
   });
   colF.appendChild(fl);
   if (!can) sec.appendChild(h('p', { class: 'sh-aside', text: S.db ? 'Solo quien puede editar la saga marca heridas y fatiga.' : 'Inicia sesión para marcar heridas y fatiga.' }));
@@ -292,7 +293,33 @@ function sheetVd(pj, id) {
 /* spontaneous casting (ArM5, Spontaneous Magic): with fatigue, (Casting Score + stress die) ÷ 2 and a Fatigue level;
    without, Casting Score ÷ 5 and no die. Ceremony adds Artes Liberales + Filosofía. The roll and the switches stay while
    the page is open. */
-const ESP = { fat: true, tirada: '', cer: false, oscuro: false };
+const ESP = { fat: true, tirada: '', cer: false, oscuro: false, voz: 0, gestos: 0, vis: '', visArt: '' };
+/* voice and gestures (ArM5, Casting Spells) and vis to boost the total (+2 a pawn, of the spell's Technique or Form,
+   taken from the magus's own stock: pj.vis {Arte: peones}). For spontaneous spells they are added after dividing, as the
+   saga's sheets (TruBros) do. */
+const VOZ = [[1, 'Voz firme (+1)'], [0, 'Voz normal'], [-5, 'Voz baja (−5)'], [-10, 'Sin voz (−10)']];
+const GESTOS = [[1, 'Gestos exagerados (+1)'], [0, 'Gestos normales'], [-2, 'Gestos sutiles (−2)'], [-5, 'Sin gestos (−5)']];
+const visOf = pj => { const o = {}; Object.entries((pj && pj.vis) || {}).forEach(([a, n]) => { const v = Math.max(0, Math.round(numv(n))); if (ARTS.includes(a) && v) o[a] = v; }); return o; };
+/* the magus's own vis, by Art: edited by hand (what they gather, buy or receive) */
+function openVisPj(id) {
+  const pj = S.pj[id];
+  if (!pj) return;
+  const v = visOf(pj);
+  const ins = {};
+  const grid = h('div', { class: 'art-inputs' }, ARTS.map(a => h('label', { class: 'ai', style: '--a:' + artVar(a) }, [h('span', { text: a }),
+    ins[a] = h('input', { type: 'number', min: '0', step: '1', inputmode: 'numeric', value: v[a] ? String(v[a]) : '', placeholder: '0', 'aria-label': 'Peones de ' + a })])));
+  const go = h('button', { type: 'button', class: 'btn' }, 'Guardar');
+  const close = openModal('Reserva de vis de ' + pj.nombre, [h('p', { class: 'fh', text: 'Los peones que lleva el mago, por Arte. Los que gaste al lanzar se restan de aquí.' }), grid],
+    [go, h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancelar')]);
+  go.addEventListener('click', async () => {
+    const out = {};
+    ARTS.forEach(a => { const n = Math.max(0, Math.round(numv(ins[a].value))); if (n) out[a] = n; });
+    const datos = stamp({ vis: out }, false);
+    go.disabled = true;
+    if (await dbWrite(() => S.db.doc('personajes/' + id).update(datos), 'Reserva de vis guardada')) { localPut('pj', id, Object.assign({}, S.pj[id] || pj, datos)); close(); }
+    else go.disabled = false;
+  });
+}
 const decs = v => Number.isInteger(v) ? String(v) : (Math.round(v * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
 function sheetArts(pj, c, id) {
   const MODES = ['Lanzamiento', 'Espontáneo', 'Laboratorio'];
@@ -330,6 +357,40 @@ function sheetArts(pj, c, id) {
     onclick: () => { saveHurt(id, { fatiga: nextF }); toast('Fatiga marcada: ' + est.tr[nextF].n.toLowerCase() + '.'); } }, 'Marcar el nivel de fatiga') : null;
   const espBox = h('div', { class: 'sh-esp fx' }, [fatSeg, tirBox, cerBox, spend]);
   sec.appendChild(espBox);
+  // casting (formulaic or spontaneous): voice, gestures and the vis spent, from the magus's own stock
+  const reserva = visOf(pj);
+  const opts = (list, v) => list.map(([n, t]) => h('option', { value: String(n), text: t, selected: n === v ? true : null }));
+  const vozSel = h('select', { 'aria-label': 'Voz' }, opts(VOZ, ESP.voz));
+  const gesSel = h('select', { 'aria-label': 'Gestos' }, opts(GESTOS, ESP.gestos));
+  const visArts = Object.keys(reserva);
+  if (!visArts.includes(ESP.visArt)) ESP.visArt = visArts[0] || '';
+  const visIn = h('input', { type: 'number', min: '0', step: '1', inputmode: 'numeric', value: ESP.vis, placeholder: '0', class: 'aura-in', 'aria-label': 'Peones de vis' });
+  const visSel = h('select', { 'aria-label': 'Arte de la vis', disabled: visArts.length ? null : true },
+    visArts.length ? visArts.map(a => h('option', { value: a, text: a + ' (' + reserva[a] + ')', selected: a === ESP.visArt ? true : null })) : [h('option', { value: '', text: 'Sin vis en su reserva' })]);
+  const gasta = canWrite() && id ? h('button', { type: 'button', class: 'btn ghost', id: 'vis-gasta' }) : null;
+  const castBox = h('div', { class: 'sh-esp sh-cast fx' }, [vozSel, gesSel, h('label', { class: 'sh-aura' }, ['Peones de vis ', visIn]), visSel, gasta]);
+  sec.appendChild(castBox);
+  vozSel.addEventListener('change', () => { ESP.voz = Number(vozSel.value); draw(); });
+  gesSel.addEventListener('change', () => { ESP.gestos = Number(gesSel.value); draw(); });
+  visIn.addEventListener('input', () => { ESP.vis = visIn.value; draw(); });
+  visSel.addEventListener('change', () => { ESP.visArt = visSel.value; draw(); });
+  if (gasta) gasta.addEventListener('click', async () => {
+    const n = Math.max(0, Math.round(numv(ESP.vis))), a = ESP.visArt, live = visOf(S.pj[id] || pj);
+    if (!n || !a) return;
+    if ((live[a] || 0) < n) { toast('No le quedan tantos peones de ' + a + ': tiene ' + (live[a] || 0) + '.'); return; }
+    const nueva = Object.assign({}, live, { [a]: live[a] - n });
+    if (!nueva[a]) delete nueva[a];
+    const datos = stamp({ vis: nueva }, false);
+    gasta.disabled = true;
+    if (await dbWrite(() => S.db.doc('personajes/' + id).update(datos), 'Gastados ' + n + (n === 1 ? ' peón' : ' peones') + ' de ' + a + ': le quedan ' + (nueva[a] || 0))) {
+      ESP.vis = '';
+      localPut('pj', id, Object.assign({}, S.pj[id] || pj, datos));
+    } else gasta.disabled = false;
+  });
+  // the magus's own vis, under the totals
+  const visBox = h('div', { class: 'sh-vis' }, [h('span', { class: 'sh-vis-l', text: 'Reserva de vis' }),
+    h('span', { text: visArts.length ? visArts.map(a => a + ' ' + reserva[a]).join(' · ') : 'sin peones' }),
+    canWrite() && id ? h('button', { type: 'button', class: 'lnk', onclick: () => openVisPj(id) }, 'Editar') : null]);
   // Magia Ctónica: the sinful act (every mode) and, in the lab, a dark effect
   const impBox = impioToggle(pj, () => draw());
   const oscIn = h('input', { type: 'checkbox', id: 'lab-oscuro', checked: ESP.oscuro ? true : null });
@@ -358,6 +419,7 @@ function sheetArts(pj, c, id) {
   sec.appendChild(h('div', { class: 'mx-frame' }, table));
   const note = h('p', { class: 'sh-aside mx-note' });
   sec.appendChild(note);
+  sec.appendChild(visBox);
   function draw() {
     const lab = mode === 'Laboratorio', esp = mode === 'Espontáneo';
     const aura = numv(auraIn.value);
@@ -370,14 +432,18 @@ function sheetArts(pj, c, id) {
     const parts = (t, f) => [t + ' ' + lv(t), f + ' ' + lv(f)].concat(imp ? ['acto impío ' + low(t, f)] : []).concat(lab ? ['Inteligencia ' + sgn(int), teo + ' ' + mt, 'aura ' + sgn(labAura)].concat(labBonos(labDe(id), t, f).map(([l, v]) => l + ' ' + sgn(v)))
       : [castCar(t) + ' ' + sgn(carT(t)), 'aura ' + sgn(aura)].concat(cer ? ['ceremonial ' + sgn(cer)] : [], mal ? ['malus ' + sgn(mal)] : [], esp && ESP.fat ? ['tirada ' + roll] : [])).join(' + ');
     const labB = (t, f) => lab ? labBonos(labDe(id), t, f).reduce((s, x) => s + x[1], 0) : 0;
-    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra + labB(t, f) + (lab ? 0 : carT(t)); return esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc; };
+    // voice, gestures and vis: on casting totals only, after dividing a spontaneous one
+    const peones = lab ? 0 : Math.max(0, Math.round(numv(ESP.vis)));
+    const post = lab ? 0 : ESP.voz + ESP.gestos + 2 * peones;
+    const postTxt = lab ? '' : [ESP.voz ? 'voz ' + sgn(ESP.voz) : '', ESP.gestos ? 'gestos ' + sgn(ESP.gestos) : '', peones ? 'vis +' + 2 * peones + ' (' + peones + (peones === 1 ? ' peón' : ' peones') + ')' : ''].filter(Boolean).join(' + ');
+    const val = (t, f) => { const sc = lv(t) + lv(f) + low(t, f) + extra + labB(t, f) + (lab ? 0 : carT(t)); return (esp ? (ESP.fat ? (sc + roll) / 2 : sc / 5) : sc) + post; };
     const vals = ARTS_F.map(f => ARTS_T.map(t => val(t, f)));
     const all = [].concat(...vals), max = Math.max(...all), min = Math.min(...all);
     tb.innerHTML = '';
     ARTS_F.forEach((f, i) => tb.appendChild(h('tr', null, [artTh(f, 'row', 'mx-f')].concat(vals[i].map((v, j) => {
       const k = max > min ? (v - min) / (max - min) : 0;
       const expr = parts(ARTS_T[j], f);
-      return h('td', { style: '--k:' + Math.round(4 + k * 24) + '%', title: (esp ? '(' + expr + ') ÷ ' + (ESP.fat ? 2 : 5) : expr) + ' = ' + decs(v), text: decs(v) });
+      return h('td', { style: '--k:' + Math.round(4 + k * 24) + '%', title: (esp ? '(' + expr + ') ÷ ' + (ESP.fat ? 2 : 5) : expr) + (postTxt ? ' + ' + postTxt : '') + ' = ' + decs(v), text: decs(v) });
     })))));
     table.setAttribute('aria-label', (lab ? 'Totales de laboratorio' : esp ? 'Totales de lanzamiento espontáneo' : 'Totales de lanzamiento') + ' por Técnica y Forma');
     seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.m === mode ? 'true' : 'false'));
@@ -398,6 +464,13 @@ function sheetArts(pj, c, id) {
         + ' Sin redondear: el hechizo sale si el resultado llega a su nivel. Incluye las Mañas; sin otras virtudes.'
       : 'Lanzamiento: Técnica + Forma + ' + carNote() + ' + aura (' + auraTxt + ')' + malTxt + '. Incluye las Mañas; sin dado ni otras virtudes.';
     if (imp) note.textContent += ' Acto impío (Magia Ctónica): cada casilla suma otra vez el Arte más bajo de los dos.';
+    castBox.hidden = lab;
+    if (postTxt) note.textContent += ' Sumado' + (esp ? ' después de dividir' : '') + ': ' + postTxt + '. La vis tiene que ser de la Técnica o la Forma del hechizo.';
+    if (gasta) {
+      const n = Math.max(0, Math.round(numv(ESP.vis)));
+      gasta.textContent = n && ESP.visArt ? 'Gastar ' + n + (n === 1 ? ' peón' : ' peones') + ' de ' + ESP.visArt : 'Gastar los peones';
+      gasta.disabled = !n || !ESP.visArt;
+    }
   }
   MODES.forEach(m => seg.appendChild(h('button', { type: 'button', class: 'seg', 'data-m': m, onclick: () => { mode = m; store('castgrid:pj-cg', m); draw(); } }, m)));
   auraIn.addEventListener('input', draw);

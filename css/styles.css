@@ -1671,3 +1671,10 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
 .pub-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; padding: 10px 12px; border: 1px dashed color-mix(in srgb, var(--gold) 55%, var(--rule)); border-radius: 8px; }
 .pub-note span { flex: 1 1 260px; }
 @media print { .pub-note { display: none; } }
+/* the rest that takes away each fatigue level, small by its name (saga/characters.js, sheetHurt) */
+.fat-l .fat-t { margin-left: 8px; font-size: 13px; }
+/* casting: voice, gestures and vis (saga/characters.js, sheetArts); the magus's own vis under the totals */
+.sh-cast select { width: auto !important; max-width: 100%; flex: 0 1 auto; }
+.sh-vis { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 8px; font: 400 15.5px/1.4 var(--f-body); color: var(--ink-2); }
+.sh-vis-l { font: 500 12px/1.3 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+@media print { .sh-cast, .sh-vis .lnk { display: none; } }
