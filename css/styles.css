@@ -1666,3 +1666,8 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
 .esp-btn:hover, .esp-btn:focus-visible { color: var(--blood-ink); border-color: var(--blood); }
 @media print { .esp-btn { display: none; } }
 .esp-row.fija input { background: var(--paper); color: var(--ink-2); cursor: not-allowed; }
+/* a character not published yet (saga/characters.js): only its player and the master see it */
+.badge-cur.sin-pub { background: color-mix(in srgb, var(--gold) 14%, var(--card)); color: var(--gold); border-color: transparent; }
+.pub-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; padding: 10px 12px; border: 1px dashed color-mix(in srgb, var(--gold) 55%, var(--rule)); border-radius: 8px; }
+.pub-note span { flex: 1 1 260px; }
+@media print { .pub-note { display: none; } }

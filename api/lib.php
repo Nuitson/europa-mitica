@@ -567,20 +567,38 @@ function bloquear(string $id): void {
 }
 
 /* leer: si el navegador ya tiene esta revisión, no se manda nada; si no, los documentos cambiados desde «desde» y la lista de rutas */
-function leer(array $saga, array $p): Crudo {
+/* the characters not yet published ("publicado":false) that a player may not see: everyone's but their own.
+   {id: true}; the master (and an administrator) sees them all */
+function ocultosPara(string $saga, string $rol, string $uid): array {
+    if ($rol === 'master') return [];
+    $o = [];
+    foreach (consulta("SELECT ruta FROM docs WHERE saga = ? AND ruta LIKE 'personajes/%' AND datos LIKE ? AND (autor IS NULL OR autor <> ?)", [$saga, '%"publicado":false%', $uid]) as $f)
+        $o[substr($f['ruta'], 11)] = true;
+    return $o;
+}
+/* whether a document belongs to a hidden character: its sheet or one of its seasons (avance/{pj}--{año}-{estación}) */
+function deOculto(string $ruta, array $ocultos): bool {
+    if (!$ocultos) return false;
+    if (str_starts_with($ruta, 'personajes/')) return isset($ocultos[substr($ruta, 11)]);
+    if (str_starts_with($ruta, 'avance/') && ($i = strrpos($ruta, '--')) !== false) return isset($ocultos[substr($ruta, 7, $i - 7)]);
+    return false;
+}
+
+function leer(array $saga, array $p, string $rol = 'master', string $uid = ''): Crudo {
     $rev = $saga['rev'];
     if (!empty($p['rev']) && (string) $p['rev'] === $rev) return new Crudo(json_encode(['rev' => $rev, 'igual' => true]));
     $t = ahora();
     $desde = (int) ($p['desde'] ?? 0);
+    $ocultos = ocultosPara($saga['id'], $rol, $uid);
     $trozos = [];
     $rutas = null;
     if ($desde) {
-        $rutas = array_column(consulta('SELECT ruta FROM docs WHERE saga = ?', [$saga['id']])->fetchAll(), 'ruta');
+        $rutas = array_values(array_filter(array_column(consulta('SELECT ruta FROM docs WHERE saga = ?', [$saga['id']])->fetchAll(), 'ruta'), fn($r) => !deOculto($r, $ocultos)));
         $st = consulta('SELECT ruta, datos FROM docs WHERE saga = ? AND actualizado >= ?', [$saga['id'], $desde - 120000]);
     } else {
         $st = consulta('SELECT ruta, datos FROM docs WHERE saga = ?', [$saga['id']]);
     }
-    foreach ($st as $f) $trozos[] = json_encode($f['ruta'], JSON_OUT) . ':' . $f['datos'];
+    foreach ($st as $f) if (!deOculto($f['ruta'], $ocultos)) $trozos[] = json_encode($f['ruta'], JSON_OUT) . ':' . $f['datos'];
     return new Crudo('{"rev":' . json_encode($rev) . ',"ahora":' . $t . ',"docs":{' . implode(',', $trozos) . '},"rutas":'
         . ($rutas === null ? 'null' : json_encode($rutas, JSON_OUT)) . '}');
 }
@@ -715,7 +733,7 @@ function atender(array $p) {
             case 'ayudasEscribir': return ayudasEscribir(sesion($p['token'] ?? ''), $p);
             // una saga
             case 'info': [$s, $rol] = acceso($p); return ['saga' => publica($s), 'rol' => $rol];
-            case 'leer': [$s] = acceso($p); return leer($s, $p);
+            case 'leer': [$s, $rol, $u] = acceso($p); return leer($s, $p, $rol, $u['id']);
             case 'escribir': [$s, , $u] = acceso($p); return escribir($s, $u, $p['ops'] ?? null);
             case 'archivo': [$s] = acceso($p); return archivo($s);
             case 'exportar': [$s] = acceso($p, 'master'); return exportar($s);

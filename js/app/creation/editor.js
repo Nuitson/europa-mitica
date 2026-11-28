@@ -710,8 +710,10 @@ function viewEditor(id, override) {
     }
     // El Don without a value (older sheets): always free, also when the rest of the virtues come from the live copy
     (out.virtudes || []).forEach(x => { if (x && !x.valor && vdFx(x, 'virtud') === 'don') x.valor = 'Gratuita'; });
+    // a player's new character starts unpublished: only they and the master see it until they publish it (api/lib.php, leer)
+    if (!orig && S.owner !== true) out.publicado = false;
     save.disabled = true;
-    const ok = await dbWrite(() => S.db.doc('personajes/' + pid).set(stamp(out, !orig)), orig ? 'Ficha guardada' : 'Personaje creado');
+    const ok = await dbWrite(() => S.db.doc('personajes/' + pid).set(stamp(out, !orig)), orig ? 'Ficha guardada' : out.publicado === false ? 'Personaje creado: solo lo veis tú y el máster hasta que lo publiques' : 'Personaje creado');
     save.disabled = false;
     if (ok) {
       if (!orig) store(DRAFT_KEY, null);

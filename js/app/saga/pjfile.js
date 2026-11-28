@@ -69,6 +69,8 @@ function rid(n) { const a = 'abcdefghijklmnopqrstuvwxyz0123456789'; const r = ne
 async function crearPj(x) {
   const pid = newId(x.p.nombre);
   const pj = clone(x.p);
+  // like a new one: a player's starts unpublished, for them and the master only (api/lib.php, leer)
+  if (S.owner !== true) pj.publicado = false; else delete pj.publicado;
   const ops = [];
   if (x.retrato) {
     const rp = 'retratos/' + rid(16);

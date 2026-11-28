@@ -40,7 +40,7 @@ function viewCharacters() {
         h('div', { class: 'dp', text: [p.casa, p.jugador ? 'juega ' + p.jugador : ''].filter(Boolean).join(' · ') }),
         h('div', { class: 'dt1', text: p.nombre }),
         p.sub || p.nacimiento ? h('div', { class: 'db', text: [p.sub, edadTxt(ca, p.nacimiento)].filter(Boolean).join(' · ') }) : null,
-        h('div', { class: 'dm', text: (ent.length === 1 ? '1 estación' : ent.length + ' estaciones') + (p.activo === false ? ' · fuera de juego' : '') })])]));
+        h('div', { class: 'dm', text: (ent.length === 1 ? '1 estación' : ent.length + ' estaciones') + (p.activo === false ? ' · fuera de juego' : '') + (p.publicado === false ? ' · sin publicar' : '') })])]));
     });
     content.appendChild(grid);
   });
@@ -70,6 +70,7 @@ function viewPj(id, tab) {
   const meta = h('div', { class: 'doc-meta pj-meta' }, [role, GENERO_TXT[pj.genero] ? 'Género ' + GENERO_TXT[pj.genero] : '', pj.nacimiento ? (edadTxt(ca, pj.nacimiento) ? edadTxt(ca, pj.nacimiento) + ' (n. ' + pj.nacimiento + ')' : 'n. ' + pj.nacimiento) : '', pj.aparenta ? String(pj.aparenta) : '',
     pj.jugador ? 'Juega ' + pj.jugador : '', pj.activo === false ? 'Fuera de juego' : ''].filter(Boolean).map(t => h('span', { text: t })));
   if (pj.excel && DOCS[pj.excel]) meta.appendChild(h('a', { href: '#' + pj.excel, text: 'Hoja de Excel original' }));
+  if (pj.publicado === false) meta.appendChild(h('span', { class: 'badge-cur sin-pub', text: 'Sin publicar' }));
   const fa = formaActiva(pj);
   if (fa) meta.appendChild(h('span', { class: 'badge-cur forma-on', text: 'En forma de ' + fa.n.toLowerCase() }));
   hi.appendChild(meta);
@@ -85,6 +86,16 @@ function viewPj(id, tab) {
   // a file with the sheet, its seasons and the portrait, to keep or to import into this saga or another one
   acts.push(h('button', { type: 'button', class: 'btn ghost', onclick: () => exportPj(id) }, 'Exportar'));
   hi.appendChild(h('div', { class: 'actions' }, acts));
+  // not published yet: only its player and the master see it (a player only receives it if it is theirs: api/lib.php, leer)
+  if (pj.publicado === false) {
+    const pub = canWrite() ? h('button', { type: 'button', class: 'btn', onclick: async () => {
+      pub.disabled = true;
+      const datos = stamp({ publicado: true }, false);
+      if (await dbWrite(() => S.db.doc('personajes/' + id).update(datos), pj.nombre + ' ya está publicado: lo ve toda la saga')) localPut('pj', id, Object.assign({}, S.pj[id] || pj, datos));
+      else pub.disabled = false;
+    } }, 'Publicar en la saga') : null;
+    hi.appendChild(h('div', { class: 'note pub-note' }, [h('span', { text: 'Sin publicar: de momento solo lo veis ' + (S.owner === true ? 'quien lo creó y tú, como máster' : 'tú y el máster') + '. Cuando esté listo, publícalo para que lo vea toda la saga.' }), pub]));
+  }
   head.appendChild(hi);
   page.appendChild(head);
   // the laboratory: for the magi (and anyone who has one assigned)
