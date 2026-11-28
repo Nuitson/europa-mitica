@@ -5,9 +5,10 @@ import { ABIL_CATS, ABIL_STD, CASAS, CAT_OF, CHARS, S, TIPOS, tkey } from '../sa
 import { allSeen, cell, confirmButton, datalist, dbWrite, field, inp, localPut, monogram, sagaCrumbs, sel, shrinkImage, stamp, statusNote, toast } from '../saga/core.js';
 import { borrarPj } from '../saga/pjfile.js';
 import { abCost, abLvl, afXp, artCost, artLvl, calc, canWrite, clone, curSeason, entriesOf, guessCat, isRitual, newId, numv, sgn } from '../saga/rules.js';
-import { abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, casaVariantes, creationCheck, DRAFT_KEY, ensureGift, ensureHouse, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdReinoFijo, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
+import { spellCap, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, casaVariantes, creationCheck, DRAFT_KEY, ensureGift, ensureHouse, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, grpOf, isMagic, objOptionsHtml, PRESETS, SLOT_TXT, vdEvolve, vdGen, valorOf, vdEffects, vdEffTxt, REINO_POW, vdReinoFijo, vdSobHab, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdNota, vdOptionsHtml, vdRef, vdSlots, vdTarget } from './rules.js';
 import { hechCat, spellCat } from '../info.js';
 import { openVdTab } from './vdtab.js';
+import { openSpellTab } from './sptab.js';
 
 /* ---------- editor */
 let EDITOR = null; // {d, isNew} of the form on screen
@@ -612,8 +613,31 @@ function viewEditor(id, override) {
         h('summary', { text: String(x.desc || '').trim() ? 'Descripción propia' : catE ? 'Descripción: la del manual, «' + catE.n + '»' : 'Añadir una descripción' }), ta]));
       if (focusLast && i === d.hechizos.length - 1) setTimeout(() => nameIn.focus(), 0);
     });
-    spBox.appendChild(h('button', { type: 'button', class: 'lnk', onclick: () => { d.hechizos.push({ n: '', tec: '', forma: '', nivel: '', alc: '', dur: '', obj: '', nota: '' }); drawSp(true); } }, '+ Añadir hechizo'));
+    spBox.appendChild(h('button', { type: 'button', class: 'lnk', onclick: () => (hechCat().list.length ? openSpells() : aMano()) }, '+ Añadir hechizo'));
     refresh();
+  }
+  const aMano = () => { d.hechizos.push({ n: '', tec: '', forma: '', nivel: '', alc: '', dur: '', obj: '', nota: '' }); drawSp(true); };
+  /* the window with the whole catalogue: what is ticked there goes onto the sheet at once */
+  const isCatOf = (x, e) => x.cat === e.id || (!x.cat && spellCat(x) === e);
+  function openSpells() {
+    const { teo, cap } = spellCap(d, entries);
+    const budget = showRules && isMagic(CLASE[d.tipo]) ? creationCheck(d).spBudget : null;
+    openSpellTab({
+      list: hechCat().list, teo: teo, cap: cap, budget: budget, aMano: aMano,
+      chosen: e => d.hechizos.some(x => isCatOf(x, e)),
+      spent: () => d.hechizos.filter(x => String(x.n || '').trim()).reduce((s, x) => s + Math.max(0, numv(x.nivel)), 0),
+      toggle: (e, on) => {
+        if (on) {
+          const x = { n: e.n, tec: e.tec, forma: e.forma, nivel: String(e.nivel) === 'Gen' ? '' : e.nivel, alc: e.alc || '', dur: e.dur || '', obj: e.obj || '', nota: '', cat: e.id };
+          if (e.rit) x.ritual = true;
+          d.hechizos.push(x);
+        } else {
+          const i = d.hechizos.findIndex(x => isCatOf(x, e));
+          if (i >= 0) d.hechizos.splice(i, 1);
+        }
+        drawSp();
+      }
+    });
   }
   f.appendChild(sec('Hechizos', [showRules ? h('p', { class: 'fh', text: 'Magos: 120 niveles al acabar el aprendizaje, y ninguno por encima de Técnica + Forma + Inteligencia + Teoría Mágica + 3. La maestría se paga como una habilidad (1 = 5 px, 2 = 15, 3 = 30); Hechizos dominados da 50 px para ella.' }) : null, spBox], 'hz'));
   // the rest

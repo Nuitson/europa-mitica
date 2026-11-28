@@ -1,7 +1,7 @@
 /* Creación de personajes: el compendio de virtudes y defectos y las reglas de creación. */
 import { artOf, ARTS, ARTS_F, ARTS_T, DATA, DOCS, esc, norm } from '../base.js';
 import { ABIL_STD, CASAS, CAT_OF, CHARS, KEYP, S, tkey, VD_CATS } from '../saga/state.js';
-import { abCost, abLvl, afXp, artLvl, curSeason, guessCat, numv, sgn } from '../saga/rules.js';
+import { abCost, abLvl, afXp, artLvl, calc, curSeason, guessCat, numv, sgn } from '../saga/rules.js';
 import { GEN_F } from './generos.js';
 
 /* ---------- the character's grammatical gender (pj.genero: 'm', 'f' or 'n'; none means the compendium's masculine).
@@ -551,6 +551,19 @@ function accessOf(d) {
 }
 const grpOf = c => c === 'Lenguas muertas' ? 'Académicas' : c; // a dead language is an Academic Ability
 /* ---------- the rules: what a new character may spend, and what it spends */
+/* the highest spell a character can learn: Technique + Form + Intelligence + Magic Theory (Magia Sagrada's Ability, if it
+   stands in for it) + 3, with the Arts and the Ability as the sheet counts them: starting px, the seasons' if given,
+   Affinity and Puissant */
+function spellCap(d, entries) {
+  const c = calc(d, entries || []);
+  const teo = magiaFx(d).teoria, tk = tkey(teo);
+  const row = c.hab.find(x => tkey(x.n) === tk);
+  const mt = (row ? abLvl(row.xp) : 0) + (c.fx.mana.hab[tk] || 0);
+  const artV = a => artLvl(c.arts[a] || 0) + (c.fx.mana.art[a] || 0);
+  const intv = numv(d.car && d.car['Inteligencia']);
+  return { teo: teo, cap: (t, f) => artV(t) + artV(f) + intv + mt + 3 };
+}
+
 function creationCheck(d) {
   const cls = CLASE[d.tipo] || 'otro';
   const age = ageOf(d);
@@ -732,17 +745,12 @@ function creationCheck(d) {
   if (sobre.length && !V.some(x => catV(x) === 'sobrenatural')) avisos.push(sobre.map(x => x.n).join(', ') + ': las habilidades sobrenaturales necesitan su virtud sobrenatural.');
   // 5. each spell at most Technique + Form + Intelligence + Magic Theory + 3 (Arts as the sheet counts them, Puissant included)
   if (isMagic(cls)) {
-    const intv = numv(d.car && d.car['Inteligencia']);
-    // Magia Sagrada: its Ability instead of Teoría Mágica
-    const teo = magiaFx(d).teoria, tk = tkey(teo);
-    const mtRow = (d.hab || []).find(x => tkey(x.n) === tk);
-    const mt = (mtRow ? abLvl(afXp(numv(mtRow.base), fx.af.hab.has(tk))) : 0) + (fx.mana.hab[tk] || 0);
-    const artV = a => artLvl(afXp(numv(d.artes && d.artes[a]), fx.af.art.has(a))) + (fx.mana.art[a] || 0);
+    const { teo, cap } = spellCap(d);
     const big = [];
     (d.hechizos || []).forEach(s => {
       const t = artOf(s.tec), f = artOf(s.forma), lv = numv(s.nivel);
       if (!t || !f || !lv) return;
-      const lab = artV(t) + artV(f) + intv + mt + 3;
+      const lab = cap(t, f);
       if (lv > lab) big.push('«' + s.n + '» (' + lv + ', máximo ' + lab + ')');
     });
     if (big.length) avisos.push('Hechizos por encima de Técnica + Forma + Inteligencia + ' + teo + ' + 3: ' + big.join(', ') + '.');
@@ -804,4 +812,4 @@ function vdEffTxt(x, clase, f) {
   return acc ? 'Permite habilidades ' + acc.map(g => G_TXT[g]).join(', ').replace(/, ([^,]*)$/, ' y $1') + ' al crearlo.' : '';
 }
 
-export { vdReset, AFIN_POR, casaVariantes, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };
+export { spellCap, vdReset, AFIN_POR, casaVariantes, ensureHouse, habReino, magiaFx, vdReinoFijo, REINO_POW, REINO_POW_TXT, vdSobHab, abilityCap, accessOf, ageOf, catOf, CLASE, CLASE_TXT, creationCheck, DRAFT_KEY, ensureGift, FX_OBJ, G_HOW, G_RESTR, G_TXT, GENERO, GENERO_TXT, grpOf, isMagic, vdGen, objOptionsHtml, PRESETS, PROPIAS, SLOT_TXT, valorOf, vdEffects, vdEffTxt, vdEntry, vdFind, vdFx, vdGrantOf, vdGrantSync, vdIndex, vdLabel, vdNest, vdNormalize, vdEvolve, vdNota, vdRef, vdOptionsHtml, vdSlots, vdTarget };

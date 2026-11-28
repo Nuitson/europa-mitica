@@ -7,7 +7,7 @@
    version fetches all its files again (cache: 'reload'). When a new version replaces an older one, the open tabs
    reload once, so they stop running the old files.
    Keep FILES in step with the repository: a new module, image or data file goes here too. */
-const CACHE = 'europa-mitica-v41';
+const CACHE = 'europa-mitica-v42';
 const FILES = [
   './',
   'index.html',
@@ -21,6 +21,7 @@ const FILES = [
   'js/app/creation/editor.js',
   'js/app/creation/rules.js',
   'js/app/creation/vdtab.js',
+  'js/app/creation/sptab.js',
   'js/app/creation/generos.js',
   'js/app/info.js',
   'js/app/main.js',

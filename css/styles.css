@@ -1636,3 +1636,6 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
   body:not(.side-pinned) .main { padding-top: 64px; }
 }
 @media print { .side-btn { display: none !important; } }
+/* the spell window (creation/sptab.js): built on the virtues' one (.vdt-*) */
+.spt-alto { margin: 2px 0 6px; font: italic 400 14px/1.35 var(--f-body); color: var(--neg); }
+.spt-more { align-self: center; }
