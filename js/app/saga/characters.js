@@ -3,7 +3,7 @@ import { ABBR, artOf, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, 
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, dbWrite, field, inp, localPut, monogram, openModal, pjsSorted, sagaCrumbs, stamp, statusNote, sumRep, toast } from './core.js';
-import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, labBonos, labDe, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
+import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, magnitude, labBonos, labDe, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
 import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '../creation/rules.js';
@@ -141,7 +141,7 @@ function viewPj(id, tab) {
       content.appendChild(tabla);
       content.appendChild(h('p', { class: 'fh info-hint', text: 'Pulsa el nombre de un hechizo para ver su descripción.' }));
       const bd = magiaAura(pj, c).botch;
-      content.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + ' + castCarTxt() + ' + aura (' + castAuraTxt(pj, c) + ')' + (anyM ? ' + maestría' : '') + (malusOf(pj) ? ' + malus por heridas y fatiga (' + sgn(malusOf(pj)) + ')' : '') + ' + voz y gestos + vis (en el hechizo elegido)' + (cer ? ' + Artes Liberales + Filosofía (ceremonial)' : hz.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + (imp && impioOn() ? ' + el Arte más bajo otra vez (acto impío)' : '') + ', sin dado. Un hechizo formulaico se lanza sin fatiga si el total más el dado iguala su nivel.' + (bd ? ' En esta aura se tiran ' + bd + ' dados de pifia más.' : '') }));
+      content.appendChild(h('p', { class: 'note', text: 'Lanzamiento: Técnica + Forma (con sus Mañas) + ' + castCarTxt() + ' + aura (' + castAuraTxt(pj, c) + ')' + (anyM ? ' + maestría' : '') + (malusOf(pj) ? ' + malus por heridas y fatiga (' + sgn(malusOf(pj)) + ')' : '') + ' + voz y gestos + vis (en el hechizo elegido, de cada Arte no más peones que su puntuación)' + (cer ? ' + Artes Liberales + Filosofía (ceremonial)' : hz.some(isRitual) ? '; los rituales suman además Artes Liberales + Filosofía' : '') + (imp && impioOn() ? ' + el Arte más bajo otra vez (acto impío)' : '') + ', sin dado. Un hechizo formulaico se lanza sin fatiga si el total más el dado iguala su nivel.' + (bd ? ' En esta aura se tiran ' + bd + ' dados de pifia más.' : '') }));
       content.appendChild(h('p', { class: 'note', text: 'Ceremonial y rituales: 15 minutos por magnitud. En ArM5 el lanzamiento ceremonial es para hechizos espontáneos; con un formulaico hace falta la maestría Lanzamiento ceremonial (Houses of Hermes: Societates p. 60). La casilla se recuerda en este navegador.' }));
     } else content.appendChild(h('p', { class: 'note', text: 'Sin hechizos todavía.' }));
     if (canWrite()) content.appendChild(h('a', { class: 'btn ghost', href: '#pj--' + id + '--editar', style: 'align-self:flex-start', text: 'Añadir o cambiar hechizos' }));
@@ -302,7 +302,7 @@ function sheetVd(pj, id) {
 /* spontaneous casting (ArM5, Spontaneous Magic): with fatigue, (Casting Score + stress die) ÷ 2 and a Fatigue level;
    without, Casting Score ÷ 5 and no die. Ceremony adds Artes Liberales + Filosofía. The roll and the switches stay while
    the page is open. */
-const ESP = { fat: true, tirada: '', cer: false, oscuro: false, voz: 0, gestos: 0, vis: '', visArt: '', hz: '', pj: null };
+const ESP = { fat: true, tirada: '', cer: false, oscuro: false, voz: 0, gestos: 0, vis: '', visArt: '', visT: '', visF: '', hz: '', pj: null };
 /* voice and gestures (ArM5, Casting Spells) and vis to boost the total (+2 a pawn, of the spell's Technique or Form,
    taken from the magus's own stock: pj.vis {Arte: peones}). For spontaneous spells they are added after dividing, as the
    saga's sheets (TruBros) do. */
@@ -332,7 +332,7 @@ function openVisPj(id) {
 const decs = v => Number.isInteger(v) ? String(v) : (Math.round(v * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
 /* the casting controls are shared by the Arts tabula and the Hechizos tab. The vis chosen belongs to one character:
    it starts empty on another one */
-function espDe(id) { if (ESP.pj !== id) { ESP.pj = id; ESP.vis = ''; ESP.visArt = ''; ESP.hz = ''; } }
+function espDe(id) { if (ESP.pj !== id) { ESP.pj = id; ESP.vis = ''; ESP.visArt = ''; ESP.visT = ''; ESP.visF = ''; ESP.hz = ''; } }
 const visPedidos = () => Math.max(0, Math.round(numv(ESP.vis)));
 const vozGestosTxt = () => [ESP.voz ? 'voz ' + sgn(ESP.voz) : '', ESP.gestos ? 'gestos ' + sgn(ESP.gestos) : ''].filter(Boolean);
 function vozGestos(onChange) {
@@ -343,17 +343,27 @@ function vozGestos(onChange) {
   };
   return [sel('Voz', VOZ, 'voz'), sel('Gestos', GESTOS, 'gestos')];
 }
-/* takes the pawns out of the magus's own stock */
-async function gastarVis(id, n, a, para) {
+/* vis when casting (ArM5 core, «Using Raw Vis»): of the Technique or the Form, +2 a pawn, and of each Art no more pawns
+   than the magus's score in it (a Puissant bonus is for totals, not for this limit). Both Arts may be used at once, each
+   with its own limit. A Ritual spends a pawn per magnitude to be cast at all: those add nothing but count for the limit */
+const visScore = (c, a) => artLvl(c.arts[a]);
+const visMax = (c, reserva, a) => Math.min(visScore(c, a), reserva[a] || 0);
+const visPor = (c, reserva, a) => (visScore(c, a) <= (reserva[a] || 0) ? 'su puntuación en ' + a : 'los que le quedan');
+/* takes the pawns out of the magus's own stock: gasto {Art: pawns} */
+async function gastarVis(id, gasto, para) {
   const pj = S.pj[id];
-  if (!pj || !n || !a) return false;
-  const live = visOf(pj);
-  if ((live[a] || 0) < n) { toast('No le quedan tantos peones de ' + a + ': tiene ' + (live[a] || 0) + '.'); return false; }
-  const nueva = Object.assign({}, live, { [a]: live[a] - n });
-  if (!nueva[a]) delete nueva[a];
+  const lista = Object.entries(gasto).filter(([a, n]) => a && n > 0);
+  if (!pj || !lista.length) return false;
+  const live = visOf(pj), nueva = Object.assign({}, live);
+  for (const [a, n] of lista) {
+    if ((live[a] || 0) < n) { toast('No le quedan tantos peones de ' + a + ': tiene ' + (live[a] || 0) + '.'); return false; }
+    nueva[a] = live[a] - n;
+    if (!nueva[a]) delete nueva[a];
+  }
   const datos = stamp({ vis: nueva }, false);
-  const ok = await dbWrite(() => S.db.doc('personajes/' + id).update(datos), 'Gastados ' + n + (n === 1 ? ' peón' : ' peones') + ' de ' + a + (para ? ' en «' + para + '»' : '') + ': le quedan ' + (nueva[a] || 0));
-  if (ok) { ESP.vis = ''; localPut('pj', id, Object.assign({}, S.pj[id] || pj, datos)); }
+  const msg = 'Gastados ' + lista.map(([a, n]) => n + (n === 1 ? ' peón' : ' peones') + ' de ' + a + ' (le quedan ' + (nueva[a] || 0) + ')').join(' y ') + (para ? ' en «' + para + '»' : '');
+  const ok = await dbWrite(() => S.db.doc('personajes/' + id).update(datos), msg);
+  if (ok) { ESP.vis = ''; ESP.visT = ''; ESP.visF = ''; localPut('pj', id, Object.assign({}, S.pj[id] || pj, datos)); }
   return ok;
 }
 function visReserva(id, pj) {
@@ -362,63 +372,69 @@ function visReserva(id, pj) {
     h('span', { text: arts.length ? arts.map(a => a + ' ' + r[a]).join(' · ') : 'sin peones' }),
     canWrite() ? h('button', { type: 'button', class: 'lnk', onclick: () => openVisPj(id) }, 'Editar') : null]);
 }
-/* the Hechizos tab: voice and gestures for every spell, and the vis spent on one of them, only of its Technique or its
-   Form. extra(i): what to add to the casting total of the spell i */
+/* the Hechizos tab: voice and gestures for every spell, and the vis spent on one of them, of its Technique and of its
+   Form, each up to its limit. extra(i): what to add to the casting total of the spell i */
 function spellCasting(id, pj, c, hz, aura, cer, onChange) {
   espDe(id);
   const reserva = visOf(pj);
-  const artsDe = s => (s ? [...new Set([artOf(s.tec), artOf(s.forma)].filter(Boolean))] : []);
+  const artsDe = x => (x ? [...new Set([artOf(x.tec), artOf(x.forma)].filter(Boolean))] : []);
   const elegido = () => (ESP.hz === '' ? null : hz[Number(ESP.hz)] || null);
   if (!elegido()) ESP.hz = '';
-  const usados = () => Math.min(visPedidos(), artsDe(elegido()).includes(ESP.visArt) ? reserva[ESP.visArt] || 0 : 0);
-  const extra = i => ESP.voz + ESP.gestos + (String(i) === ESP.hz ? 2 * usados() : 0);
+  const pedido = k => Math.max(0, Math.round(numv(ESP[k])));
+  // what the chosen spell takes: the pawns of each Art (asked, and as many as count), a Ritual's own and the bonus
+  function cuenta() {
+    const x = elegido();
+    const por = artsDe(x).map((a, n) => { const k = n ? 'visF' : 'visT', max = visMax(c, reserva, a), q = pedido(k); return { a: a, k: k, max: max, q: q, n: Math.min(q, max) }; });
+    const n = por.reduce((t, y) => t + y.n, 0), max = por.reduce((t, y) => t + y.max, 0);
+    const need = x && isRitual(x) ? magnitude(x) : 0;
+    return { x: x, por: por, n: n, max: max, need: need, bonus: 2 * Math.max(0, n - need), pasado: por.filter(y => y.q > y.max) };
+  }
+  const extra = i => ESP.voz + ESP.gestos + (String(i) === ESP.hz ? cuenta().bonus : 0);
   const hzSel = h('select', { 'aria-label': 'Hechizo en el que se gasta la vis' }, [h('option', { value: '', text: 'Elige el hechizo' })]
-    .concat(hz.map((s, i) => h('option', { value: String(i), text: s.n || 'Sin nombre', selected: String(i) === ESP.hz ? true : null }))));
-  const visIn = h('input', { type: 'number', min: '0', step: '1', inputmode: 'numeric', value: ESP.vis, placeholder: '0', class: 'aura-in', 'aria-label': 'Peones de vis' });
-  const artSel = h('select', { 'aria-label': 'Arte de la vis' });
+    .concat(hz.map((x, i) => h('option', { value: String(i), text: x.n || 'Sin nombre', selected: String(i) === ESP.hz ? true : null }))));
+  const campos = h('span', { class: 'sp-cast-vis' });
   const res = h('p', { class: 'sh-aside sp-cast-res', 'aria-live': 'polite' });
   const gasta = canWrite() ? h('button', { type: 'button', class: 'btn ghost', id: 'vis-gasta-hz' }) : null;
-  // only the Arts of the chosen spell, with what is left of each
-  function fillArts() {
-    const arts = artsDe(elegido());
-    if (!arts.includes(ESP.visArt)) ESP.visArt = arts.find(a => reserva[a]) || arts[0] || '';
-    artSel.replaceChildren(...(arts.length ? arts.map(a => h('option', { value: a, text: a + ' (' + (reserva[a] || 0) + ')', selected: a === ESP.visArt ? true : null }))
-      : [h('option', { value: '', text: 'Arte del hechizo' })]));
-    artSel.disabled = !arts.length;
+  // one field for each Art of the chosen spell, with its limit
+  function fill() {
+    campos.replaceChildren(...cuenta().por.map(y => {
+      const ip = h('input', { type: 'number', min: '0', max: String(y.max), step: '1', inputmode: 'numeric', value: ESP[y.k], placeholder: '0', class: 'aura-in', 'data-art': y.a, disabled: y.max ? null : true });
+      ip.addEventListener('input', () => { ESP[y.k] = ip.value; cambia(); });
+      return h('label', { class: 'sh-aura' }, ['Peones de ' + y.a + ' ', ip, h('small', { class: 'fh', text: 'máx. ' + y.max + ' (' + visPor(c, reserva, y.a) + ')' })]);
+    }));
   }
   function draw() {
-    const s = elegido(), n = visPedidos(), a = ESP.visArt, tiene = reserva[a] || 0;
-    const parts = vozGestosTxt();
+    const v = cuenta(), x = v.x, parts = vozGestosTxt();
+    const gastados = v.por.filter(y => y.n).map(y => y.n + ' de ' + y.a).join(' y ');
     let txt = '';
-    if (s) {
-      const tot = spellTotal(pj, c, s, aura, cer), lv = Number(s.nivel);
-      if (usados()) parts.push('vis +' + 2 * usados() + ' (' + usados() + ' de ' + a + ')');
+    if (x) {
+      const nombre = '«' + (x.n || 'Sin nombre') + '»', tot = spellTotal(pj, c, x, aura, cer), lv = Number(x.nivel);
+      if (v.bonus) parts.push('vis +' + v.bonus + ' (' + gastados + ')');
       if (tot != null) {
         const t = tot + extra(Number(ESP.hz));
-        txt = '«' + (s.n || 'Sin nombre') + '»: lanzamiento ' + t + (s.nivel !== '' && s.nivel != null && isFinite(lv) ? ' contra nivel ' + lv + ' (margen ' + sgn(t - lv) + ')' : '') + (parts.length ? ', con ' + parts.join(' + ') : '') + '.';
-      } else txt = '«' + (s.n || 'Sin nombre') + '» no tiene Técnica y Forma: edítalo para calcularlo.';
-      if (n > tiene && a) txt += ' Solo le quedan ' + tiene + ' peones de ' + a + '.';
-    } else txt = n ? 'Elige el hechizo en el que gastas la vis.' : parts.length ? 'Sumado a todos los hechizos: ' + parts.join(' + ') + '.' : 'Para gastar vis, elige el hechizo: solo vale la de su Técnica o su Forma.';
+        txt = nombre + ': lanzamiento ' + t + (x.nivel !== '' && x.nivel != null && isFinite(lv) ? ' contra nivel ' + lv + ' (margen ' + sgn(t - lv) + ')' : '') + (parts.length ? ', con ' + parts.join(' + ') : '') + '.';
+      } else txt = nombre + ' no tiene Técnica y Forma: edítalo para calcularlo.';
+      if (v.need) txt += ' Es un ritual: necesita ' + v.need + (v.need === 1 ? ' peón' : ' peones') + ' para lanzarlo, que no suman'
+        + (v.max < v.need ? '; ahora no puede reunirlos (su máximo es ' + v.max + ').' : v.n < v.need ? '; le faltan ' + (v.need - v.n) + ' por poner.' : '.');
+      v.pasado.forEach(y => { txt += ' De ' + y.a + ' como mucho ' + y.max + ' (' + visPor(c, reserva, y.a) + ').'; });
+    } else txt = parts.length ? 'Sumado a todos los hechizos: ' + parts.join(' + ') + '.' : 'Para gastar vis, elige el hechizo: solo vale la de su Técnica y su Forma, y de cada una no más peones que su puntuación en ese Arte.';
     res.textContent = txt;
     if (gasta) {
-      const puede = !!(s && n && a && n <= tiene);
-      gasta.textContent = n && a && s ? 'Gastar ' + n + (n === 1 ? ' peón' : ' peones') + ' de ' + a : 'Gastar los peones';
-      gasta.disabled = !puede;
+      gasta.textContent = v.n ? 'Gastar ' + v.por.filter(y => y.n).map(y => y.n + ' de ' + y.a).join(' y ') : 'Gastar los peones';
+      gasta.disabled = !(v.n && !v.pasado.length && v.n >= v.need);
     }
   }
   const cambia = () => { draw(); onChange(); };
-  hzSel.addEventListener('change', () => { ESP.hz = hzSel.value; fillArts(); cambia(); });
-  visIn.addEventListener('input', () => { ESP.vis = visIn.value; cambia(); });
-  artSel.addEventListener('change', () => { ESP.visArt = artSel.value; cambia(); });
+  hzSel.addEventListener('change', () => { ESP.hz = hzSel.value; ESP.visT = ''; ESP.visF = ''; fill(); cambia(); });
   if (gasta) gasta.addEventListener('click', async () => {
-    const s = elegido();
-    if (!s) return;
+    const v = cuenta();
+    if (!v.x) return;
     gasta.disabled = true;
-    if (!(await gastarVis(id, visPedidos(), ESP.visArt, s.n))) gasta.disabled = false;
+    if (!(await gastarVis(id, Object.fromEntries(v.por.map(y => [y.a, y.n])), v.x.n))) gasta.disabled = false;
   });
-  fillArts();
+  fill();
   draw();
-  const node = h('div', { class: 'sp-cast' }, [h('div', { class: 'sh-esp sh-cast fx' }, [...vozGestos(cambia), hzSel, h('label', { class: 'sh-aura' }, ['Peones de vis ', visIn]), artSel, gasta]), res, visReserva(id, pj)]);
+  const node = h('div', { class: 'sp-cast' }, [h('div', { class: 'sh-esp sh-cast fx' }, [...vozGestos(cambia), hzSel, campos, gasta]), res, visReserva(id, pj)]);
   return { node: node, extra: extra };
 }
 function sheetArts(pj, c, id) {
@@ -472,7 +488,7 @@ function sheetArts(pj, c, id) {
   visSel.addEventListener('change', () => { ESP.visArt = visSel.value; draw(); });
   if (gasta) gasta.addEventListener('click', async () => {
     gasta.disabled = true;
-    if (!(await gastarVis(id, visPedidos(), ESP.visArt))) gasta.disabled = false;
+    if (!(await gastarVis(id, { [ESP.visArt]: visPedidos() }))) gasta.disabled = false;
   });
   // the magus's own vis, under the totals
   const visBox = id ? visReserva(id, pj) : null;
@@ -519,7 +535,7 @@ function sheetArts(pj, c, id) {
     const labB = (t, f) => lab ? labBonos(labDe(id), t, f).reduce((s, x) => s + x[1], 0) : 0;
     // voice, gestures and vis: on casting totals only, after dividing a spontaneous one. The vis counts only where its Art
     // is the Technique or the Form, and no more than the magus has of it
-    const peones = lab ? 0 : Math.min(visPedidos(), reserva[ESP.visArt] || 0);
+    const peones = lab || !ESP.visArt ? 0 : Math.min(visPedidos(), visMax(c, reserva, ESP.visArt));
     const conVis = (t, f) => peones > 0 && (t === ESP.visArt || f === ESP.visArt);
     const post = (t, f) => lab ? 0 : ESP.voz + ESP.gestos + (conVis(t, f) ? 2 * peones : 0);
     const postTxt = (t, f) => lab ? '' : vozGestosTxt().concat(conVis(t, f) ? ['vis +' + 2 * peones] : []).join(' + ');
@@ -554,11 +570,11 @@ function sheetArts(pj, c, id) {
     castBox.hidden = lab;
     if (!lab && vozGestosTxt().length) note.textContent += ' Sumado' + (esp ? ' después de dividir' : '') + ': ' + vozGestosTxt().join(' + ') + '.';
     if (peones) note.textContent += ' Vis: +' + 2 * peones + ' (' + peones + ' de ' + ESP.visArt + '), solo en las casillas que usan ' + ESP.visArt + (esp ? ', después de dividir' : '') + '.';
-    if (!lab && visPedidos() > peones && ESP.visArt) note.textContent += ' Solo le quedan ' + (reserva[ESP.visArt] || 0) + ' peones de ' + ESP.visArt + '.';
+    if (!lab && visPedidos() > peones && ESP.visArt) note.textContent += ' De ' + ESP.visArt + ' como mucho ' + visMax(c, reserva, ESP.visArt) + ' (' + visPor(c, reserva, ESP.visArt) + ').';
     if (gasta) {
       const n = visPedidos(), a = ESP.visArt;
       gasta.textContent = n && a ? 'Gastar ' + n + (n === 1 ? ' peón' : ' peones') + ' de ' + a : 'Gastar los peones';
-      gasta.disabled = !n || !a || n > (reserva[a] || 0);
+      gasta.disabled = !n || !a || n > visMax(c, reserva, a);
     }
   }
   MODES.forEach(m => seg.appendChild(h('button', { type: 'button', class: 'seg', 'data-m': m, onclick: () => { mode = m; store('castgrid:pj-cg', m); draw(); } }, m)));

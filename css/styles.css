@@ -1683,3 +1683,5 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
 .sp-cast .sh-vis { margin-top: 0; }
 .sp-cast-res { margin: 0; }
 @media print { .sp-cast { display: none; } }
+.sp-cast-vis { display: contents; }
+.sp-cast-vis small { margin: 0; }
