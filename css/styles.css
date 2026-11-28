@@ -1678,3 +1678,8 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
 .sh-vis { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 8px; font: 400 15.5px/1.4 var(--f-body); color: var(--ink-2); }
 .sh-vis-l { font: 500 12px/1.3 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 @media print { .sh-cast, .sh-vis .lnk { display: none; } }
+/* casting on the Hechizos tab (saga/characters.js, spellCasting) */
+.sp-cast { display: grid; gap: 6px; }
+.sp-cast .sh-vis { margin-top: 0; }
+.sp-cast-res { margin: 0; }
+@media print { .sp-cast { display: none; } }
