@@ -524,9 +524,14 @@ function viewEditor(id, override) {
     habList().forEach(l => l.forEach(a => { const r = rowOf(a.n); if ((r && (numv(r.base) > 0 || String(r.esp || '').trim())) || seasonXp(a.n) > 0) list.push(a); }));
     if (!list.length) return;
     espBox.appendChild(h('h4', { text: 'Especialidades' }));
+    espBox.appendChild(h('p', { class: 'fh', text: 'También se ponen desde la ficha, con «+ esp.» junto a cada habilidad. Una vez guardada, una especialidad solo la puede cambiar el máster.' }));
+    // the specialties the saved sheet already has are fixed: only the master changes them
+    const guardada = n => { const s = orig && S.pj[id] && (S.pj[id].hab || []).find(x => tkey(x.n) === tkey(n)); return s ? String(s.esp || '').trim() : ''; };
     espBox.appendChild(h('div', { class: 'esp-grid' }, list.map(a => {
-      const ip = inp((rowOf(a.n) || {}).esp, v => { let r = rowOf(a.n); if (!r) { r = { n: a.n, cat: CAT_OF[tkey(a.n)] || guessCat(a.n), esp: '', base: 0 }; d.hab.push(r); } r.esp = v; }, { placeholder: 'Especialidad', 'aria-label': 'Especialidad de ' + a.n });
-      return h('label', { class: 'esp-row' }, [h('span', { text: a.n }), ip]);
+      const fija = !!guardada(a.n) && S.owner !== true;
+      const ip = inp((rowOf(a.n) || {}).esp, v => { let r = rowOf(a.n); if (!r) { r = { n: a.n, cat: CAT_OF[tkey(a.n)] || guessCat(a.n), esp: '', base: 0 }; d.hab.push(r); } r.esp = v; },
+        { placeholder: 'Especialidad', 'aria-label': 'Especialidad de ' + a.n, readonly: fija ? true : null, title: fija ? 'Solo el máster puede cambiarla' : null });
+      return h('label', { class: 'esp-row' + (fija ? ' fija' : '') }, [h('span', { text: a.n }), ip]);
     })));
   }
   // add an ability of one's own: a language, a homeland, a craft…

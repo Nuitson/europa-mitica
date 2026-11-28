@@ -1661,3 +1661,8 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
 .cc-src-n { font: 500 13px/1.3 var(--f-ui); letter-spacing: .04em; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 .cc-src small { font: italic 400 13.5px/1.35 var(--f-body); color: var(--ink-3); }
 .cc-src-i { font: 400 14px/1.4 var(--f-body); color: var(--ink-2); }
+/* the specialty of an Ability, from the sheet (saga/characters.js): set once; then only the master changes it */
+.esp-btn { margin-left: 6px; padding: 0 6px; border: 1px dashed var(--rule-2); border-radius: 99px; background: none; font: 500 10.5px/1.6 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); cursor: pointer; vertical-align: 1px; }
+.esp-btn:hover, .esp-btn:focus-visible { color: var(--blood-ink); border-color: var(--blood); }
+@media print { .esp-btn { display: none; } }
+.esp-row.fija input { background: var(--paper); color: var(--ink-2); cursor: not-allowed; }

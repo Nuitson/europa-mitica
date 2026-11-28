@@ -2,7 +2,7 @@
 import { ABBR, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, scrollHint, signed, store } from '../base.js';
 import { page } from '../views.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
-import { allSeen, inp, monogram, pjsSorted, sagaCrumbs, statusNote, sumRep, toast } from './core.js';
+import { allSeen, dbWrite, field, inp, localPut, monogram, openModal, pjsSorted, sagaCrumbs, stamp, statusNote, sumRep, toast } from './core.js';
 import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, labBonos, labDe, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
 import { openXpEditor, viewSeasons } from './seasons.js';
 import { exportPj, importButton } from './pjfile.js';
@@ -437,7 +437,7 @@ function sheetAbil(c, id, pj, fa) {
       + ': nivel + característica' + (e.total ? ' + malus' : '') + ', sin el dado.' + (e.fuera ? ' ' + e.fuera + '.' : '')
       + (anySob ? ' Las sobrenaturales suman además el aura según su reino (' + (an.escena && an.lugar ? an.lugar + ', ' : '') + 'aura ' + auraTxt(an.tipo, an.nivel) + ').' : '')
       + ' Pulsa ' + CAR_INI[habCar] + ' otra vez para ver solo los niveles.';
-    block.replaceChildren(abilBlock(c, habCar ? cv + e.total : null, sob));
+    block.replaceChildren(abilBlock(c, habCar ? cv + e.total : null, sob, espCtl(id)));
     bar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.car === habCar)));
   };
   CHARS.forEach(n => bar.appendChild(h('button', { type: 'button', class: 'hab-car', 'data-car': n, title: n + ' ' + sgn(numv(car[n])), 'aria-label': 'Sumar ' + n + ' (' + sgn(numv(car[n])) + ')',
@@ -449,7 +449,41 @@ function sheetAbil(c, id, pj, fa) {
 // the sheet lists the Abilities of level 1 or more; the ones still on their way to level 1 are in Avance (pjAvance).
 // With mod (a Characteristic plus the malus), the figure is the roll and the level goes in small type.
 // sob(name): {reino, aura} for a supernatural Ability; its roll adds the aura as its realm takes it
-function abilBlock(c, mod, sob) {
+/* the specialty of an Ability: it is set from the sheet, once; after that only the master changes it.
+   ctl(x): the small button by the Ability (null when this account may not touch it) */
+function espCtl(id) {
+  if (!id || !canWrite()) return null;
+  return x => {
+    const tiene = String(x.esp || '').trim();
+    if (tiene && S.owner !== true) return null;
+    return h('button', { type: 'button', class: 'esp-btn', title: tiene ? 'Cambiar la especialidad (solo el máster)' : 'Poner la especialidad',
+      'aria-label': (tiene ? 'Cambiar la especialidad de ' : 'Poner especialidad a ') + x.n, onclick: () => openEsp(id, x) }, tiene ? 'cambiar' : '+ esp.');
+  };
+}
+function openEsp(id, x) {
+  const pj = S.pj[id];
+  if (!pj) return;
+  const master = S.owner === true;
+  const ip = h('input', { type: 'text', value: String(x.esp || ''), maxlength: '60', autocomplete: 'off', placeholder: 'Por ejemplo: magos, espada, leer labios…' });
+  const go = h('button', { type: 'button', class: 'btn' }, 'Guardar');
+  const close = openModal('Especialidad de ' + x.n, [field('Especialidad', ip, master ? 'Como máster puedes cambiarla o quitarla cuando quieras.' : 'Piénsala bien: una vez puesta, solo el máster puede cambiarla.')],
+    [go, h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancelar')]);
+  go.addEventListener('click', async () => {
+    const v = ip.value.trim();
+    if (!v && !master) { ip.focus(); toast('Escribe la especialidad.'); return; }
+    const hab = JSON.parse(JSON.stringify((S.pj[id] || pj).hab || []));
+    let r = hab.find(y => tkey(y.n) === tkey(x.n));
+    if (r && String(r.esp || '').trim() && !master) { toast('Ya tiene especialidad: solo el máster puede cambiarla.'); close(); return; }
+    if (!r) { r = { n: x.n, cat: x.cat || 'Otras', esp: '', base: 0 }; hab.push(r); }   // an Ability that only has the seasons' px
+    r.esp = v;
+    go.disabled = true;
+    const datos = stamp({ hab: hab }, false);
+    const ok = await dbWrite(() => S.db.doc('personajes/' + id).update(datos), v ? 'Especialidad guardada' : 'Especialidad quitada');
+    if (ok) { localPut('pj', id, Object.assign({}, S.pj[id] || pj, datos)); close(); } else go.disabled = false;
+  });
+}
+
+function abilBlock(c, mod, sob, ctl) {
   const groups = {};
   c.hab.forEach(x => { if (habLv(c, x) >= 1) (groups[x.cat || 'Otras'] = groups[x.cat || 'Otras'] || []).push(x); });
   const order = ABIL_CATS.filter(g => groups[g]).concat(Object.keys(groups).filter(g => !ABIL_CATS.includes(g)));
@@ -458,7 +492,7 @@ function abilBlock(c, mod, sob) {
     const roll = mod == null ? null : lv + mod + (so ? so.aura : 0);
     const tags = [b ? 'Maña ' + sgn(b) : '', x.af ? 'Afinidad' : '', so ? REINO_POW_TXT[so.reino] + (mod == null ? '' : ' · aura ' + sgn(so.aura)) : ''].filter(Boolean);
     return h('div', { 'data-base': String(L), title: fmt(x.xp) + ' px · faltan ' + fmt(need) + ' para el nivel ' + (L + 1) + (b ? ' · ' + L + ' + ' + b + ' de Maña' : '') + (so ? ' · reino ' + REINO_POW_TXT[so.reino] + ': el aura le da ' + sgn(so.aura) : '') }, [
-      h('span', { html: esc(x.n) + (x.esp ? ' <em>(' + esc(x.esp) + ')</em>' : '') + tags.map(t => ' <small class="vtag">' + esc(t) + '</small>').join('') }),
+      h('span', null, [h('span', { html: esc(x.n) + (x.esp ? ' <em>(' + esc(x.esp) + ')</em>' : '') + tags.map(t => ' <small class="vtag">' + esc(t) + '</small>').join('') }), ctl ? ctl(x) : null]),
       h('span', { class: 'ab-r' }, [h('small', { text: roll == null ? fmt(x.xp) + ' px' : 'nivel ' + lv }), h('b', { class: roll != null && roll < 0 ? 'neg' : null, text: roll == null ? String(lv) : sgn(roll) })])]);
   })))));
 }
