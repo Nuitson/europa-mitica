@@ -1,12 +1,12 @@
-/* La alianza y la Orden en la web: la armería (armeria/{id}), la crónica de la saga (cronica/{id}) y las demás alianzas de
+/* La alianza y la Orden en la web: la armería (armeria/{id}) y las demás alianzas de
    cada Tribunal (alianzas/{id}), que añade el máster. Los Tribunales son los trece de la Orden en 1220 (ArM5 cap. 1); la
    alianza de la saga está en el suyo (saga/estado → tribunal; Arazas, en Iberia) y el máster puede ocultar los que no use
    (saga/estado → tribOcultos). */
 import { DOCS, h, LIBROS, scrollHint } from '../base.js';
 import { page } from '../views.js';
-import { S, SEASONS, tkey } from './state.js';
-import { confirmButton, datalist, dbWrite, field, inp, localDel, localPut, openModal, pjsSorted, sagaChanged, sagaCrumbs, seasonPicker, sel, stamp, statusNote, toast } from './core.js';
-import { canWrite, curSeason, numv, skey, sname } from './rules.js';
+import { S } from './state.js';
+import { confirmButton, datalist, dbWrite, field, inp, localDel, localPut, openModal, pjsSorted, sagaChanged, sagaCrumbs, sel, stamp, statusNote, toast } from './core.js';
+import { canWrite, numv } from './rules.js';
 import { writeEstado } from './seasons.js';
 import { viewFicha } from './alianza.js';
 
@@ -84,42 +84,6 @@ function openArmEditor(id) {
     const n = String(d.n || '').trim();
     if (!n) { toast('Escribe qué es.'); return null; }
     return { n: n, tipo: d.tipo, cant: d.cant === '' || d.cant == null ? 1 : Math.max(0, parseInt(d.cant, 10) || 0), donde: String(d.donde || '').trim(), nota: String(d.nota || '').trim() };
-  });
-}
-
-/* ---------- chronicle */
-function viewCronica() {
-  page.innerHTML = '';
-  page.appendChild(sagaCrumbs([['Alianza', null], ['Crónica', null]]));
-  page.appendChild(h('h1', { class: 'doc-title', text: 'Crónica' }));
-  document.title = 'Crónica — Europa Mítica';
-  page.appendChild(h('p', { class: 'doc-blurb', text: 'Lo que ha pasado en la saga, estación a estación.' }));
-  if (canWrite()) page.appendChild(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn', onclick: () => openCroEditor(null) }, 'Añadir a la crónica')));
-  const content = h('div', { class: 'content', style: 'margin-top:18px' });
-  const note = statusNote(); if (note) content.appendChild(note);
-  const L = Object.keys(S.cro).map(id => Object.assign({ _id: id }, S.cro[id])).sort((a, b) => skey(b.anio, b.est) - skey(a.anio, a.est) || numv(b.creado) - numv(a.creado));
-  if (!L.length) content.appendChild(h('p', { class: 'note', text: 'La crónica está vacía: cuenta aquí lo que pase en la saga.' }));
-  let year = null;
-  const tl = h('div', { class: 'cro' });
-  L.forEach(x => {
-    if (x.anio !== year) { year = x.anio; tl.appendChild(h('h2', { class: 'cro-y', text: String(year) })); }
-    tl.appendChild(h('article', { class: 'cro-e', 'data-k': 'cro.' + x._id }, [
-      h('div', { class: 'cro-h' }, [h('span', { class: 'cro-s', text: SEASONS[x.est - 1] || '' }), h('h3', { text: x.titulo || sname(x.anio, x.est) }),
-        canWrite() ? h('button', { type: 'button', class: 'lnk', onclick: () => openCroEditor(x._id) }, 'Editar') : null]),
-      ...String(x.texto || '').split(/\n{2,}/).filter(p => p.trim()).map(p => h('p', { text: p.trim() }))]));
-  });
-  content.appendChild(tl);
-  page.appendChild(content);
-}
-function openCroEditor(id) {
-  const ex = id ? S.cro[id] : null;
-  const [ca, ce] = curSeason();
-  const d = Object.assign({ anio: ca, est: ce, titulo: '', texto: '' }, ex || {});
-  const body = [seasonPicker(d), field('Título', inp(d.titulo, v => { d.titulo = v; }, { placeholder: 'La llegada de los Boinas Rojas, el asedio de Jaca…' })),
-    field('Qué pasó', h('textarea', { rows: 9, oninput: ev => { d.texto = ev.target.value; } }, d.texto || ''), 'Una línea en blanco separa los párrafos.')];
-  saveModal(ex ? 'Crónica' : 'Añadir a la crónica', 'cronica', 'cro', id, ex, body, () => {
-    if (!String(d.texto || '').trim() && !String(d.titulo || '').trim()) { toast('Escribe qué pasó.'); return null; }
-    return { anio: Number(d.anio), est: Number(d.est), titulo: String(d.titulo || '').trim(), texto: String(d.texto || '').trim() };
   });
 }
 
@@ -305,4 +269,4 @@ function masterTribunales() {
   return sec;
 }
 
-export { covenantsOf, fichaArchivo, masterTribunales, sagaCov, sagaTrib, TRIBUNALES, tribHidden, tribName, tribTitle, viewAlianza, viewArmeria, viewCronica };
+export { covenantsOf, fichaArchivo, masterTribunales, sagaCov, sagaTrib, TRIBUNALES, tribHidden, tribName, tribTitle, viewAlianza, viewArmeria };

@@ -152,7 +152,7 @@ R.links = b => h('div', { class: 'links' }, [b.cap ? h('span', { class: 'cap', t
 R.img = b => {
   const src = IMG[b.src];
   if (!src) return null;
-  return h('figure', { class: 'img' }, [h('img', { src: src, alt: b.cap || '', loading: 'lazy', style: b.w ? 'width:' + b.w + 'px' : null }), b.cap ? h('figcaption', { text: b.cap }) : null]);
+  return h('figure', { class: 'img' }, [zoomImg(h('img', { src: src, alt: b.cap || '', loading: 'lazy', style: b.w ? 'width:' + b.w + 'px' : null }), src), b.cap ? h('figcaption', { text: b.cap }) : null]);
 };
 R.gallery = b => {
   const items = b.items.filter(it => IMG[it.src]);
@@ -161,6 +161,17 @@ R.gallery = b => {
   if (!b.cap) return g;
   return h('div', { class: 'content', style: 'gap:8px' }, [h('h4', { text: b.cap }), g]);
 };
+/* an image that opens big when pressed (or with Enter or Space): the portraits, the sheets' images, the chronicle's */
+function zoomImg(img, src) {
+  img.classList.add('zoom');
+  img.setAttribute('role', 'button');
+  img.setAttribute('tabindex', '0');
+  img.setAttribute('aria-label', (img.alt ? img.alt + ': ' : '') + 'ampliar la imagen');
+  img.title = 'Pulsa para ampliarla';
+  img.addEventListener('click', () => lightbox(src || img.src));
+  img.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lightbox(src || img.src); } });
+  return img;
+}
 function lightbox(src) {
   const opener = document.activeElement;
   const lb = h('div', { class: 'lightbox', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Imagen ampliada (pulsa para cerrar)', tabindex: '-1' }, h('img', { src: src, alt: '' }));
@@ -181,7 +192,7 @@ function lightbox(src) {
 R.hero = b => {
   const src = IMG[b.src];
   if (!src) return null;
-  return h('div', { class: 'hero' }, [h('img', { src: src, alt: '' }), h('div', null, [h('h3', { text: b.title }), b.sub ? h('p', { text: b.sub }) : null])]);
+  return h('div', { class: 'hero' }, [zoomImg(h('img', { src: src, alt: '' }), src), h('div', null, [h('h3', { text: b.title }), b.sub ? h('p', { text: b.sub }) : null])]);
 };
 R.details = (b, ctx) => {
   const d = h('details', { class: 'det' }, [h('summary', { text: b.title })]);
@@ -206,7 +217,7 @@ R.matrix = b => {
 };
 R.person = b => {
   const n = h('div', { class: 'person' });
-  if (b.src && IMG[b.src]) n.appendChild(h('img', { src: IMG[b.src], alt: 'Retrato de ' + b.name }));
+  if (b.src && IMG[b.src]) n.appendChild(zoomImg(h('img', { src: IMG[b.src], alt: 'Retrato de ' + b.name }), IMG[b.src]));
   const info = h('div');
   info.appendChild(h('h3', { text: b.name }));
   info.appendChild(h('div', { class: 'sub', text: b.sub }));
@@ -640,4 +651,4 @@ function refCell(v, name) {
   return box;
 }
 
-export { renderBlocks };
+export { lightbox, renderBlocks, zoomImg };

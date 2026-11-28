@@ -1661,6 +1661,37 @@ body.gate-on > .topbar, body.gate-on > .shell, body.gate-on > .scrim, body.gate-
 .cro-h h3 { margin: 0; flex: 1; font: 400 21px/1.2 var(--f-head); }
 .cro-s { font: 500 12px/1 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .cro-e p { margin: 0; }
+/* the chronicle as a timeline (saga/cronica.js): the bar with a point for each entry, and the line down the entries */
+.crg { margin: 0 0 22px; }
+.crg-bar { position: relative; height: 58px; margin: 0 14px; }
+.crg-l { position: absolute; left: 0; right: 0; top: 34px; height: 2px; background: var(--rule-2); }
+.crg-y { position: absolute; top: 44px; transform: translateX(-50%); font: 500 11px/1 var(--f-ui); letter-spacing: .06em; color: var(--ink-3); white-space: nowrap; }
+.crg-p { position: absolute; top: calc(28px - var(--n, 0) * 12px); width: 14px; height: 14px; margin-left: -7px; padding: 0; border-radius: 50%; border: 2px solid var(--card);
+  background: var(--blood); box-shadow: 0 0 0 1px var(--blood); cursor: pointer; }
+.crg-p.img { background: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.crg-p:hover, .crg-p:focus-visible { transform: scale(1.3); outline: none; box-shadow: 0 0 0 2px var(--focus); }
+.crg-txt { margin: 2px 0 0; }
+.cro-tl { position: relative; display: flex; flex-direction: column; gap: 14px; max-width: 80ch; padding-left: 26px; }
+.cro-tl::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--rule-2); }
+.cro-tl .cro-y { position: relative; }
+.cro-tl .cro-y::before { content: ''; position: absolute; left: -24px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--blood); }
+.cro-tl .cro-e { position: relative; scroll-margin-top: 70px; }
+.cro-tl .cro-e::before { content: ''; position: absolute; left: -22px; top: 20px; width: 10px; height: 10px; border-radius: 50%; background: var(--card); border: 2px solid var(--blood); }
+.cro-tl .cro-e:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cro-b { display: flow-root; }
+.cro-b p + p { margin-top: 8px; }
+.cro-img { float: right; width: min(42%, 300px); margin: 2px 0 8px 16px; }
+.cro-img img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); }
+@media (max-width: 560px) { .cro-img { float: none; width: 100%; margin: 0 0 10px; } .cro-tl { padding-left: 20px; } .cro-tl::before { left: 5px; } .cro-tl .cro-y::before { left: -21px; } .cro-tl .cro-e::before { left: -19px; } }
+img.zoom { cursor: zoom-in; }
+img.zoom:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cro-prev img { display: block; max-width: 260px; max-height: 200px; border-radius: 8px; border: 1px solid var(--rule); margin: 4px 0 6px; }
+.cro-imgc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.cro-imp-l { display: grid; gap: 14px; }
+.cro-imp { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--rule-2); border-radius: 10px; background: var(--card); }
+.cro-imp-h { display: flex; align-items: baseline; gap: 10px; }
+.cro-imp-h small { color: var(--ink-3); font: italic 400 14px/1.3 var(--f-body); }
+.cro-imp-h .lnk { margin-left: auto; }
 .m-cov-l { margin: 4px 0 8px; padding-left: 18px; }
 
 /* el índice en el ordenador: oculto tras su botón; la chincheta lo fija en su columna (main.js, sideToggle) */

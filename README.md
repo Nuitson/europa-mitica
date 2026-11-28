@@ -37,6 +37,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/characters.js    personajes y sus fichas
   saga/pjfile.js        exportar un personaje a un archivo e importarlo (en esta saga o en otra)
   saga/alianza.js       la ficha de la alianza de la saga: datos, Ventajas y Trabas compensadas y Puntos de Construcción
+  saga/cronica.js       la crónica: cronograma, entradas con imagen y el importador de resúmenes
   creation/rules.js     compendio de virtudes y defectos y reglas de creación
   creation/editor.js    el editor de personajes
   creation/vdtab.js     la pestaña para elegir virtudes y defectos: buscador, filtros, páginas, casillas y las propias de la saga
@@ -69,6 +70,13 @@ Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar 
   - «Puntos de construcción»: el nivel de poder y las filas del reparto.
 
   Cada Ventaja y Traba lleva un resumen propio, el texto completo del libro y un enlace a su página del PDF. Los datos están en `data/alianza.json`: 215 entradas y 18 situaciones. El texto de los libros de Ars Magica 5.ª edición está bajo licencia CC BY-SA 4.0 (de Atlas Games; la edición española, de Holocubierta). Donde se enseñe hay que decir de quién es y con qué licencia, y la ficha y la ventana lo dicen. Donde el índice del libro y su texto no coinciden en el valor, manda el texto, y la entrada lo dice. Se guarda en `saga/estado`, campo `ficha`. Si la saga tiene una ficha en su archivo (la «Ficha de Arazas»), la ficha de la web sale de sus datos hasta que el máster la guarda. La del archivo sigue en el índice, marcada «archivo», para compararlas.
+- **Crónica:** en «Alianza», «Crónica» es un cronograma de la saga. Arriba hay una barra con un punto por entrada, de la más antigua a la más reciente; al pulsar uno, la página va a esa entrada. Debajo está la línea de tiempo, con cada entrada, su texto y su imagen. «Importar resúmenes» crea varias entradas de golpe con archivos de texto (.txt o .md; de Word, guardados como texto) y sus imágenes:
+  - El título sale de la primera línea del texto.
+  - La estación sale de lo que diga el texto («Primavera de 1225»).
+  - Una imagen con el mismo nombre que un texto va con él.
+
+  Todo se revisa antes de guardar. Las imágenes se reducen a 1280 píxeles y se guardan como los retratos (`retratos/{id}`).
+- **Imágenes ampliables:** el retrato de una ficha y las imágenes de las hojas y de la crónica se ven en grande al pulsarlas (o con Intro).
 - **Tiradas:** la descripción de cada hechizo de una ficha tiene «Tirar dado de estrés». Suma el dado de estrés de ArM5 al total de lanzamiento (con el aura de la escena) y dice si sale, si cuesta fatiga o si falla. Con un 0 tira los dados de pifia: uno, más uno por punto de aura de otro reino y menos uno por punto de maestría.
 
 ## Sin conexión

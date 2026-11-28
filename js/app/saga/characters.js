@@ -1,6 +1,7 @@
 /* Personajes y sus fichas; búsqueda y rutas de la saga. */
 import { ABBR, artOf, ARTS, ARTS_F, ARTS_T, artVar, DOCS, esc, fmt, h, load, R, scrollHint, signed, store } from '../base.js';
 import { page } from '../views.js';
+import { zoomImg } from '../blocks.js';
 import { ABIL_CATS, CHARS, S, SEASONS, TIPOS, TIPOS_PL, tkey } from './state.js';
 import { allSeen, dbWrite, field, inp, localPut, monogram, openModal, pjsSorted, sagaCrumbs, stamp, statusNote, sumRep, toast } from './core.js';
 import { edadTxt, abCost, abLvl, academic, artLvl, auraNow, auraTxt, botchDice, calc, canCeremony, canWrite, castAura, castAuraTxt, ceremonialOn, ceremonyTime, ceremonyToggle, curSeason, entriesOf, estadoFisico, formaActiva, formaBlock, formaButtons, formasOf, HER, isRitual, magnitude, labBonos, labDe, malusOf, manaArt, manaHab, numv, pjCar, habAura, impioBonus, impioOn, impioToggle, magiaAura, magiaAuraTxt, realmMod, refocusCer, sagaAura, saveHurt, sgn, sname, spellTotal, vdCards } from './rules.js';
@@ -10,7 +11,8 @@ import { GENERO_TXT, habReino, magiaFx, REINO_POW_TXT, vdLabel, vdNest } from '.
 import { viewEditor } from '../creation/editor.js';
 import { labSummary } from './library.js';
 import { pjLab } from './laboratory.js';
-import { viewAlianza, viewArmeria, viewCronica } from './covenant.js';
+import { viewAlianza, viewArmeria } from './covenant.js';
+import { viewCronica } from './cronica.js';
 import { viewMaster } from '../master.js';
 import { viewCov, viewHb } from './hbview.js';
 import { castCar, castCarTxt } from './homebrew.js';
@@ -62,7 +64,9 @@ function viewPj(id, tab) {
   const [ca, ce] = curSeason();
   page.appendChild(sagaCrumbs([['Personajes', '#personajes'], [pj.nombre, null]]));
   const head = h('header', { class: 'pj-head' });
-  head.appendChild(monogram(pj, 'pj-portrait'));
+  const ret = monogram(pj, 'pj-portrait');
+  if (ret.tagName === 'IMG') zoomImg(ret, ret.src);   // pressed, the portrait opens big
+  head.appendChild(ret);
   const hi = h('div', { class: 'pj-hi' });
   hi.appendChild(h('h1', { class: 'doc-title', text: pj.nombre }));
   if (pj.sub) hi.appendChild(h('div', { class: 'pj-sub', text: pj.sub }));
