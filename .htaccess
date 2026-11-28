@@ -2,6 +2,10 @@
 # If-None-Match siempre recibe el archivo entero, y los navegadores mandan esa pregunta siempre que tienen ETag. Sin ella,
 # preguntan por la fecha (If-Modified-Since) y el servidor contesta 304 cuando el archivo no ha cambiado.
 # Que los navegadores revaliden siempre (Cache-Control: no-cache) está puesto en Plesk, en «Encabezados adicionales».
+# las notas de trabajo del repositorio no se sirven en la web
+<Files "CLAUDE.md">
+    Require all denied
+</Files>
 FileETag None
 <IfModule mod_headers.c>
     Header unset ETag

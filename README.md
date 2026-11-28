@@ -18,6 +18,7 @@ libros/en, libros/es  los PDF de los libros (en inglés y en castellano) a los q
                         homebrew_csv.py: convierte los CSV de material de blogs en data/homebrew/
 sw.js                 la copia de la web en el navegador, para abrir las ayudas de juego sin conexión
 .htaccess             quita las ETag, que el hosting no reconoce al revalidar: así contesta 304 por fecha y no vuelve a mandar cada archivo
+CLAUDE.md             las normas de trabajo (ramas, publicación, Fork); no se sirve en la web
 css/styles.css        los estilos
 js/gate.js            la entrada: abre la cuenta y la saga, carga los datos y arranca la aplicación
 js/cuenta.js          las pantallas de la cuenta: entrar, crear cuenta, recuperar la contraseña y «Mi zona»
@@ -134,7 +135,7 @@ Si al importar una copia grande falla, sube `post_max_size` en el Selector PHP.
 
 ## Probarla en local
 
-La página no funciona abriendo `index.html` con doble clic (`file://`): necesita el servidor PHP. En local se usa SQLite, así que **no hace falta instalar MySQL** (en el hosting se usa MySQL; el código es el mismo). Los datos vienen en el repositorio: ver «La base de datos compartida en git».
+La página no funciona abriendo `index.html` con doble clic (`file://`): necesita el servidor PHP. En local se usa SQLite, así que **no hace falta instalar MySQL** (en el hosting se usa MySQL; el código es el mismo). Sobre los datos: ver «La base de datos compartida en git».
 
 **1. Instalar PHP 8.1 o superior** (Windows, en PowerShell):
 
@@ -175,50 +176,40 @@ En local no hay servidor de correo: con el modo `archivo` de arriba, «He olvida
 
 Para que todos tengamos los mismos datos, **la base de datos de local viaja en el repositorio**: es el archivo `datos/europa.sqlite` (SQLite, un único archivo con las cuentas, las sagas, los personajes, las estaciones y los retratos). Por eso el repositorio tiene que ser **privado**: dentro van los datos de la partida, los correos de los usuarios, los hashes de sus contraseñas y la clave con que se firman las sesiones. Quien tenga acceso al repo puede ver todo eso, y con la clave de las sesiones, hacerse pasar por cualquier cuenta.
 
-Cómo trabajar:
+En el trabajo diario **no se sube**: los commits llevan solo el código (ver «Forma de trabajar»). Solo se sube si se decide expresamente compartir los datos.
 
-1. Antes de empezar: `git pull`, con el servidor parado (Ctrl+C en la terminal de `php -S`).
-2. Arranca, trabaja en la web (los cambios se guardan solos en `datos/europa.sqlite`) y para el servidor.
-3. Al acabar: `git add datos/europa.sqlite`, `git commit` y `git push`.
-
-**Un solo archivo no se puede fusionar.** Git no sabe mezclar dos versiones de un `.sqlite`: si dos personas cambian datos desde el mismo `pull` y las dos hacen `push`, la segunda recibirá un conflicto en ese archivo y habrá que quedarse con una de las dos versiones (`git checkout --theirs datos/europa.sqlite` o `--ours`) y volver a meter a mano lo que se pierda. Para evitarlo: avisaos antes de tocar datos, haced `pull` justo antes de empezar y `push` justo al acabar, y no dejéis cambios sin subir. Cada versión que se sube pesa casi lo que la base de datos entera (hoy casi 1 MB), así que el repositorio crece con cada commit de datos: no los hagáis más de lo necesario. Las cuentas también están en ese archivo: quien se registre en su copia local y no suba el archivo, no existe para los demás.
+**Un solo archivo no se puede fusionar.** Git no sabe mezclar dos versiones de un `.sqlite`: si se comparte, avisaos antes, haced `pull` justo antes de tocar datos y `push` justo al acabar. Cada versión que se sube pesa casi lo que la base de datos entera, así que el repositorio crece con cada una.
 
 Dos precauciones:
 
 - Los `.sqlite-wal`, `.sqlite-shm` y `-journal` están ignorados a propósito: la base de datos se guarda sin ellos (`journal_mode=DELETE`) para que `datos/europa.sqlite` sea siempre un archivo completo. Si copias o subes el archivo con el servidor en medio de una escritura, espera a que termine.
 - `datos/` es solo para trabajar en local. **No la subas al hosting**: allí los datos viven en MySQL, y la carpeta lleva un `.htaccess` que impide descargarla por si acaso. Para llevar los datos del equipo al hosting, descarga una copia desde la pantalla del máster (con las hojas de Drive incluidas) e impórtala allí, en una saga creada para ello, con «Sustituir lo que hay» (o usa la herramienta de migración). Las cuentas no van en la copia: cada uno se registra en el hosting y el máster lo añade.
 
-## Colaborar desde un fork
+## Forma de trabajar: rama `desarrollo` y el programa Fork
 
-Para mejorar la web sin tocar directamente el repositorio principal (`Nuitson/europa-mitica`): cada uno trabaja en su copia de GitHub (un *fork*) y propone sus cambios con una *pull request*, que Nuitson revisa y fusiona.
+Las normas completas están en `CLAUDE.md`. En resumen:
 
-**La primera vez**
+| Rama | Qué tiene |
+|---|---|
+| `desarrollo` | los cambios del día a día; subirlos no toca la web |
+| `main` | lo que está publicado: cada subida a `main` actualiza <https://conciliodearazas.com> (ver «Publicar desde GitHub») |
 
-1. En GitHub, abre <https://github.com/Nuitson/europa-mitica> y pulsa **Fork**: se crea `tu-usuario/europa-mitica`. Si el repositorio es privado, Nuitson tiene que añadirte antes como colaborador (Settings → Collaborators → Add people).
-2. Clona tu fork y enlázalo con el principal:
-
-   ```
-   git clone https://github.com/tu-usuario/europa-mitica.git
-   cd europa-mitica
-   git remote add upstream https://github.com/Nuitson/europa-mitica.git
-   ```
-
-3. Arráncala como en «Probarla en local» (`servir.bat`) y abre <http://localhost:8080>.
+**La primera vez:** instala [Fork](https://git-fork.com), clona `https://github.com/Nuitson/europa-mitica.git` (para subir cambios, Nuitson tiene que haberte añadido como colaborador), haz doble clic en `origin` → `desarrollo` y arranca la web como en «Probarla en local».
 
 **Cada mejora**
 
-1. Ponte al día con el principal: `git checkout main`, `git pull upstream main` y `git push origin main` (o el botón **Sync fork** de tu fork en GitHub, y luego `git pull`).
-2. Haz una rama para la mejora: `git checkout -b nombre-de-la-mejora`.
-3. Cambia y prueba en local. Guarda con `git add` de los archivos que hayas cambiado (no `git add .` ni `git add -A`: así no se cuela `datos/europa.sqlite`), `git commit` y `git push origin nombre-de-la-mejora`.
-4. En GitHub, en tu fork, pulsa **Contribute → Open pull request** hacia `Nuitson/europa-mitica` (rama `main`) y explica qué cambia y cómo probarlo.
-5. Nuitson la revisa y la fusiona en `main`. Al fusionarla, la web del dominio se actualiza sola (ver «Publicar desde GitHub»): lo que entra en `main` es lo que ve todo el mundo, así que pruébalo bien antes.
+1. En Fork, en `desarrollo`: **Pull**.
+2. Cambia y prueba en local.
+3. En «Local Changes», marca solo los archivos que hayas cambiado, escribe qué hace el cambio, **Commit** y **Push**. Un commit por mejora.
+4. Cuando Nuitson lo decida, `desarrollo` se pasa a `main` y la web se publica.
 
-**Para que las pull requests encajen**
+**Ver y deshacer versiones:** el historial de Fork guarda todas. Para deshacer una, clic derecho sobre su commit → **Revert commit** (en `desarrollo`) y **Push**: se crea un commit que la deshace y la original sigue guardada. No se usa *force push* ni se borra historial.
 
-- **Sin datos:** `datos/europa.sqlite` no va en las pull requests. Es un único archivo que git no sabe mezclar, y los datos de verdad de la saga están en el dominio. Para probar con ellos, descarga una copia en la pantalla del máster del dominio e impórtala en tu web local.
+**Para que todo encaje**
+
+- **Sin datos:** `datos/europa.sqlite` no va en los commits, y no descartes sus cambios (*Discard changes*): son los datos de tu saga local. Los de verdad están en el dominio; para probar con ellos, descarga una copia en la pantalla del máster del dominio e impórtala en tu web local.
 - **Sin contraseñas:** nunca `api/config.php` (git ya lo ignora) ni claves en el código.
 - Si cambias archivos de la web, sube la versión de `CACHE` en `sw.js`; si añades un módulo, enlázalo en `index.html` y en `FILES` de `sw.js` (ver «Archivos»).
-- Una mejora por pull request, con un título que diga qué hace.
 
 El catálogo de hechizos y las descripciones de virtudes y defectos están resumidos en castellano a partir del material de Ars Magica publicado con licencia abierta:
 
