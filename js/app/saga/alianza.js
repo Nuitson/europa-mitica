@@ -1,8 +1,8 @@
 /* La ficha de la alianza de la saga y su creación (libro básico, «Personalizar la creación de la alianza», y «Alianzas»,
    capítulo II): sus datos, el nivel de poder, las Ventajas y Trabas, que se compensan, y el reparto de los Puntos de
    Construcción. Se guarda en saga/estado → ficha; la rellena y la cambia el máster, y la ven todos.
-   Las Ventajas y Trabas salen de data/alianza.json: cada una con un resumen propio y la página del libro, que se abre en
-   el PDF para leerla entera. Una saga con ficha en su archivo (la «Ficha de Arazas») la tiene hecha con esos datos hasta
+   Las Ventajas y Trabas salen de data/alianza.json: cada una con un resumen propio, el texto completo del libro (bajo
+   licencia CC BY-SA 4.0, que pide decir de quién es allí donde se enseña) y su página del PDF. Una saga con ficha en su archivo (la «Ficha de Arazas») la tiene hecha con esos datos hasta
    que el máster guarda la suya; la del archivo sigue ahí para compararlas. */
 import { h, LIBROS, norm, R } from '../base.js';
 import { page } from '../views.js';
@@ -181,9 +181,14 @@ function balanceEl(vt) {
     h('span', { class: 'vdt-bal-st', text: msg })]);
 }
 const libro = p => {
-  const url = LIBROS.libros.Cov && LIBROS.libros.Cov.es, t = 'Texto completo: «Alianzas», página ' + p + ' del PDF';
+  const url = LIBROS.libros.Cov && LIBROS.libros.Cov.es, t = 'En el PDF: «Alianzas», página ' + p;
   return url ? h('a', { class: 'cov-src-a', href: url + '#page=' + p, target: '_blank', rel: 'noopener', text: t }) : h('span', { text: t });
 };
+// the book's whole text of an entry, folded under its summary
+const textoCompleto = e => (e.t && e.t.length ? h('details', { class: 'cov-t' }, [h('summary', { text: 'Texto completo del libro' }), ...e.t.map(x => h('p', { text: x }))]) : null);
+// whose text it is and under which licence (CC BY-SA 4.0 asks for it wherever the text is shown)
+const licencia = () => (DAT && DAT.licencia ? h('p', { class: 'fh cov-lic' }, [document.createTextNode(DAT.licencia.t + ' '),
+  h('a', { href: DAT.licencia.url, target: '_blank', rel: 'noopener license', text: 'Ver la licencia' }), document.createTextNode('.')]) : null);
 const valorTxt = p => (tipoDe(p) === 'Gratuita' ? 'Gratuita' : valorDe(p)) + (p.desc && tipoDe(p) === 'Traba' ? ' · Desconocida (cuenta como Mayor)' : '');
 // «el libro: Traba Menor», when the sheet gives it another value
 const otroValor = p => { const e = ent(p); return e && (p.tipo || p.valor) && (tipoDe(p) !== e.tipo || valorDe(p) !== e.valor) ? 'En el libro, ' + (e.tipo === 'Gratuita' ? 'Elección Gratuita' : e.tipo + ' ' + e.valor) : ''; };
@@ -245,7 +250,8 @@ function viewFicha() {
         h('ul', { class: 'cov-l' }, L.map(p => h('li', null, itemVista(p))))]));
     });
     content.appendChild(cols);
-    content.appendChild(h('p', { class: 'fh', text: 'Pulsa una para leer su resumen; el texto completo se abre en el PDF de «Alianzas», en su página.' }));
+    content.appendChild(h('p', { class: 'fh', text: 'Pulsa una para leer su resumen y, debajo, el texto completo del libro.' }));
+    const lic = licencia(); if (lic) content.appendChild(lic);
   }
 
   // Puntos de construcción
@@ -277,6 +283,7 @@ function itemVista(p) {
   return h('details', { class: 'cov-i' + (tipoDe(p) === 'Traba' ? ' tr' : '') }, [
     h('summary', null, [h('b', { text: nombreDe(p) }), p.nota ? h('span', { class: 'cov-nota', text: p.nota }) : null, h('span', { class: 'cov-tag', text: valorTxt(p) })]),
     e ? h('p', { class: 'cov-r', text: e.r }) : h('p', { class: 'cov-r none', text: 'Propia de la saga: no está en el libro.' }),
+    e ? textoCompleto(e) : null,
     e ? h('p', { class: 'cov-src' }, [h('span', { text: e.cat + (e.req ? ' · requiere ' + e.req : '') + ' · ' }), libro(e.p)]) : null,
     otro ? h('p', { class: 'cov-src', text: otro + '.' }) : null,
     e && e.nota ? h('p', { class: 'cov-src', text: e.nota }) : null]);
@@ -391,6 +398,17 @@ async function openVT() {
     return h('div', { class: 'cov-pick' }, [inp(p.nota || '', v => { p.nota = v; }, { placeholder: 'Nota: cuál, quién, dónde…', 'aria-label': 'Nota de ' + e.n }), val, desc,
       h('button', { type: 'button', class: 'lnk', onclick: () => { vt.splice(vt.indexOf(p), 1); redraw(); drawBal(); } }, 'Quitar')]);
   }
+  // «Leer el texto completo»: the book's text under the summary, and folded again; it stays open while the card is redrawn
+  const abiertos = new Set();
+  function leer(e) {
+    if (!e.t || !e.t.length) return null;
+    const box = h('div', { class: 'cov-tx' }, e.t.map(x => h('p', { text: x })));
+    const b = h('button', { type: 'button', class: 'lnk cov-leer', 'aria-expanded': 'false' });
+    const pon = () => { const on = abiertos.has(e.id); box.hidden = !on; b.textContent = on ? 'Ocultar el texto completo' : 'Leer el texto completo'; b.setAttribute('aria-expanded', String(on)); };
+    b.addEventListener('click', () => { if (abiertos.has(e.id)) abiertos.delete(e.id); else abiertos.add(e.id); pon(); });
+    pon();
+    return h('div', { class: 'cov-leer-b' }, [b, box]);
+  }
   function card(e) {
     const li = h('li', { class: 'vdt-it' + (e.tipo === 'Traba' ? ' tr' : '') });
     function redraw() {
@@ -409,6 +427,7 @@ async function openVT() {
         h('div', { class: 'vdt-h' }, [h('b', { text: e.n }), L.length > 1 ? h('i', { text: '× ' + L.length }) : null]),
         h('div', { class: 'vdt-m' }, meta),
         h('p', { class: 'vdt-d', text: e.r }),
+        leer(e),
         e.nota ? h('p', { class: 'vdt-lock', text: e.nota }) : null,
         h('p', { class: 'cov-src' }, libro(e.p)),
         ...L.map(p => pickRow(p, e, redraw)), otra]));
@@ -419,7 +438,7 @@ async function openVT() {
   function draw() {
     const terms = norm(st.q).split(/\s+/).filter(t => t.length > 1);
     const hits = LIST.filter(e => (!st.tipo || e.tipo === st.tipo) && (!st.cat || e.cat === st.cat) && (!st.valor || e.valor === st.valor)
-      && (!st.solo || vt.some(p => p.id === e.id)) && terms.every(t => (e._k || (e._k = norm(e.n + ' ' + e.r + ' ' + e.cat))).includes(t)));
+      && (!st.solo || vt.some(p => p.id === e.id)) && terms.every(t => (e._k || (e._k = norm(e.n + ' ' + e.r + ' ' + e.cat + ' ' + (e.t || []).join(' ')))).includes(t)));
     const first = terms[0] || '';
     if (first) hits.sort((a, b) => norm(b.n).includes(first) - norm(a.n).includes(first));
     ul.replaceChildren(...hits.map(card));
@@ -428,7 +447,7 @@ async function openVT() {
     count.textContent = (hits.length ? plural(hits.length, 'resultado', 'resultados') : 'Nada coincide con la búsqueda') + (ver.length ? ' · ' + ver.map(x => '«' + x.n + '»: en el libro, ver ' + x.ver).join(' · ') : '') + '.';
     clear.hidden = !(st.q || st.tipo || st.cat || st.valor || st.solo);
   }
-  const q = h('input', { type: 'search', value: st.q, placeholder: 'Buscar por nombre o en el resumen…', autocomplete: 'off', 'aria-label': 'Buscar Ventaja o Traba' });
+  const q = h('input', { type: 'search', value: st.q, placeholder: 'Buscar por nombre o en el texto…', autocomplete: 'off', 'aria-label': 'Buscar Ventaja o Traba' });
   let tm = null;
   q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { st.q = q.value; draw(); }, 120); });
   const fTipo = sel([['', 'Ventajas, Trabas y Gratuitas'], ['Ventaja', 'Solo Ventajas'], ['Traba', 'Solo Trabas'], ['Gratuita', 'Solo Elecciones Gratuitas']], st.tipo, v => { st.tipo = v; draw(); }, { 'aria-label': 'Ventajas o Trabas' });
@@ -496,8 +515,8 @@ async function openVT() {
 
   const save = h('button', { type: 'button', class: 'btn' }, 'Guardar');
   const cancel = h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancelar');
-  const close = openModal('Ventajas y Trabas de ' + sagaCov().n, [fbar, h('p', { class: 'fh vdt-help', text: 'Marca la casilla para elegirla y desmárcala para quitarla. Debajo de cada elegida se le pone una nota (a quién, cuál…) o se cambia su valor si la saga la usa de otra forma. El texto completo se abre en el PDF de «Alianzas».' }),
-    rules, sitBox, ul, ownBox], [sum, save, cancel]);
+  const close = openModal('Ventajas y Trabas de ' + sagaCov().n, [fbar, h('p', { class: 'fh vdt-help', text: 'Marca la casilla para elegirla y desmárcala para quitarla. Debajo de cada elegida se le pone una nota (a quién, cuál…) o se cambia su valor si la saga la usa de otra forma. Cada una tiene su resumen y, con «Leer el texto completo», el texto del libro.' }),
+    rules, sitBox, ul, ownBox, licencia()].filter(Boolean), [sum, save, cancel]);
   save.addEventListener('click', async () => {
     save.disabled = true;
     f.vt = vt;

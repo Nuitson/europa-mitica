@@ -1311,6 +1311,16 @@ button.vdt-d:focus-visible { outline: 2px solid var(--focus); outline-offset: 2p
 .cov-pc-tot { margin: 0; font: 500 14.5px/1.4 var(--f-body); color: var(--ink-2); }
 .cov-pc-tot.bad { color: var(--neg); }
 .cov-costes ul { margin: 8px 0 0; padding-left: 20px; font: 400 14.5px/1.45 var(--f-body); color: var(--ink-2); }
+/* the book's whole text: folded under the summary on the sheet, and behind «Leer el texto completo» in the window */
+.cov-t { margin: 0 0 8px; }
+.cov-t > summary { cursor: pointer; font: 500 11.5px/1.4 var(--f-ui); letter-spacing: .07em; text-transform: uppercase; color: var(--blood-ink); }
+.cov-t > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+.cov-t p, .cov-tx p { margin: 6px 0 0; font: 400 15px/1.5 var(--f-body); color: var(--ink); }
+.cov-leer-b { margin-top: 4px; }
+.cov-leer { padding: 2px 0; }
+.cov-tx { margin: 2px 0 4px; padding-left: 10px; border-left: 2px solid var(--rule-2); }
+.cov-tx[hidden] { display: none; }
+.cov-lic { margin-top: 10px; }
 .vdt-pg:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .vdt-pag .gap { min-width: 14px; text-align: center; color: var(--ink-3); }
 .vdt-pg-t { padding: 0 6px; font: italic 400 14px/1.3 var(--f-body); color: var(--ink-3); white-space: nowrap; }
