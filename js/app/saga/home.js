@@ -23,7 +23,7 @@ const SVG = {
 const PJ_GRUPOS = [['magi', 'Magi', ['Magus', 'Aprendiz']], ['comp', 'Compañeros', ['Compañero', 'Otro']], ['grogs', 'Grogs', ['Grog']]];
 const docLink = (href, icon, text, on, small) => h('a', { class: 't-doc', href: href, 'aria-current': on ? 'page' : null, html: icon + '<span>' + esc(text) + (small ? ' <small>' + esc(small) + '</small>' : '') + '</span>' });
 const groupLabel = (icon, text) => h('div', { class: 't-folder t-group', html: icon + '<span>' + esc(text) + '</span>' });
-const sheetLink = (d, raw) => h('a', { class: 't-doc', href: '#' + d.id, 'data-doc': d.id, 'aria-current': raw.split('--')[0] === d.id ? 'page' : null, html: ICON.sheet + '<span>' + esc(d.title) + '</span>' });
+const sheetLink = (d, raw, small) => h('a', { class: 't-doc', href: '#' + d.id, 'data-doc': d.id, 'aria-current': raw.split('--')[0] === d.id ? 'page' : null, html: ICON.sheet + '<span>' + esc(d.title) + (small ? ' <small>' + esc(small) + '</small>' : '') + '</span>' });
 /* the saga's own spreadsheets (its archive): a character's goes with the characters, the rest with the covenant; the covenant's
    sheet first, then its library and its vis */
 function sagaDocs() {
@@ -68,14 +68,12 @@ function renderSagaSide() {
   }
   hbSync(sagaChanged);
   box.appendChild(h('div', { class: 'tree' }, u));
-  // the covenant: its sheet, library and vis from the archive, and the armoury and chronicle kept in the web; a saga whose archive
-  // has no covenant sheet (one made in the web) has its sheet in the web (saga/covenant.js: viewSagaCov)
-  const narm = Object.keys(S.arm).length, ncro = Object.keys(S.cro).length;
-  const cov = h('ul', null, sd.cov.map(d => h('li', null, sheetLink(d, raw))));
-  if (!fichaArchivo()) {
-    const n = window.EM_WEB.saga && window.EM_WEB.saga.alianza;
-    cov.insertBefore(h('li', null, docLink('#alianza--propia', ICON.sheet, n ? 'Ficha de ' + n : 'Ficha de la alianza', raw === 'alianza--propia')), cov.firstChild);
-  }
+  // the covenant: its sheet in the web first (saga/alianza.js), then its spreadsheets in the archive (the old sheet, marked as
+  // such, its library and its vis), and the armoury and chronicle kept in the web
+  const narm = Object.keys(S.arm).length, ncro = Object.keys(S.cro).length, fa = fichaArchivo();
+  const cov = h('ul', null, sd.cov.map(d => h('li', null, sheetLink(d, raw, d === fa ? 'archivo' : ''))));
+  const nAl = window.EM_WEB.saga && window.EM_WEB.saga.alianza;
+  cov.insertBefore(h('li', null, docLink('#alianza--propia', ICON.sheet, nAl ? 'Ficha de ' + nAl : 'Ficha de la alianza', raw === 'alianza--propia')), cov.firstChild);
   cov.appendChild(h('li', null, docLink('#armeria', SVG.arm, 'Armería', raw === 'armeria', narm ? String(narm) : '')));
   cov.appendChild(h('li', null, docLink('#cronica', SVG.cro, 'Crónica', raw === 'cronica', ncro ? String(ncro) : '')));
   box.appendChild(h('div', { class: 'tree t-sec' }, h('ul', null, foldLi('alianza', folderLabel('Alianza'), cov))));

@@ -36,6 +36,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   saga/seasons.js       estaciones: reparto de experiencia, vis y tesorería
   saga/characters.js    personajes y sus fichas
   saga/pjfile.js        exportar un personaje a un archivo e importarlo (en esta saga o en otra)
+  saga/alianza.js       la ficha de la alianza de la saga: datos, Ventajas y Trabas compensadas y Puntos de Construcción
   creation/rules.js     compendio de virtudes y defectos y reglas de creación
   creation/editor.js    el editor de personajes
   creation/vdtab.js     la pestaña para elegir virtudes y defectos: buscador, filtros, páginas, casillas y las propias de la saga
@@ -44,6 +45,7 @@ js/app/               la aplicación, en módulos de JavaScript (ES modules):
   info.js               descripciones al pulsar un hechizo, una virtud o un defecto
 data/ayudas.json      las ayudas de juego compartidas (guías, virtudes y defectos, pantalla del jugador…)
 data/hechizos.json    el catálogo de hechizos
+data/alianza.json     las Ventajas, Trabas y situaciones de «Alianzas», con un resumen propio y su página del PDF
 data/imagenes.json    la lista de imágenes de las ayudas (id → archivo)
 data/homebrew/        material fanmade de blogs por tipo y autor (index.json y un archivo por grupo), de herramientas/homebrew_csv.py
 img/                  las imágenes de las ayudas
@@ -61,6 +63,12 @@ Los módulos se cargan en el orden de sus `import`. Lo que se ejecuta al cargar 
 - **Exportar e importar personajes:** la página de cada personaje tiene «Exportar», que descarga un archivo `.json` con la ficha, todas sus estaciones y el retrato. En «Personajes», «Importar personaje» lee ese archivo, enseña lo que trae y lo crea como un personaje **nuevo**, a nombre de quien lo importa; nunca cambia los que ya hay (si ya existe uno con el mismo nombre, se avisa y quedan los dos). Sirve para pasar un personaje de una saga a otra o para guardar una copia suya. La copia de la saga entera sigue en la pantalla del máster.
 - **Virtudes y defectos propios de la saga:** en la pestaña «Elegir virtudes y defectos» del editor, «Crear virtud o defecto» añade uno nuevo (nombre, virtud o defecto, valor, tipo y descripción). Se guarda en la saga (`virtudes/{id}`), sale en «Libros» como «Propias de la saga», se elige como cualquier otro y su descripción se ve en las fichas. Solo existe en esa saga: no entra en el compendio común (`data/ayudas.json`) ni en las sagas que se creen después; sí va en la copia de seguridad de la saga. Lo cambia o lo borra quien lo creó o un máster. Cuando ya lo tiene algún personaje, el nombre no se puede cambiar (las fichas lo encuentran por el nombre).
 - **Homebrew:** la pantalla del máster tiene la pestaña «Homebrew». Arriba, las reglas caseras con una casilla cada una (por ejemplo, el lanzamiento con atributos afines). Debajo, el material de blogs (magos, aprendices, alianzas, objetos mágicos y hechizos) con un botón por tipo y autor, como «Teotimus · Hechizos». Lo añadido sale para toda la saga en la barra lateral, en «Homebrew», y sus hechizos entran en el catálogo de las fichas. Se guarda en el estado de la saga (`saga/estado`, campo `homebrew`). Para cambiar el material: `python herramientas/homebrew_csv.py <los CSV>`.
+- **Ficha de la alianza:** en «Alianza», «Ficha de …» es la ficha de la alianza de la saga. Tiene sus datos, sus Ventajas y Trabas y el reparto de los Puntos de Construcción. Solo la cambia el máster, con tres botones:
+  - «Editar la ficha»: los datos, las reputaciones, las tierras y las notas.
+  - «Ventajas y Trabas»: la lista entera de «Alianzas», con buscador, filtros y las situaciones de ejemplo del libro. Arriba está el balance (al crear la alianza, los puntos de Trabas y de Ventajas tienen que ser iguales; una Traba Desconocida cuenta como Mayor) y los avisos de requisitos e incompatibilidades.
+  - «Puntos de construcción»: el nivel de poder y las filas del reparto.
+
+  Cada Ventaja y Traba lleva un resumen propio y un enlace a su página del PDF del libro, para leer el texto completo. Los datos están en `data/alianza.json`: 215 entradas y 18 situaciones. Donde el índice del libro y su texto no coinciden en el valor, manda el texto, y la entrada lo dice. Se guarda en `saga/estado`, campo `ficha`. Si la saga tiene una ficha en su archivo (la «Ficha de Arazas»), la ficha de la web sale de sus datos hasta que el máster la guarda. La del archivo sigue en el índice, marcada «archivo», para compararlas.
 - **Tiradas:** la descripción de cada hechizo de una ficha tiene «Tirar dado de estrés». Suma el dado de estrés de ArM5 al total de lanzamiento (con el aura de la escena) y dice si sale, si cuesta fatiga o si falla. Con un 0 tira los dados de pifia: uno, más uno por punto de aura de otro reino y menos uno por punto de maestría.
 
 ## Sin conexión

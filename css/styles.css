@@ -1273,6 +1273,44 @@ button.vdt-d:focus-visible { outline: 2px solid var(--focus); outline-offset: 2p
 .vdt-pg:hover { border-color: var(--blood); color: var(--blood-ink); }
 .vdt-pg[aria-current="page"] { background: var(--blood); border-color: var(--blood); color: #fff8f0; cursor: default; }
 .vdt-pg[aria-disabled="true"] { opacity: .4; cursor: default; border-color: var(--rule-2); color: var(--ink-2); }
+/* the covenant's sheet (saga/alianza.js): the balance of its Boons and Hooks, the three groups, each one opened for its
+   summary, and the rows of the chosen ones in the window that picks them */
+.cov-bal { margin: 4px 0 10px; }
+.cov-av { margin: 0 0 12px; padding: 8px 14px 8px 30px; border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--rule)); border-radius: 8px;
+  background: color-mix(in srgb, var(--gold) 8%, var(--card)); font: 400 14.5px/1.4 var(--f-body); color: var(--ink-2); }
+.cov-av li + li { margin-top: 2px; }
+.cov-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 8px 22px; align-items: start; }
+.cov-g h3 { display: flex; align-items: baseline; gap: 8px; }
+.cov-g h3 small { font: 500 11px/1 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.cov-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cov-i { border: 1px solid var(--rule); border-left: 3px solid var(--pos); border-radius: 6px; background: var(--card); padding: 0 10px; }
+.cov-i.tr { border-left-color: var(--neg); }
+.vdt-it.tr .vdt-m .k { color: var(--neg); }
+.cov-i summary { cursor: pointer; padding: 7px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; list-style: none; }
+.cov-i summary::-webkit-details-marker { display: none; }
+.cov-i summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+.cov-i summary b { font: 600 15.5px/1.3 var(--f-body); color: var(--ink); }
+.cov-nota { font: italic 400 14.5px/1.3 var(--f-body); color: var(--ink-2); }
+.cov-tag { margin-left: auto; font: 500 10.5px/1.4 var(--f-ui); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.cov-r { margin: 0 0 6px; font: 400 15px/1.45 var(--f-body); color: var(--ink-2); }
+.cov-r.none { font-style: italic; color: var(--ink-3); }
+.cov-src { margin: 0 0 8px; font: 400 13.5px/1.4 var(--f-body); color: var(--ink-3); }
+.vdt-b .cov-src { margin: 6px 0 0; }
+.cov-src a { color: var(--blood-ink); }
+.cov-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; }
+.cov-pick input[type=text] { flex: 1 1 180px; min-width: 0; }
+.cov-pick select { flex: 0 1 auto; width: auto !important; max-width: 100%; }
+.cov-otra { margin-top: 6px; padding: 2px 0; }
+.cov-bal-box { flex: 1 0 100%; display: grid; gap: 6px; }
+.cov-bal-box .cov-av { margin: 0; }
+.cov-sit-b { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 6px; }
+.cov-sit-b select { width: auto !important; max-width: 100%; }
+.cov-own { display: grid; gap: 4px; margin-top: 14px; padding: 14px 16px; background: var(--card); border: 1px solid var(--rule-2); border-radius: 10px; }
+.cov-own h3 { margin: 0; }
+.cov-own > .fh { margin: 0; }
+.cov-pc-tot { margin: 0; font: 500 14.5px/1.4 var(--f-body); color: var(--ink-2); }
+.cov-pc-tot.bad { color: var(--neg); }
+.cov-costes ul { margin: 8px 0 0; padding-left: 20px; font: 400 14.5px/1.45 var(--f-body); color: var(--ink-2); }
 .vdt-pg:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .vdt-pag .gap { min-width: 14px; text-align: center; color: var(--ink-3); }
 .vdt-pg-t { padding: 0 6px; font: italic 400 14px/1.3 var(--f-body); color: var(--ink-3); white-space: nowrap; }
