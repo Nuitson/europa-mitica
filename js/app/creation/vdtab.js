@@ -80,6 +80,35 @@ function whereTxt(s) {
 const canEdit = e => !!e.propia && !!S.db && (!!S.owner || (!!e.autor && e.autor === S.uid));
 
 /* o: { pjId, chosen(e) → bool, locked(e) → bool, toggle(e, on), summary() → text } — the editor keeps the character */
+/* the rules for choosing virtues and flaws (ArM5, cap. 4), for the three kinds of character; the kind being made is
+   marked and open. The sheet checks the same rules (creation/rules.js, creationCheck). */
+const VD_REGLAS = [
+  ['mago', 'Magos (y aprendices)', [
+    'Defectos hasta 10 puntos (mayor = 3, menor = 1). Las virtudes cuestan lo mismo y no pueden pasar de lo que dan los defectos.',
+    'El Don y «Magus Hermético» (su estatus social) son obligatorios y gratuitos, como la virtud gratuita de su casa.',
+    'Como mucho una virtud hermética mayor, y al menos un defecto hermético.',
+    'No pueden ser Ricos.']],
+  ['companero', 'Compañeros', [
+    'Defectos hasta 10 puntos (mayor = 3, menor = 1). Las virtudes cuestan lo mismo y no pueden pasar de lo que dan los defectos.',
+    'Sin el Don (salvo que vaya a acabar siendo mago), y por tanto sin virtudes ni defectos herméticos.',
+    'Pueden llevar virtudes y defectos mayores.']],
+  ['grog', 'Grogs', [
+    'Defectos hasta 3 puntos, y solo menores: virtudes y defectos, todos menores.',
+    'Sin el Don ni virtudes o defectos herméticos, y sin defectos de Historia.',
+    'Un defecto de Personalidad como mucho.']]];
+const VD_COMUNES = ['Un estatus social, virtud o defecto (los hay gratuitos, como Campesino o Habitante de la Alianza).',
+  'Como mucho cinco defectos menores, un defecto de Historia y dos de Personalidad (uno mayor como mucho).'];
+function vdRules(clase) {
+  const mio = clase === 'aprendiz' ? 'mago' : clase;
+  const cards = VD_REGLAS.map(([k, t, l]) => h('div', { class: 'vdr-c' + (k === mio ? ' on' : '') }, [
+    h('h4', null, [document.createTextNode(t), k === mio ? h('small', { text: 'Este personaje' }) : null]),
+    h('ul', null, l.map(x => h('li', { text: x })))]));
+  return h('details', { class: 'vdr', open: mio === 'mago' || mio === 'companero' || mio === 'grog' ? true : null }, [
+    h('summary', { text: 'Reglas para elegir virtudes y defectos' }),
+    h('div', { class: 'vdr-g' }, cards),
+    h('p', { class: 'vdr-com' }, [h('b', { text: 'Para todos: ' }), VD_COMUNES.join(' ')])]);
+}
+
 function openVdTab(o) {
   compendium();
   if (!st.libros || st.libDef) st.libros = defLibros();
@@ -298,6 +327,7 @@ function openVdTab(o) {
   const fbar = h('div', { class: 'vdt-f' }, [bal, q, fClase, fTipo, fValor, fLibro, h('label', { class: 'chk', for: 'vdt-solo' }, [fSolo, h('span', { text: 'Solo las elegidas' })]), clear,
     h('div', { class: 'vdt-cnt' }, [count, pagTop])]);
   const help = h('p', { class: 'fh vdt-help', text: 'Marca la casilla para elegir una virtud o un defecto, y desmárcala para quitarlo. Pulsa la descripción para leerla entera. De entrada se ve el Libro básico, y las propias de la saga si las hay: añade otros libros en «Libros». Si falta alguna, créala con «Crear virtud o defecto»: solo existirá en esta saga.' });
+  const rules = vdRules(o.clase ? o.clase() : 'otro');
   const formBox = h('section', { class: 'vdt-new', 'aria-labelledby': 'vdt-new-h' });
   formBox.hidden = true;
   const newBtn = h('button', { type: 'button', class: 'btn ghost', onclick: () => openForm(null) }, 'Crear virtud o defecto');
@@ -387,7 +417,7 @@ function openVdTab(o) {
       addCb ? h('label', { class: 'chk', for: 'vdt-new-add' }, [addCb, addTxt]) : null,
       err,
       h('div', { class: 'vdt-new-act' }, [save, cancel, del])].filter(Boolean)); // append() would write «null» for the parts left out
-    [fbar, help, ul, pagBot, newBtn].forEach(n => { n.hidden = true; });
+    [fbar, help, rules, ul, pagBot, newBtn].forEach(n => { n.hidden = true; });
     formBox.hidden = false;
     const box = formBox.closest('.modal-b');
     if (box) box.scrollTop = 0;
@@ -397,14 +427,14 @@ function openVdTab(o) {
   function closeForm(back) {
     formBox.hidden = true;
     formBox.innerHTML = '';
-    [fbar, help, ul].forEach(n => { n.hidden = false; });
+    [fbar, help, rules, ul].forEach(n => { n.hidden = false; });
     newBtn.hidden = !S.db;
     pagBot.hidden = pages() < 2;
     if (back) (formFrom && formFrom.isConnected && formFrom !== document.body ? formFrom : newBtn).focus();
   }
 
   const done = h('button', { type: 'button', class: 'btn' }, 'Listo');
-  const close = openModal('Virtudes y defectos', [fbar, help, formBox, ul, pagBot], [sum, newBtn, done]);
+  const close = openModal('Virtudes y defectos', [fbar, help, rules, formBox, ul, pagBot], [sum, newBtn, done]);
   done.addEventListener('click', () => close());
   const box = document.body.lastElementChild;
   if (box && box.classList.contains('modal')) box.classList.add('vd-tab');

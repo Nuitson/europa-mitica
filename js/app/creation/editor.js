@@ -410,6 +410,7 @@ function viewEditor(id, override) {
   const vdTab = {
     pjId: id || null, // to tell this character apart from the saved ones that also have a virtue of the saga
     genero: () => d.genero,
+    clase: () => CLASE[d.tipo] || 'otro',
     chosen: e => d[vdKind(e.clase)].some(x => sameVd(x, e)),
     locked: e => e.clase === 'virtud' && vdFx({ n: e.n, en: e.en, valor: e.valor }, 'virtud') === 'don' && isMagic(CLASE[d.tipo]),
     toggle(e, on) {
